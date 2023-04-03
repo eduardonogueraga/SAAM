@@ -16,8 +16,6 @@ void EstadoInicio(){
 
 	/*
 	sleepModeGSM = GSM_ON;
-	sleepModeBT = BT_OFF;
-
 	fecha.establecerFechaReset(10);
 	*/
 }
@@ -27,10 +25,10 @@ void setup()
 	  Serial.begin(115200);
 	  Serial.println(version[0]);
 
-
-
 	  //Restaurar configuracion almacenada
-	  //EEPROM_RestoreData(EE_CONFIG_STRUCT, configSystem); @PEND
+	  //EEPROM_RestoreData(EE_CONFIG_STRUCT, configSystem);
+	  configSystem = NVS_RestoreData<configuracion_sistema_t>("CONF_SYSTEM");
+
 
 	  //Inicio de perifericos
 	  iniciarTecladoI2C();
@@ -40,44 +38,42 @@ void setup()
 	  delay(2000);
 
 	  /*
-
 		mensaje.inicioSIM800(SIM800L);
 		registro.iniciar();
 		fecha.iniciarRTC();
 
-
 		*/
 
 	  //Declaracion de los puertos I/O
-	  	/*
+
 	  	//PIR
-	    pinMode(PIR_SENSOR_1, INPUT);
-	    pinMode(PIR_SENSOR_2, INPUT);
-	    pinMode(PIR_SENSOR_3, INPUT);
-	    pinMode(MG_SENSOR, INPUT_PULLUP);
+		pcf8575.pinMode(PIR_SENSOR_1, INPUT);
+		pcf8575.pinMode(PIR_SENSOR_2, INPUT);
+		pcf8575.pinMode(PIR_SENSOR_3, INPUT);
+		pcf8575.pinMode(MG_SENSOR, INPUT);
 
 	    //MODULO GSM
-		pinMode(GSM_PIN, OUTPUT);
+		pcf8575.pinMode(GSM_PIN, OUTPUT);
 
 		//MODULO RS485
-		pinMode(RS_CTL, OUTPUT);
+		pcf8575.pinMode(RS_CTL, OUTPUT);
 
 		//PUERTOS INTERNOS
-		pinMode(BOCINA_PIN, OUTPUT);
-		pinMode(LED_COCHERA, OUTPUT);
-	    pinMode(RESETEAR,OUTPUT);
-	    pinMode(WATCHDOG, OUTPUT);
-        pinMode(SENSOR_BATERIA_RESPALDO, INPUT_PULLUP);
+		pcf8575.pinMode(BOCINA_PIN, OUTPUT);
+		pcf8575.pinMode(LED_COCHERA, OUTPUT);
+		pcf8575.pinMode(RESETEAR,OUTPUT);
+		pcf8575.pinMode(WATCHDOG, OUTPUT);
+	    pcf8575.pinMode(SENSOR_BATERIA_RESPALDO, INPUT);
 	    //attachInterrupt(digitalPinToInterrupt(FALLO_BATERIA_PRINCIPAL), interrupcionFalloAlimentacion, FALLING);
 
-	  //Configuracion de los puertos
-	    digitalWrite(LED_COCHERA, LOW);
-	    digitalWrite(RS_CTL,LOW);
-	  	 */
-	    EstadoInicio();
-	    //cargarEstadoPrevio();
-	    //checkearAlertasDetenidas();
-	    //chekearInterrupciones();
+	   //Configuracion de los puertos
+	   pcf8575.digitalWrite(LED_COCHERA, LOW);
+	   pcf8575.digitalWrite(RS_CTL,LOW);
+
+	   EstadoInicio();
+	   cargarEstadoPrevio();
+	   checkearAlertasDetenidas();
+	   chekearInterrupciones();
 
 }
 
@@ -95,15 +91,17 @@ void loop()
 
 
 void procesosSistema(){
-	/*
+
 	watchDog();
 	sleepMode();
-	checkearSms();
-	resetAutomatico();
-	checkearBateriaDeEmergencia();
 	checkearSensorPuertaCochera();
 	avisoLedPuertaCochera();
 	resetearAlarma();
+
+	/*
+    checkearSms();
+	resetAutomatico();
+	checkearBateriaDeEmergencia();
 	*/
 }
 
@@ -156,11 +154,12 @@ void procesoAlarma(){
 
 		if(checkearMargenTiempo(tiempoMargen)){
 
-			//mg.compruebaEstadoMG(digitalRead(MG_SENSOR));
-			//pir1.compruebaEstado(digitalRead(PIR_SENSOR_1)); // @suppress("Ambiguous problem")
-			//pir2.compruebaEstado(digitalRead(PIR_SENSOR_2)); // @suppress("Ambiguous problem")
-			//pir3.compruebaEstado(digitalRead(PIR_SENSOR_3)); // @suppress("Ambiguous problem")
-			/*
+			mg.compruebaEstadoMG(pcf8575.digitalRead(MG_SENSOR));
+			pir1.compruebaEstado(pcf8575.digitalRead(PIR_SENSOR_1));
+			pir2.compruebaEstado(pcf8575.digitalRead(PIR_SENSOR_2));
+			pir3.compruebaEstado(pcf8575.digitalRead(PIR_SENSOR_3));
+
+
 			if(mg.disparador()){
 				Serial.println(F("\nDisparador:  MG"));
 				zona = MG;
@@ -184,10 +183,10 @@ void procesoAlarma(){
 				zona = PIR_3;
 				setEstadoAlerta();
 			}
-			*/
+
 		}
 
-		//sonarBocina();
+		sonarBocina();
 		desactivarAlarma();
 
 		break;
@@ -224,10 +223,10 @@ void procesoAlarma(){
 
 		}
 
-		//mg.compruebaPhantom(digitalRead(MG_SENSOR),datosSensoresPhantom);
-		//pir1.compruebaPhantom(digitalRead(PIR_SENSOR_1),datosSensoresPhantom);
-		//pir2.compruebaPhantom(digitalRead(PIR_SENSOR_2),datosSensoresPhantom);
-		//pir3.compruebaPhantom(digitalRead(PIR_SENSOR_3),datosSensoresPhantom);
+		mg.compruebaPhantom(pcf8575.digitalRead(MG_SENSOR),datosSensoresPhantom);
+		pir1.compruebaPhantom(pcf8575.digitalRead(PIR_SENSOR_1),datosSensoresPhantom);
+		pir2.compruebaPhantom(pcf8575.digitalRead(PIR_SENSOR_2),datosSensoresPhantom);
+		pir3.compruebaPhantom(pcf8575.digitalRead(PIR_SENSOR_3),datosSensoresPhantom);
 
 		realizarLlamadas();
 		sonarBocina();
@@ -242,7 +241,8 @@ void setEstadoGuardia()
 {
 	Serial.println(F("\nAlarma Activada"));
 	estadoAlarma = ESTADO_GUARDIA;
-	//EEPROM.update(EE_ESTADO_GUARDIA, 1); @PEND
+	//EEPROM.update(EE_ESTADO_GUARDIA, 1);
+	guardarFlagEE("ESTADO_GUARDIA", 1);
 
 	sleepModeGSM = GSM_OFF;
 	limpiarSensores();
@@ -257,7 +257,10 @@ void setEstadoGuardiaReactivacion()
 {
 	Serial.println("\nAlarma Reactivada. Intentos realizados: "+ (String)INTENTOS_REACTIVACION);
 	estadoAlarma = ESTADO_GUARDIA;
-	//EEPROM.update(EE_ESTADO_GUARDIA, 1); @PEND
+	//EEPROM.update(EE_ESTADO_GUARDIA, 1);
+	guardarFlagEE("ESTADO_GUARDIA", 1);
+
+
 
 	limpiarSensores();
 	lcd_clave_tiempo = millis();
@@ -271,15 +274,17 @@ void setEstadoGuardiaReactivacion()
 	//Desabilitar puerta tras la reactivacion
 	if(configSystem.SENSORES_HABLITADOS[0] && zona == MG ){
 		flagPuertaAbierta = 1;
-		//EEPROM.update(EE_FLAG_PUERTA_ABIERTA, 1); @PEND
+		//EEPROM.update(EE_FLAG_PUERTA_ABIERTA, 1);
+		guardarFlagEE("PUERTA_ABIERTA", 1);
 
 		sensorHabilitado[0] = 0;
 		arrCopy<byte>(sensorHabilitado, configSystem.SENSORES_HABLITADOS, 4);
-		EEPROM_SaveData(EE_CONFIG_STRUCT, configSystem);
+		//EEPROM_SaveData(EE_CONFIG_STRUCT, configSystem);
+		NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
 	}
 
 	//mensaje.mensajeReactivacion(datosSensoresPhantom); @PEND
-	//datosSensoresPhantom.borraDatos(); @PEND
+	datosSensoresPhantom.borraDatos();
 
 	//insertQuery(&sqlActivarAlarmaAutomatico);
 }
@@ -289,6 +294,7 @@ void setEstadoAlerta()
 	Serial.println("\nIntrusismo detectado en " + nombreZonas[zona]);
 	estadoAlarma = ESTADO_ALERTA;
 	//EEPROM.update(EE_ESTADO_ALERTA, 1);
+	guardarFlagEE("ESTADO_ALERTA", 1);
 	guardarEstadoAlerta();
 
 	lcd_clave_tiempo = millis();
@@ -311,7 +317,8 @@ void setEstadoEnvio()
 	setMargenTiempo(tiempoMargen,TIEMPO_REACTIVACION, TIEMPO_REACTIVACION_TEST);
 
 	//mensaje.mensajeAlerta(datosSensores);
-	//EEPROM.update(EE_ESTADO_ALERTA, 0); @PEND
+	//EEPROM.update(EE_ESTADO_ALERTA, 0);
+	guardarFlagEE("ESTADO_ALERTA", 0);
 }
 
 void setEstadoReposo()
@@ -329,16 +336,22 @@ void setEstadoReposo()
 	sleepModeGSM = GSM_OFF;
 	estadoLlamada = TLF_1;
 	desactivaciones ++;
-	//EEPROM.update(EE_ESTADO_GUARDIA, 0); @PEND
-	//EEPROM.update(EE_ESTADO_ALERTA, 0); @PEND
+	//EEPROM.update(EE_ESTADO_GUARDIA, 0);
+	//EEPROM.update(EE_ESTADO_ALERTA, 0);
+	guardarFlagEE("ESTADO_GUARDIA", 0);
+	guardarFlagEE("ESTADO_ALERTA", 0);
+
 
 	//Rehabilitar sensor puerta
 	if(flagPuertaAbierta){
 		sensorHabilitado[0] = 1;
 		arrCopy<byte>(sensorHabilitado, configSystem.SENSORES_HABLITADOS, 4);
-		EEPROM_SaveData(EE_CONFIG_STRUCT, configSystem);
+		//EEPROM_SaveData(EE_CONFIG_STRUCT, configSystem);
+		NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
 
-		//EEPROM.update(EE_FLAG_PUERTA_ABIERTA, 0); @PEND
+
+		//EEPROM.update(EE_FLAG_PUERTA_ABIERTA, 0);
+		guardarFlagEE("PUERTA_ABIERTA", 0);
 	}
 
 	//insertQuery(&sqlDesactivarAlarma);

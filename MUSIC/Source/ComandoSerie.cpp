@@ -63,29 +63,30 @@ void ComandoSerie::comprobarComando() {
 
 	if (data.indexOf("pir1") >= 0) {
 
-		//pir1.pingSensor();
+		pir1.pingSensor();
 	}
 
 	if (data.indexOf("pir2") >= 0) {
 
-		//pir2.pingSensor();
+		pir2.pingSensor();
 	}
 
 	if (data.indexOf("pir3") >= 0) {
 
-		//pir3.pingSensor();
+		pir3.pingSensor();
 	}
 
 	if (data.indexOf("mg") >= 0) {
 
-		//mg.pingSensor();
+		mg.pingSensor();
 	}
 
 	if (data.indexOf("ch puerta") >= 0) {
 
 		sensorHabilitado[0] = !sensorHabilitado[0];
-		//arrCopy<byte>(sensorHabilitado, configSystem.SENSORES_HABLITADOS, 4);
+		arrCopy<byte>(sensorHabilitado, configSystem.SENSORES_HABLITADOS, 4);
 		//EEPROM_SaveData(EE_CONFIG_STRUCT, configSystem); @PEND
+		NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
 
 		if(!sensorHabilitado[0]){
 			Serial.println("Sensor puerta deshabilitado" );
@@ -119,7 +120,7 @@ void ComandoSerie::comprobarComando() {
 	}
 
 	if(data.indexOf("d")>=0){
-		//Serial.println(datosSensores.imprimeDatos());
+		Serial.println(datosSensores.imprimeDatos());
 	}
 
 }

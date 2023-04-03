@@ -10,6 +10,7 @@
 
 #include <EEPROM.h>
 
+
 //MACROS
 #define TIEMPO_OFF_TEST 0.1666
 #define TIEMPO_ON_TEST 0.01
@@ -33,27 +34,26 @@
 #define CODEC_LCD 0x25 //  0x3F 0x27
 
 //SENSORES
-#define PIR_SENSOR_1 43
-#define PIR_SENSOR_2 45
-#define PIR_SENSOR_3 47
-//#define PIR_SENSOR_4 49
-#define MG_SENSOR 48
+#define PIR_SENSOR_1 P0
+#define PIR_SENSOR_2 P1
+#define PIR_SENSOR_3 P2
+#define MG_SENSOR 	 P3
 
 //BOCINA
-#define BOCINA_PIN 23
+#define BOCINA_PIN P7
 
 //WATCHDOG
-#define WATCHDOG 22 // @develop ('Pines adaptados')
+#define WATCHDOG P10 // @develop ('Pines adaptados')
 
 //RS485
-#define RS_CTL 18
+#define RS_CTL P6
 
 //CONTROL RELES 12V
 #define RELE_TENSION_LINEA 3
 #define RELE_AUXILIAR 4
 
 //SLEEPMODE
-#define GSM_PIN 28
+#define GSM_PIN P5
 #define BT_PIN 12
 
 //COMUNICACIONES
@@ -66,13 +66,13 @@
 #define REGISTRO_SS_PIN 53
 
 //RESET
-#define RESETEAR 46
+#define RESETEAR P9
 
 //LED PUERTA
-#define LED_COCHERA 44
+#define LED_COCHERA P8
 
 //BATERIA E INTERRUPCIONES
-#define SENSOR_BATERIA_RESPALDO 2 //Monitoriza el flujo de tension en el booster
+#define SENSOR_BATERIA_RESPALDO P4 //Monitoriza el flujo de tension en el booster
 #define FALLO_BATERIA_PRINCIPAL 19 //Interrupcion por fallo en la bateria
 
 //SISTEMA
@@ -97,6 +97,11 @@
 #define EE_DATOS_SALTOS 100
 
 //DEFINICIONES DE FUNCIONES
+void guardarFlagEE(const char* key, uint8_t value);
+uint8_t leerFlagEE(const char* key);
+
+template <typename T> void NVS_SaveData(const char* key, T value);
+template <typename T> T NVS_RestoreData(const char* key);
 
 void insertQuery(void (*otherFunction)(String*));
 void insertQuery(void (*otherFunction)(String*, String, String), String param1, String param2);
@@ -288,22 +293,5 @@ template <class T> void arrCopy(int origen[], int destino[], byte tam) {
 		*q++ = *p++;
 }
 
-template <class T> int EEPROM_SaveData(int ee, const T& value)
-{
-    const uint8_t* p = (const uint8_t*)(const void*)&value;
-    unsigned int i;
-    for (i = 0; i < sizeof(value); i++)
-         // EEPROM.update(ee++, *p++); @PENDIENTE
-    return i;
-}
-
-template <class T> int EEPROM_RestoreData(int ee, T& value)
-{
-	 uint8_t* p = (uint8_t*)(void*)&value;
-    unsigned int i;
-    for (i = 0; i < sizeof(value); i++)
-          *p++ = EEPROM.read(ee++);
-    return i;
-}
 
 #endif /* SOURCE_MACROS_H_ */

@@ -10,9 +10,8 @@
 
 #include <LiquidCrystal_I2C.h>
 #include <Wire.h>
-#include <EEPROM.h>
 #include "Autenticacion.h"
-//#include "InterStrike.h"
+#include "InterStrike.h"
 #include "Macros.h"
 //#include "Fecha.h"
 
@@ -22,7 +21,7 @@
 extern byte MODO_DEFAULT;
 extern const char* version[];
 extern unsigned long tiempoMargen;
-//extern InterStrike pir1, pir2, pir3;
+extern InterStrike pir1, pir2, pir3;
 extern Autenticacion auth;
 //extern Fecha fecha;
 extern String nombreZonas[];

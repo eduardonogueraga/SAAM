@@ -125,14 +125,14 @@ void Pantalla::lcdReposo()
 		lcd.print(F("__-__ "));
 //	}
 	lcd.setCursor(15,1);
-/*
-	if(digitalRead(SENSOR_BATERIA_RESPALDO) == HIGH){
+
+	if(pcf8575.digitalRead(SENSOR_BATERIA_RESPALDO) == HIGH){
 		lcd.print(F(" "));
 	}else{
 		lcd.print(F("!"));
 
 	}
-	*/
+
 }
 
 void Pantalla::lcdGuardia(){
@@ -148,33 +148,33 @@ void Pantalla::lcdGuardia(){
 	lcd.setCursor(0,1);
 	lcd.print(F("C:"));
 	lcd.setCursor(2,1);
-	/*
+
 	if(configSystem.SENSORES_HABLITADOS[1]){
 		lcd.print(pir1.getStrike());
 	}else{
 		lcd.print(F("X"));
 	}
-*/
+
 	lcd.setCursor(4,1);
 	lcd.print(F("P:"));
 	lcd.setCursor(6,1);
-	/*
+
 	if(configSystem.SENSORES_HABLITADOS[2]){
 		lcd.print(pir2.getStrike());
 	}else{
 		lcd.print(F("X"));
 	}
-*/
+
 	lcd.setCursor(8,1);
 	lcd.print(F("A:"));
 	lcd.setCursor(10,1);
-	/*
+
 	if(configSystem.SENSORES_HABLITADOS[3]){
 		lcd.print(pir3.getStrike());
 	}else{
 		lcd.print(F("X"));
 	}
-	*/
+
 
 	if(millis()> tiempoMargen){
 		lcd.setCursor(12,1);
@@ -342,7 +342,7 @@ void Pantalla::lcdGuardia(){
 		lcd.setCursor(0,1);
 		lcd.print("->");
 		lcd.setCursor(2,1);
-		lcd.print(EEPROM.read(EE_INTERRUPCIONES_HISTORICO));
+		lcd.print(leerFlagEE("INTERUP_HIST"));
 		lcd.setCursor(5,1);
 		lcd.print(F("RESET>3 A>#"));
 	}
@@ -368,7 +368,7 @@ void Pantalla::lcdGuardia(){
 		lcd.setCursor(0,0);
 		lcd.print(F("SMS:"));
 		lcd.setCursor(4,0);
-		lcd.print(EEPROM.read(MENSAJES_ENVIADOS));
+		//lcd.print(EEPROM.read(MENSAJES_ENVIADOS)); @PEND
 		lcd.setCursor(7,0);
 		lcd.print(F("  RESET>3"));
 

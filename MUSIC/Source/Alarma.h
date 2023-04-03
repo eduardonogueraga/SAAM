@@ -9,72 +9,81 @@
 #define SOURCE_ALARMA_H_
 
 #include "Arduino.h"
-//#include <SoftwareSerial.h>
 #include <LiquidCrystal_I2C.h>
-//#include <Wire.h>
 #include <Keypad.h>
-#include <EEPROM.h>
-#include "Teclado.h"
-#include "Env.h"
-#include "Macros.h"
+#include <Preferences.h>
+#include "PCF8575.h"
+
 
 #include "Autenticacion.h"
 #include "Pantalla.h"
 #include "ComandoSerie.h"
-/*
-
 #include "InterStrike.h"
 #include "Datos.h"
 #include "Bocina.h"
+#include "Teclado.h"
+#include "Env.h"
+#include "Macros.h"
+
+
+/*
+
+#include <Wire.h>
+#include <SoftwareSerial.h>
+
 #include "Mensajes.h"
 #include "Menu.h"
 #include "Registro.h"
 #include "Fecha.h"
 
-#include "SQL.h"
 */
+
+
 //VERSION (VE -> Version Estable VD -> Version Desarrollo)
-const char* version[] = {"MUSIC VE21R0", "20/03/23"};
+const char* version[] = {"MUSIC VE21R0", "02/04/23"};
 
 //VARIABLES GLOBALES
 ConfigSystem configSystem;
 EE_DatosSalto eeDatosSalto;
 
-byte MODO_DEFAULT = 1;  //@develop
+byte MODO_DEFAULT = 0;  //@develop
 byte INTENTOS_REACTIVACION = 0;
 
 //SENSORES
 byte sensorHabilitado[4] = {1,1,1,1};
 
 //INSTANCIAS
+PCF8575 pcf8575(0x27); //Multiplexor
+Preferences NVSMemory; //Memoria
+
 ProcesoCentral procesoCentral;
 EstadosAlarma estadoAlarma;
 EstadosError estadoError;
 SLEEPMODE_GSM sleepModeGSM;
-SLEEPMODE_BT sleepModeBT;
 LLAMADAS_GSM estadoLlamada;
 CODIGO_ERROR codigoError;
 
 Autenticacion auth;
 Pantalla pantalla;
 ComandoSerie demonio;
-/*
-
 Bocina bocina;
-SoftwareSerial SIM800L(GSM_TX,GSM_RX);
-SoftwareSerial bluetooh(BT_RX, BT_TX);
-Mensajes mensaje;
 Datos datosSensores;
 Datos datosSensoresPhantom;
-Menu menu;
-Registro registro;
-Fecha fecha;
 
 InterStrike mg = InterStrike(0, 1, datosSensores);
 InterStrike pir1 = InterStrike(1, 1, datosSensores, 5000, 60000);
 InterStrike pir2 = InterStrike(2, 2, datosSensores, 7000, 20000);
 InterStrike pir3 = InterStrike(3, 2, datosSensores, 5000, 21000);
+
+
+/*
+SoftwareSerial SIM800L(GSM_TX,GSM_RX);
+Mensajes mensaje;
+Menu menu;
+Registro registro;
+Fecha fecha;
 */
+
 //TIEMPOS MARGEN
 
 const unsigned long TIEMPO_OFF = 120000; // (*0.1666) -> 20000 (*0.1666) -> 20000 sensible
@@ -192,9 +201,9 @@ static byte tiempoFracccion;
  }
 
  void pantallaDeErrorInicial(String mensaje){
-		//String *errLcd = &pantalla.getErrorTexto(); @PEND
-		//*errLcd = mensaje;
-		//pantalla.lcdLoadView(&pantalla, &Pantalla::lcdError); @PEND
+		String *errLcd = &pantalla.getErrorTexto();
+		*errLcd = mensaje;
+		pantalla.lcdLoadView(&pantalla, &Pantalla::lcdError);
 		delay(2000);
  }
 
@@ -227,9 +236,12 @@ static byte tiempoFracccion;
 			if (key != NO_KEY){
 				if(key == '#'){
 					estadoError = GUARDAR_DATOS;
-					//EEPROM.update(EE_ERROR_INTERRUPCION,0); @PEND
-					//EEPROM.update(EE_MENSAJE_EMERGENCIA,0); @PEND
-					//EEPROM.update(EE_LLAMADA_EMERGENCIA,0); @PEND
+					//EEPROM.update(EE_ERROR_INTERRUPCION,0);
+					//EEPROM.update(EE_MENSAJE_EMERGENCIA,0);
+					//EEPROM.update(EE_LLAMADA_EMERGENCIA,0);
+					guardarFlagEE("ERR_INTERRUPT", 0);
+					guardarFlagEE("MENSAJE_EMERGEN", 0);
+					guardarFlagEE("LLAMADA_EMERGEN", 0);
 
 					procesoCentral = ALARMA;
 				}
@@ -238,29 +250,29 @@ static byte tiempoFracccion;
 	}
 	void sonarBocina(){
 		if(!checkearMargenTiempo(tiempoBocina)){
-			//bocina.sonarBocina();
+			bocina.sonarBocina();
 		}else{
-			//bocina.stopBocina();
+			bocina.stopBocina();
 		}
 	}
 
 	void pararBocina()
 	{
-		//bocina.stopBocina(); @PEND
+		bocina.stopBocina();
 		tiempoBocina = 0;
 	}
 
 	void limpiarSensores(){
-		/*
+
 		mg.setStart();
 		pir1.setStart();
 		pir2.setStart();
 		pir3.setStart();
-		*/
+
 	}
 
 	void watchDog(){
-		digitalWrite(WATCHDOG, !digitalRead(WATCHDOG));
+		pcf8575.digitalWrite(WATCHDOG, !pcf8575.digitalRead(WATCHDOG));
 	}
 
 	void sleepMode(){
@@ -269,34 +281,24 @@ static byte tiempoFracccion;
 
 		case GSM_ON:
 
-			digitalWrite(GSM_PIN, HIGH);
+			pcf8575.digitalWrite(GSM_PIN, HIGH);
 			break;
 
 		case GSM_OFF:
 
-			digitalWrite(GSM_PIN, LOW);
+			pcf8575.digitalWrite(GSM_PIN, LOW);
 			break;
 
 		case GSM_TEMPORAL:
 
 			if(checkearMargenTiempo(prorrogaGSM)){
-				digitalWrite(GSM_PIN, LOW);
+				pcf8575.digitalWrite(GSM_PIN, LOW);
 			}else {
-				digitalWrite(GSM_PIN, HIGH);
+				pcf8575.digitalWrite(GSM_PIN, HIGH);
 			}
 			break;
 		}
 
-		switch(sleepModeBT){
-
-		case BT_ON:
-			digitalWrite(BT_PIN, HIGH);
-			break;
-
-		case BT_OFF:
-			digitalWrite(BT_PIN, LOW);
-			break;
-		}
 	}
 
 	void checkearSms(){
@@ -305,7 +307,7 @@ static byte tiempoFracccion;
 		}
 /*
 		if(fecha.comprobarHora(0, 0)){
-			if(EEPROM.read(MENSAJES_ENVIADOS) != 0){
+			if(EEPROM.read(MENSAJES_ENVIADOS) != 0){ @PEND
 				EEPROM.write(MENSAJES_ENVIADOS,0);
 				insertQuery(&sqlIntentosRecuperados);
 				Serial.println(F("Intentos diarios recuperados"));
@@ -318,7 +320,7 @@ static byte tiempoFracccion;
 			Serial.println(F("\nReseteando"));
 			//insertQuery(&sqlReset);
 			delay(200);
-			digitalWrite(RESETEAR, HIGH);
+			pcf8575.digitalWrite(RESETEAR, HIGH);
 		}
 
 	void resetAutomatico(){
@@ -352,20 +354,23 @@ static byte tiempoFracccion;
 	}
 
 	void cargarEstadoPrevio(){
-		   flagPuertaAbierta = EEPROM.read(EE_FLAG_PUERTA_ABIERTA) == 1;
+		   flagPuertaAbierta = leerFlagEE("PUERTA_ABIERTA") == 1;
 
-		if (EEPROM.read(EE_ESTADO_GUARDIA) == 1 && EEPROM.read(EE_ERROR_INTERRUPCION) == 0) {
+
+		if (leerFlagEE("ESTADO_GUARDIA") == 1 && leerFlagEE("ERR_INTERRUPT") == 0) {
 			estadoAlarma = ESTADO_GUARDIA;
 			//insertQuery(&sqlUpdateEntradaRestaurada);
 		}
 	}
 
 	void checkearAlertasDetenidas(){
-		if (EEPROM.read(EE_ESTADO_ALERTA) == 1 && EEPROM.read(EE_ERROR_INTERRUPCION) == 0) {
+		if (leerFlagEE("ESTADO_ALERTA") == 1 && leerFlagEE("ERR_INTERRUPT") == 0) {
 
-			EEPROM_RestoreData(EE_DATOS_SALTOS, eeDatosSalto);
-			//int* datos = datosSensores.getDatos(); @PEND
-			//arrCopy<int>(eeDatosSalto.DATOS_SENSOR,datos ,TOTAL_SENSORES); //Carga los datos EE @PEND
+			//EEPROM_RestoreData(EE_DATOS_SALTOS, eeDatosSalto);
+			eeDatosSalto = NVS_RestoreData<datos_saltos_t>("SALTO_DATA");
+
+			int* datos = datosSensores.getDatos();
+			arrCopy<int>(eeDatosSalto.DATOS_SENSOR,datos ,TOTAL_SENSORES); //Carga los datos EE @PEND
 			zona = eeDatosSalto.ZONA;
 			INTENTOS_REACTIVACION = eeDatosSalto.INTENTOS_REACTIVACION;
 
@@ -379,21 +384,26 @@ static byte tiempoFracccion;
 	}
 
 	void guardarEstadoAlerta(){
-		//int* datos = datosSensores.getDatos(); @PEND
-		//arrCopy<int>(datos, eeDatosSalto.DATOS_SENSOR,TOTAL_SENSORES); @PEND
+		int* datos = datosSensores.getDatos();
+		arrCopy<int>(datos, eeDatosSalto.DATOS_SENSOR,TOTAL_SENSORES);
 		eeDatosSalto.ZONA = zona;
 		eeDatosSalto.INTENTOS_REACTIVACION = INTENTOS_REACTIVACION;
 
-		EEPROM_SaveData(EE_DATOS_SALTOS, eeDatosSalto);
+		NVS_SaveData<datos_saltos_t>("SALTO_DATA", eeDatosSalto);
+		//EEPROM_SaveData(EE_DATOS_SALTOS, eeDatosSalto);
 	}
 
 	void guardarEstadoInterrupcion(){
 
-		//EEPROM.update(EE_ERROR_INTERRUPCION,1); @PEND
-		//EEPROM.update(EE_INTERRUPCIONES_HISTORICO, (EEPROM.read(EE_INTERRUPCIONES_HISTORICO)+1)); @PEND
+		//EEPROM.update(EE_ERROR_INTERRUPCION,1);
+		guardarFlagEE("ERR_INTERRUPT", 1);
+
+		//EEPROM.update(EE_INTERRUPCIONES_HISTORICO, (EEPROM.read(EE_INTERRUPCIONES_HISTORICO)+1));
+		guardarFlagEE("INTERUP_HIST", (leerFlagEE("INTERUP_HIST") + 1));
 
 		configSystem.MODULO_RTC = 0;
 		//EEPROM_SaveData(EE_CONFIG_STRUCT, configSystem); //Apagar RTC durante las interrupciones @PEND
+		NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
 	}
 
 	void checkearBateriaDeEmergencia(){
@@ -463,14 +473,14 @@ static byte tiempoFracccion;
 	}
 
 	void chekearInterrupciones(){
-		if(EEPROM.read(EE_ERROR_INTERRUPCION) == 1){
+		if(leerFlagEE("ERR_INTERRUPT") == 1){
 
 			procesoCentral = ERROR;
-			codigoError = static_cast<CODIGO_ERROR>(EEPROM.read(EE_CODIGO_ERROR));
+			codigoError = static_cast<CODIGO_ERROR>(leerFlagEE("CODIGO_ERROR"));
 
-			if(EEPROM.read(EE_MENSAJE_EMERGENCIA) == 1){
+			if(leerFlagEE("MENSAJE_EMERGEN") == 1){
 
-				if(EEPROM.read(EE_LLAMADA_EMERGENCIA) == 0){
+				if(leerFlagEE("LLAMADA_EMERGEN") == 0){
 					Serial.println(F("Vuelve a por las llamadas"));
 					estadoError = REALIZAR_LLAMADAS;
 					setMargenTiempo(tiempoMargen,240000);
@@ -482,7 +492,8 @@ static byte tiempoFracccion;
 			}else {
 				Serial.println(F("Vuelve desde el principio"));
 
-				EEPROM_RestoreData(EE_DATOS_SALTOS, eeDatosSalto);
+				//EEPROM_RestoreData(EE_DATOS_SALTOS, eeDatosSalto);
+				eeDatosSalto = NVS_RestoreData<datos_saltos_t>("SALTO_DATA");
 				//int* datos = datosSensores.getDatos(); @PEND
 				//arrCopy<int>(eeDatosSalto.DATOS_SENSOR,datos ,TOTAL_SENSORES); @PEND
 
@@ -497,7 +508,8 @@ static byte tiempoFracccion;
 		codigoError = ERR_FALLO_ALIMENTACION;
 		//insertQuery(&sqlError);
 		procesoCentral = ERROR;
-		//EEPROM.update(EE_CODIGO_ERROR, ERR_FALLO_ALIMENTACION); @PEND
+		//EEPROM.update(EE_CODIGO_ERROR, ERR_FALLO_ALIMENTACION);
+		guardarFlagEE("CODIGO_ERROR", ERR_FALLO_ALIMENTACION);
 		guardarEstadoInterrupcion();
 	}
 
@@ -569,7 +581,8 @@ static byte tiempoFracccion;
 
 			if(checkearMargenTiempo(tiempoMargen)){
 				setEstadoErrorEsperarAyuda();
-				//EEPROM.update(EE_LLAMADA_EMERGENCIA, 1); @PEND
+				//EEPROM.update(EE_LLAMADA_EMERGENCIA, 1);
+				guardarFlagEE("LLAMADA_EMERGEN", 1);
 			}
 
 			desactivarEstadoDeError();
@@ -591,22 +604,66 @@ static byte tiempoFracccion;
 	void avisoLedPuertaCochera(){
 
 		if(estadoAlarma != ESTADO_GUARDIA){
-			digitalWrite(LED_COCHERA, LOW);
+			pcf8575.digitalWrite(LED_COCHERA, LOW);
 		}else{
 
 			if(!checkearMargenTiempo(tiempoMargen)){
 
-				if(!digitalRead(MG_SENSOR)){
-					digitalWrite(LED_COCHERA, HIGH);
+				if(!pcf8575.digitalRead(MG_SENSOR)){
+					pcf8575.digitalWrite(LED_COCHERA, HIGH);
 				}else{
-					digitalWrite(LED_COCHERA, LOW);
+					pcf8575.digitalWrite(LED_COCHERA, LOW);
 				}
 
 			}else{
-				digitalWrite(LED_COCHERA, LOW);
+				pcf8575.digitalWrite(LED_COCHERA, LOW);
 			}
 
 		}
 	}
+
+	//MANEJO DE MEMORIA NVS
+	uint8_t leerFlagEE(const char* key) {
+
+		NVSMemory.begin("SAA_DATA", false);
+		uint8_t value = NVSMemory.getUChar(key);
+		NVSMemory.end();
+
+		return value;
+	}
+
+
+	void guardarFlagEE(const char* key, uint8_t value) {
+
+		NVSMemory.begin("SAA_DATA", false);
+		uint8_t previo = NVSMemory.getUChar(key);
+
+		if(previo != value || value == NULL){
+			NVSMemory.putUChar(key, value);
+		}
+
+		NVSMemory.end();
+	}
+
+
+	template <typename T> void NVS_SaveData(const char* key, T value) {
+
+		NVSMemory.begin("SAA_DATA", false);
+		NVSMemory.putBytes(key, &value, sizeof(value));
+		NVSMemory.end();
+	}
+
+	template <typename T> T NVS_RestoreData(const char* key) {
+
+	  NVSMemory.begin("SAA_DATA", false);
+	  T value; //Struct generico
+
+	  NVSMemory.getBytes(key, &value, sizeof(value));
+      NVSMemory.end();
+
+	  // Devolvemos el struct leído
+	  return value;
+	}
+
 
 #endif /* SOURCE_ALARMA_H_ */
