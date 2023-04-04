@@ -109,21 +109,22 @@ void Pantalla::lcdClave()
 void Pantalla::lcdReposo()
 {
 	lcd.setCursor(0,0);
-	lcd.print(F("ALARMA <> MENU>2"));
+	lcd.print(F("ALARMA <> MENU>B"));
 	lcd.setCursor(0,1);
 	lcd.print(F("APAGADA"));
 	lcd.setCursor(7,1);
-	//if(fecha.comprobarFecha(fecha.getFechaReset())){
-//		lcd.print(F(" R>"));
-	//}else{
+	if(configSystem.MODULO_RTC){
+		if(fecha.comprobarFecha(fecha.getFechaReset()))
+			lcd.print(F(" R>"));
+	}else{
 		lcd.print(F("   "));
-//	}
+	}
 	lcd.setCursor(10,1);
-//	if(configSystem.MODULO_RTC){
-//		lcd.print(fecha.imprimeHora());
-//	}else{
+	if(configSystem.MODULO_RTC){
+		lcd.print(fecha.imprimeHora());
+	}else{
 		lcd.print(F("__-__ "));
-//	}
+	}
 	lcd.setCursor(15,1);
 
 	if(pcf8575.digitalRead(SENSOR_BATERIA_RESPALDO) == HIGH){
@@ -360,7 +361,9 @@ void Pantalla::lcdGuardia(){
 		lcd.setCursor(0,0);
 		lcd.print(F("RESET AUTO:  A>#"));
 		lcd.setCursor(0,1);
-		//lcd.print((String)fecha.imprimeFechaSimple(fecha.getFechaReset())+" 16:30"); @PEND
+		if(configSystem.MODULO_RTC){
+			lcd.print((String)fecha.imprimeFechaSimple(fecha.getFechaReset())+" 16:30");
+		}
 	}
 
 	void Pantalla::menuInfoSMSDiario(){
@@ -368,7 +371,7 @@ void Pantalla::lcdGuardia(){
 		lcd.setCursor(0,0);
 		lcd.print(F("SMS:"));
 		lcd.setCursor(4,0);
-		//lcd.print(EEPROM.read(MENSAJES_ENVIADOS)); @PEND
+		lcd.print(leerFlagEE("N_SMS_ENVIADOS"));
 		lcd.setCursor(7,0);
 		lcd.print(F("  RESET>3"));
 

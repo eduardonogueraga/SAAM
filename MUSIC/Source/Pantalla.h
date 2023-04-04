@@ -13,7 +13,7 @@
 #include "Autenticacion.h"
 #include "InterStrike.h"
 #include "Macros.h"
-//#include "Fecha.h"
+#include "Fecha.h"
 
 
 
@@ -23,7 +23,7 @@ extern const char* version[];
 extern unsigned long tiempoMargen;
 extern InterStrike pir1, pir2, pir3;
 extern Autenticacion auth;
-//extern Fecha fecha;
+extern Fecha fecha;
 extern String nombreZonas[];
 extern byte zona;
 extern byte desactivaciones, mensajesEnviados;

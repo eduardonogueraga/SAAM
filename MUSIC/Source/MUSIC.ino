@@ -13,11 +13,18 @@ void EstadoInicio(){
 
 	procesoCentral = ALARMA;
 	estadoAlarma = ESTADO_REPOSO;
-
-	/*
 	sleepModeGSM = GSM_ON;
-	fecha.establecerFechaReset(10);
-	*/
+
+	//Acutalizamos el secuencial de los logs para esta ejecucion
+	guardarFlagEE("LOG_SEQ", (leerFlagEEInt("LOG_SEQ")+1));
+
+	//if(!MODO_DEFAULT)
+	//printSystemInfo();
+
+
+	if(configSystem.MODULO_RTC){
+		fecha.establecerFechaReset(10);
+	}
 }
 
 void setup()
@@ -33,16 +40,17 @@ void setup()
 	  //Inicio de perifericos
 	  iniciarTecladoI2C();
 	  pantalla.iniciar();
+	  fecha.iniciarRTC();
+
+	  if(registro.iniciar() == 0){
+		  Serial.println(F("ERROR AL INICIAR SD"));
+		  pantallaDeErrorInicial(F("  SYSTM ERROR!  ERROR INICIAR SD"));
+	  }
+	  //mensaje.inicioSIM800(SIM800L);
 
 	  pantalla.lcdLoadView(&pantalla, &Pantalla::lcdInicio);
 	  delay(2000);
 
-	  /*
-		mensaje.inicioSIM800(SIM800L);
-		registro.iniciar();
-		fecha.iniciarRTC();
-
-		*/
 
 	  //Declaracion de los puertos I/O
 
@@ -66,9 +74,9 @@ void setup()
 	    pcf8575.pinMode(SENSOR_BATERIA_RESPALDO, INPUT);
 	    //attachInterrupt(digitalPinToInterrupt(FALLO_BATERIA_PRINCIPAL), interrupcionFalloAlimentacion, FALLING);
 
-	   //Configuracion de los puertos
-	   pcf8575.digitalWrite(LED_COCHERA, LOW);
-	   pcf8575.digitalWrite(RS_CTL,LOW);
+	    //Configuracion de los puertos
+		pcf8575.digitalWrite(LED_COCHERA, LOW);
+		pcf8575.digitalWrite(RS_CTL,LOW);
 
 	   EstadoInicio();
 	   cargarEstadoPrevio();
@@ -97,12 +105,9 @@ void procesosSistema(){
 	checkearSensorPuertaCochera();
 	avisoLedPuertaCochera();
 	resetearAlarma();
-
-	/*
     checkearSms();
 	resetAutomatico();
 	checkearBateriaDeEmergencia();
-	*/
 }
 
 void procesosPrincipales()
@@ -114,11 +119,11 @@ void procesosPrincipales()
 		break;
 
 	case MENU:
-		//menu.procesoMenu();
+		menu.procesoMenu();
 		break;
 
 	case ERROR:
-		//procesoError();
+		procesoError();
 		break;
 	}
 }
@@ -139,7 +144,7 @@ void procesoAlarma(){
 					setEstadoGuardia();
 				}
 
-				if(key == '2'){ //Tecla menu
+				if(key == 'B'){ //Tecla menu
 					procesoCentral = MENU;
 				}
 			}
@@ -251,6 +256,7 @@ void setEstadoGuardia()
 	setMargenTiempo(tiempoMargen,TIEMPO_ON, TIEMPO_ON_TEST);
 
 	//insertQuery(&sqlActivarAlarmaManual);
+	registro.registrarLogSistema("ALARMA ACTIVADA MANUALMENTE");
 }
 
 void setEstadoGuardiaReactivacion()
@@ -283,10 +289,11 @@ void setEstadoGuardiaReactivacion()
 		NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
 	}
 
-	//mensaje.mensajeReactivacion(datosSensoresPhantom); @PEND
+	mensaje.mensajeReactivacion(datosSensoresPhantom);
 	datosSensoresPhantom.borraDatos();
 
 	//insertQuery(&sqlActivarAlarmaAutomatico);
+	registro.registrarLogSistema("ALARMA ACTIVADA AUTOMATICAMENTE");
 }
 
 void setEstadoAlerta()
@@ -316,7 +323,7 @@ void setEstadoEnvio()
 	setMargenTiempo(tiempoBocina, TIEMPO_BOCINA, TIEMPO_BOCINA_TEST);
 	setMargenTiempo(tiempoMargen,TIEMPO_REACTIVACION, TIEMPO_REACTIVACION_TEST);
 
-	//mensaje.mensajeAlerta(datosSensores);
+	mensaje.mensajeAlerta(datosSensores);
 	//EEPROM.update(EE_ESTADO_ALERTA, 0);
 	guardarFlagEE("ESTADO_ALERTA", 0);
 }
@@ -355,4 +362,5 @@ void setEstadoReposo()
 	}
 
 	//insertQuery(&sqlDesactivarAlarma);
+	registro.registrarLogSistema("ALARMA DESACTIVADA MANUALMENTE");
 }

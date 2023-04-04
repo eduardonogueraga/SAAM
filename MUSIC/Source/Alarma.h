@@ -24,23 +24,14 @@
 #include "Teclado.h"
 #include "Env.h"
 #include "Macros.h"
-
-
-/*
-
-#include <Wire.h>
-#include <SoftwareSerial.h>
-
 #include "Mensajes.h"
 #include "Menu.h"
-#include "Registro.h"
 #include "Fecha.h"
-
-*/
+#include "Registro.h"
 
 
 //VERSION (VE -> Version Estable VD -> Version Desarrollo)
-const char* version[] = {"MUSIC VE21R0", "02/04/23"};
+const char* version[] = {"MUSIC VE21R0", "04/04/23"};
 
 //VARIABLES GLOBALES
 ConfigSystem configSystem;
@@ -48,6 +39,7 @@ EE_DatosSalto eeDatosSalto;
 
 byte MODO_DEFAULT = 0;  //@develop
 byte INTENTOS_REACTIVACION = 0;
+byte SD_STATUS = 0; //Comprueba si la escritura en SD esta OK
 
 //SENSORES
 byte sensorHabilitado[4] = {1,1,1,1};
@@ -74,15 +66,11 @@ InterStrike mg = InterStrike(0, 1, datosSensores);
 InterStrike pir1 = InterStrike(1, 1, datosSensores, 5000, 60000);
 InterStrike pir2 = InterStrike(2, 2, datosSensores, 7000, 20000);
 InterStrike pir3 = InterStrike(3, 2, datosSensores, 5000, 21000);
-
-
-/*
-SoftwareSerial SIM800L(GSM_TX,GSM_RX);
 Mensajes mensaje;
 Menu menu;
-Registro registro;
 Fecha fecha;
-*/
+Registro registro;
+
 
 //TIEMPOS MARGEN
 
@@ -305,20 +293,27 @@ static byte tiempoFracccion;
 		if(!configSystem.MODULO_RTC){
 			return;
 		}
-/*
+
 		if(fecha.comprobarHora(0, 0)){
-			if(EEPROM.read(MENSAJES_ENVIADOS) != 0){ @PEND
-				EEPROM.write(MENSAJES_ENVIADOS,0);
-				insertQuery(&sqlIntentosRecuperados);
+			if(leerFlagEE("N_SMS_ENVIADOS") != 0){
+				guardarFlagEE("N_SMS_ENVIADOS", 0);
+				//insertQuery(&sqlIntentosRecuperados);
+				registro.registrarLogSistema("INTENTOS SMS DIARIOS RECUPERADOS");
 				Serial.println(F("Intentos diarios recuperados"));
 			}
 		}
-*/
+
 	}
 
 	void resetear(){
 			Serial.println(F("\nReseteando"));
 			//insertQuery(&sqlReset);
+			if(alertsInfoLcd[INFO_RESET_AUTO] == 1){
+				registro.registrarLogSistema("RESET AUTOMATICO");
+			}else {
+				registro.registrarLogSistema("RESET MANUAL");
+			}
+
 			delay(200);
 			pcf8575.digitalWrite(RESETEAR, HIGH);
 		}
@@ -328,7 +323,7 @@ static byte tiempoFracccion;
 		if(!configSystem.MODULO_RTC){
 			return;
 		}
-/*
+
 		if(fecha.comprobarFecha(fecha.getFechaReset())){
 
 			alertsInfoLcd[INFO_RESET_AUTO] = 1;
@@ -339,7 +334,7 @@ static byte tiempoFracccion;
 			}
 		}else {
 			alertsInfoLcd[INFO_RESET_AUTO] = 0;
-		}*/
+		}
 	}
 
 	void resetearAlarma(){
@@ -359,6 +354,7 @@ static byte tiempoFracccion;
 
 		if (leerFlagEE("ESTADO_GUARDIA") == 1 && leerFlagEE("ERR_INTERRUPT") == 0) {
 			estadoAlarma = ESTADO_GUARDIA;
+			registro.registrarLogSistema("CARGADO ESTADO GUARDIA PREVIO");
 			//insertQuery(&sqlUpdateEntradaRestaurada);
 		}
 	}
@@ -370,11 +366,15 @@ static byte tiempoFracccion;
 			eeDatosSalto = NVS_RestoreData<datos_saltos_t>("SALTO_DATA");
 
 			int* datos = datosSensores.getDatos();
-			arrCopy<int>(eeDatosSalto.DATOS_SENSOR,datos ,TOTAL_SENSORES); //Carga los datos EE @PEND
+			arrCopy<int>(eeDatosSalto.DATOS_SENSOR,datos ,TOTAL_SENSORES); //Carga los datos EE
 			zona = eeDatosSalto.ZONA;
 			INTENTOS_REACTIVACION = eeDatosSalto.INTENTOS_REACTIVACION;
 
 			//insertQuery(&sqlUpdateSaltoRestaurado);
+			char registroConjunto[50];
+			snprintf(registroConjunto, sizeof(registroConjunto), "%s%s", "CARGADO ESTADO ALERTA EN ", nombreZonas[zona]);
+
+			registro.registrarLogSistema(registroConjunto);
 
 			Serial.println("\nIntrusismo restaurado en " + nombreZonas[zona]);
 			estadoAlarma = ESTADO_ALERTA;
@@ -402,24 +402,26 @@ static byte tiempoFracccion;
 		guardarFlagEE("INTERUP_HIST", (leerFlagEE("INTERUP_HIST") + 1));
 
 		configSystem.MODULO_RTC = 0;
-		//EEPROM_SaveData(EE_CONFIG_STRUCT, configSystem); //Apagar RTC durante las interrupciones @PEND
+		//EEPROM_SaveData(EE_CONFIG_STRUCT, configSystem); //Apagar RTC durante las interrupciones
 		NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
 	}
 
 	void checkearBateriaDeEmergencia(){
 
-		alertsInfoLcd[INFO_FALLO_BATERIA] = !digitalRead(SENSOR_BATERIA_RESPALDO);
+		alertsInfoLcd[INFO_FALLO_BATERIA] = !pcf8575.digitalRead(SENSOR_BATERIA_RESPALDO);
 
-		if(digitalRead(SENSOR_BATERIA_RESPALDO) != sensorBateriaAnterior){
+		if(pcf8575.digitalRead(SENSOR_BATERIA_RESPALDO) != sensorBateriaAnterior){
 
-			if(digitalRead(SENSOR_BATERIA_RESPALDO) == HIGH){
+			if(pcf8575.digitalRead(SENSOR_BATERIA_RESPALDO) == HIGH){
 				//insertQuery(&sqlBateriaEmergenciaActivada);
+				registro.registrarLogSistema("BATERIA DE EMERGENCIA ACTIVADA");
 			} else{
 				//insertQuery(&sqlBateriaEmergenciaDesactivada);
+				registro.registrarLogSistema("BATERIA DE EMERGENCIA DESACTIVADA");
 			}
 		}
 
-		sensorBateriaAnterior = digitalRead(SENSOR_BATERIA_RESPALDO);
+		sensorBateriaAnterior = pcf8575.digitalRead(SENSOR_BATERIA_RESPALDO);
 	}
 
 	void realizarLlamadas(){
@@ -434,8 +436,9 @@ static byte tiempoFracccion;
 		case TLF_1:
 
 			if(millis() > tiempoMargen - (TIEMPO_REACTIVACION*0.95) && millis() < tiempoMargen - (TIEMPO_REACTIVACION*0.90)){
-				//mensaje.llamarTlf((char*)telefonoLlamada_1); @PEND
+				mensaje.llamarTlf((char*)telefonoLlamada_1);
 				//insertQuery(&sqlLlamadas);
+				registro.registrarLogSistema("LLAMANDO A MOVIL");
 				estadoLlamada = COLGAR;
 				estadoAnterior = TLF_1;
 			}
@@ -445,8 +448,9 @@ static byte tiempoFracccion;
 		case TLF_2:
 
 			if(millis() > tiempoMargen - (TIEMPO_REACTIVACION*0.80)){
-				//mensaje.llamarTlf((char*)telefonoLlamada_2); @PEND
+				mensaje.llamarTlf((char*)telefonoLlamada_2);
 				//insertQuery(&sqlLlamadas);
+				registro.registrarLogSistema("LLAMANDO A MOVIL");
 				estadoLlamada = COLGAR;
 				estadoAnterior = TLF_2;
 			}
@@ -457,14 +461,14 @@ static byte tiempoFracccion;
 
 			if((millis() > tiempoMargen - (TIEMPO_REACTIVACION*0.85))){
 				if(estadoAnterior == TLF_1){
-					//mensaje.colgarLlamada(); @PEND
+					mensaje.colgarLlamada();
 					estadoLlamada = TLF_2;
 				}
 			}
 
 			if((millis() > tiempoMargen - (TIEMPO_REACTIVACION*0.70))){
 				if(estadoAnterior == TLF_2){
-					//mensaje.colgarLlamada(); @PEND
+					mensaje.colgarLlamada();
 					estadoLlamada = TLF_1;
 				}
 			}
@@ -494,8 +498,8 @@ static byte tiempoFracccion;
 
 				//EEPROM_RestoreData(EE_DATOS_SALTOS, eeDatosSalto);
 				eeDatosSalto = NVS_RestoreData<datos_saltos_t>("SALTO_DATA");
-				//int* datos = datosSensores.getDatos(); @PEND
-				//arrCopy<int>(eeDatosSalto.DATOS_SENSOR,datos ,TOTAL_SENSORES); @PEND
+				int* datos = datosSensores.getDatos();
+				arrCopy<int>(eeDatosSalto.DATOS_SENSOR,datos ,TOTAL_SENSORES);
 
 				estadoError = COMPROBAR_DATOS;
 				sleepModeGSM = GSM_TEMPORAL;
@@ -507,6 +511,7 @@ static byte tiempoFracccion;
 		Serial.println(F("\nInterrupcion por fallo en la alimentacion"));
 		codigoError = ERR_FALLO_ALIMENTACION;
 		//insertQuery(&sqlError);
+		registro.registrarLogSistema("INTERRUPCION POR FALLO EN LA ALIMENTACION");
 		procesoCentral = ERROR;
 		//EEPROM.update(EE_CODIGO_ERROR, ERR_FALLO_ALIMENTACION);
 		guardarFlagEE("CODIGO_ERROR", ERR_FALLO_ALIMENTACION);
@@ -565,7 +570,7 @@ static byte tiempoFracccion;
 				pantalla.lcdLoadView(&pantalla, &Pantalla::errorEmergencia);
 
 			if(checkearMargenTiempo(tiempoMargen)){
-				//mensaje.mensajeError(datosSensores); @PEND
+				mensaje.mensajeError(datosSensores);
 				setEstadoErrorRealizarLlamadas();
 			}
 			desactivarEstadoDeError();
@@ -622,6 +627,42 @@ static byte tiempoFracccion;
 		}
 	}
 
+	void printSystemInfo(){
+
+		Serial.print("INFORMACION DEL SISTEMA\n");
+		Serial.print("\n");
+
+		Serial.printf("MODO_SENSIBLE = %d\n", configSystem.MODO_SENSIBLE);
+		Serial.printf("MODULO SD = %d\n", configSystem.MODULO_SD);
+		Serial.printf("RTC = %d\n", configSystem.MODULO_RTC);
+		Serial.printf("SMS HISTORICO = %d\n", configSystem.SMS_HISTORICO);
+		Serial.printf("FECHA_SMS_HISTORICO = %s\n", configSystem.FECHA_SMS_HITORICO);
+
+		Serial.print("\n");
+
+		Serial.printf("SENSORES_HABILITADOS = {%d, %d, %d, %d}\n",
+				  configSystem.SENSORES_HABLITADOS[0], configSystem.SENSORES_HABLITADOS[1],
+				  configSystem.SENSORES_HABLITADOS[2], configSystem.SENSORES_HABLITADOS[3]);
+
+
+		Serial.printf("DATOS SENSORES = {%d, %d, %d, %d}\n",
+				eeDatosSalto.DATOS_SENSOR[0], eeDatosSalto.DATOS_SENSOR[1],
+				eeDatosSalto.DATOS_SENSOR[2], eeDatosSalto.DATOS_SENSOR[3]);
+
+		Serial.print("\n");
+
+		Serial.printf("FLAG GUARDIA = %d\n", leerFlagEE("ESTADO_GUARDIA"));
+		Serial.printf("FLAG ALERTA = %d\n", leerFlagEE("ESTADO_ALERTA"));
+		Serial.printf("FLAG PUERTA ABIERTA = %d\n", leerFlagEE("PUERTA_ABIERTA"));
+		Serial.printf("NUM SMS ENVIADOS = %d\n", leerFlagEE("N_SMS_ENVIADOS"));
+
+		Serial.print("\n");
+
+		Serial.printf("ERR INTERRUPT = %d\n", leerFlagEE("ERR_INTERRUPT"));
+		Serial.printf("ERR HISTORICO INTERRUPCIONES = %d\n", leerFlagEE("INTERUP_HIST"));
+		Serial.printf("ERR SMS EMERGENCIA ENVIADO = %d\n", leerFlagEE("MENSAJE_EMERGEN"));
+	}
+
 	//MANEJO DE MEMORIA NVS
 	uint8_t leerFlagEE(const char* key) {
 
@@ -630,6 +671,15 @@ static byte tiempoFracccion;
 		NVSMemory.end();
 
 		return value;
+	}
+
+	int leerFlagEEInt(const char* key) {
+
+			NVSMemory.begin("SAA_DATA", false);
+			int value = NVSMemory.getInt(key);
+			NVSMemory.end();
+
+			return value;
 	}
 
 
@@ -644,6 +694,19 @@ static byte tiempoFracccion;
 
 		NVSMemory.end();
 	}
+
+
+	void guardarFlagEE(const char* key, int value) {
+
+			NVSMemory.begin("SAA_DATA", false);
+			int previo = NVSMemory.getUChar(key);
+
+			if(previo != value || value == NULL){
+				NVSMemory.putInt(key, value);
+			}
+
+			NVSMemory.end();
+		}
 
 
 	template <typename T> void NVS_SaveData(const char* key, T value) {

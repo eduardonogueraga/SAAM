@@ -7,6 +7,9 @@
 #include "Arduino.h"
 #include "InterStrike.h"
 #include "Datos.h"
+#include "Registro.h"
+
+extern Registro registro;
 
 
 	InterStrike::InterStrike(byte numero, byte max, Datos &datos, long tiempoCeguera, long tiempoExposicion, long tiempoStrikeFondo)
@@ -45,6 +48,7 @@
 	void InterStrike::compruebaEstado(bool sensor){
 
 		this->sensor = sensor;
+		char registroConjunto[50];
 
 		if(gotoPing==1){ //Control serie
 			goto ping;
@@ -69,6 +73,10 @@
 					//insertQuery(&sqlSensorEstandar, ("PIR"+(String)(this->numero)), "ONLINE");
 					//insertQuery(&sqlSalto);
 
+
+					snprintf(registroConjunto, sizeof(registroConjunto), "%s%d%s", "MOVIMIENTO EN PIR",this->numero," ONLINE");
+					registro.registrarLogSistema(registroConjunto);
+
 					if(!MODO_DEFAULT)
 					bocina.bocinaAlert();
 
@@ -78,6 +86,8 @@
 					Serial.print(" deshabilitado");
 					//insertQuery(&sqlSensorEstandar, ("PIR"+(String)(this->numero)), "OFFLINE");
 					//insertQuery(&sqlSalto);
+					snprintf(registroConjunto, sizeof(registroConjunto), "%s%d%s", "MOVIMIENTO EN PIR",this->numero," OFFLINE");
+					registro.registrarLogSistema(registroConjunto);
 
 				}
 			}
@@ -129,6 +139,7 @@
 						Serial.print("\nSignal strike MG");
 						//insertQuery(&sqlSensorEstandar, "PUERTA COCHERA", "ONLINE");
 						//insertQuery(&sqlSalto);
+						registro.registrarLogSistema("DETECCION ABERTURA DE PUERTA");
 					}
 				}
 			}
@@ -182,6 +193,7 @@
 	void InterStrike::compruebaPhantom(bool sensor, Datos &_datos){
 
 		this->sensor = sensor;
+		char registroConjunto[50];
 
 		if(gotoPing==1){ //Control serie
 			goto ping;
@@ -204,6 +216,8 @@
 					_datos.setDatos(this->numero, strike);
 					//insertQuery(&sqlSensorPhantom, ("PIR"+(String)(this->numero)), "ONLINE");
 					//insertQuery(&sqlSalto);
+					snprintf(registroConjunto, sizeof(registroConjunto), "%s%d%s", "PHANTOM EN PIR",this->numero," ONLINE");
+					registro.registrarLogSistema(registroConjunto);
 				}
 			} else {
 				Serial.print("\nSensor ");
@@ -211,6 +225,8 @@
 				Serial.print(" deshabilitado");
 				//insertQuery(&sqlSensorPhantom, ("PIR"+(String)(this->numero)), "OFFLINE");
 				//insertQuery(&sqlSalto);
+				snprintf(registroConjunto, sizeof(registroConjunto), "%s%d%s", "PHANTOM EN PIR",this->numero," OFFLINE");
+				registro.registrarLogSistema(registroConjunto);
 			}
 		}
 

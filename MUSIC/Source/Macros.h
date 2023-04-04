@@ -97,8 +97,12 @@
 #define EE_DATOS_SALTOS 100
 
 //DEFINICIONES DE FUNCIONES
+void printSystemInfo();
+
+void guardarFlagEE(const char* key, int value);
 void guardarFlagEE(const char* key, uint8_t value);
 uint8_t leerFlagEE(const char* key);
+int leerFlagEEInt(const char* key);
 
 template <typename T> void NVS_SaveData(const char* key, T value);
 template <typename T> T NVS_RestoreData(const char* key);
