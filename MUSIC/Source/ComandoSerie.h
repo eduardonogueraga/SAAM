@@ -9,13 +9,14 @@
 #define SOURCE_COMANDOSERIE_H_
 #include "Arduino.h"
 #include "InterStrike.h"
-//#include "Registro.h"
+#include "Registro.h"
 #include "Macros.h"
 #include "Datos.h"
 
 extern void setEstadoGuardia();
 extern void setEstadoReposo();
 extern void setEstadoEnvio();
+extern void resetear();
 
 extern byte MODO_DEFAULT;
 extern ProcesoCentral procesoCentral;
@@ -23,9 +24,9 @@ extern ConfigSystem configSystem;
 extern InterStrike pir1, pir2, pir3, mg;
 extern Datos datosSensores;
 
-/*
+
 extern Registro registro;
-*/
+
 extern byte sensorHabilitado[];
 
 extern void interrupcionFalloAlimentacion();

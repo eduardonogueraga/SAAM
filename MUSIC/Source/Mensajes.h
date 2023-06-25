@@ -14,10 +14,11 @@
 
 #include "Macros.h"
 #include "Env.h"
-//#include "Fecha.h"
-#include "PCF8575.h"
+#include "Fecha.h"
+#include <Adafruit_MCP23X17.h>
 
-extern PCF8575 pcf8575;
+extern Adafruit_MCP23X17 mcp;
+
 
 //extern SoftwareSerial SIM800L;
 extern byte INTENTOS_REACTIVACION;
@@ -26,7 +27,7 @@ extern String nombreZonas[4];
 extern byte zona;
 extern byte mensajesEnviados;
 extern ConfigSystem configSystem;
-//extern Fecha fecha;
+extern Fecha fecha;
 extern CODIGO_ERROR codigoError;
 extern byte flagPuertaAbierta;
 

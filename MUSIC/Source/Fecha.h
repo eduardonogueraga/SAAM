@@ -24,6 +24,7 @@ public:
 	String imprimeFecha(DateTime paramFecha = 0);
 	String imprimeFechaSimple(DateTime paramFecha = 0);
 	String imprimeFechaSQL();
+	const char* imprimeFechaFichero();
 	String imprimeHora();
 	void establecerFechaReset(byte dia, byte hora = 0, byte minuto = 0, byte segundo = 0);
 	DateTime getFechaReset();

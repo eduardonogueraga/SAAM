@@ -101,18 +101,18 @@ void ComandoSerie::comprobarComando() {
 		setEstadoEnvio();
 	}
 
-	if (data.indexOf("show reg")>=0){
-		//registro.mostrarRegistro((char*)"REGISTRO.txt");
+	if (data.indexOf("reg")>=0){
+		Serial.println("Mostrando contenido");
+		registro.mostrarRegistro();
 	}
 
-
-	if (data.indexOf("show sql")>=0){
-		//registro.mostrarRegistro((char*)"SQL.txt");
-	}
 
 	if (data.indexOf("clear")>=0){
-		//registro.truncateRegistro((char*)"REGISTRO.txt");
-		//registro.truncateRegistro((char*)"SQL.txt");
+		registro.borrarRegistros();
+	}
+
+	if (data.indexOf("ls")>=0){
+		registro.listarRegistros();
 	}
 
 	if(data.indexOf("power")>=0){
@@ -127,7 +127,9 @@ void ComandoSerie::comprobarComando() {
 		printSystemInfo();
 	}
 
-
+	if(data.indexOf("bye")>=0){
+		resetear();
+	}
 
 }
 

@@ -17,6 +17,7 @@ void EstadoInicio(){
 
 	//Acutalizamos el secuencial de los logs para esta ejecucion
 	guardarFlagEE("LOG_SEQ", (leerFlagEEInt("LOG_SEQ")+1));
+	registro.registrarLogSistema("ALARMA INICIADA");
 
 	//if(!MODO_DEFAULT)
 	//printSystemInfo();
@@ -30,6 +31,8 @@ void EstadoInicio(){
 void setup()
 {
 	  Serial.begin(115200);
+	  MySerial2.begin(115200, SERIAL_8N1, 5, 18); //RX TX  (H1 = RX5 TX 18) PUERTO RS
+	  MySerial.begin(115200, SERIAL_8N1, 23, 19); //RX TX  (H2 = RX23 TX19)
 	  Serial.println(version[0]);
 
 	  //Restaurar configuracion almacenada
@@ -42,6 +45,13 @@ void setup()
 	  pantalla.iniciar();
 	  fecha.iniciarRTC();
 
+	  //Iniciar multiplexor
+	  if (!mcp.begin_I2C(MCP_ADDR)) {
+	    Serial.println("Error MUX MCP23017");
+	    //while (1);
+	  }
+
+
 	  if(registro.iniciar() == 0){
 		  Serial.println(F("ERROR AL INICIAR SD"));
 		  pantallaDeErrorInicial(F("  SYSTM ERROR!  ERROR INICIAR SD"));
@@ -53,41 +63,74 @@ void setup()
 
 
 	  //Declaracion de los puertos I/O
-
 	  	//PIR
-		pcf8575.pinMode(PIR_SENSOR_1, INPUT);
-		pcf8575.pinMode(PIR_SENSOR_2, INPUT);
-		pcf8575.pinMode(PIR_SENSOR_3, INPUT);
-		pcf8575.pinMode(MG_SENSOR, INPUT);
+	    mcp.pinMode(PIR_SENSOR_1, INPUT);
+	    mcp.pinMode(PIR_SENSOR_2, INPUT);
+	    mcp.pinMode(PIR_SENSOR_3, INPUT);
+	    mcp.pinMode(MG_SENSOR, INPUT);
 
 	    //MODULO GSM
-		pcf8575.pinMode(GSM_PIN, OUTPUT);
+	    mcp.pinMode(GSM_PIN, OUTPUT);
 
 		//MODULO RS485
-		pcf8575.pinMode(RS_CTL, OUTPUT);
+	    mcp.pinMode(RS_CTL, OUTPUT);
 
 		//PUERTOS INTERNOS
-		pcf8575.pinMode(BOCINA_PIN, OUTPUT);
-		pcf8575.pinMode(LED_COCHERA, OUTPUT);
-		pcf8575.pinMode(RESETEAR,OUTPUT);
-		pcf8575.pinMode(WATCHDOG, OUTPUT);
-	    pcf8575.pinMode(SENSOR_BATERIA_RESPALDO, INPUT);
+	    mcp.pinMode(BOCINA_PIN, OUTPUT);
+	    mcp.pinMode(RELE_AUXILIAR, OUTPUT);
+	    mcp.pinMode(LED_COCHERA, OUTPUT);
+	    mcp.pinMode(RESETEAR,OUTPUT);
+	    mcp.pinMode(WATCHDOG, OUTPUT);
+	    mcp.pinMode(SENSOR_BATERIA_RESPALDO, INPUT);
 	    //attachInterrupt(digitalPinToInterrupt(FALLO_BATERIA_PRINCIPAL), interrupcionFalloAlimentacion, FALLING);
 
 	    //Configuracion de los puertos
-		pcf8575.digitalWrite(LED_COCHERA, LOW);
-		pcf8575.digitalWrite(RS_CTL,LOW);
+
+	    mcp.digitalWrite(LED_COCHERA, LOW);
+	    mcp.digitalWrite(RS_CTL,LOW);
+
 
 	   EstadoInicio();
 	   cargarEstadoPrevio();
 	   checkearAlertasDetenidas();
 	   chekearInterrupciones();
 
+
 }
 
 
 void loop()
 {
+
+	  //Serial.print("Estado de la entrada digital: ");
+	  //Serial.println(digitalRead(SENSOR_BATERIA_RESPALDO));
+
+	 // delay(1000); // Esperar 1 segundo
+
+	 //Serial.println("###TRAZA|PRUEBA|TEST|FIN###");
+	 // delay(2000);
+/*
+	 if (Serial.available()) {
+		 while(Serial.available()){
+			 // Leer el caracter y enviarlo al puerto Serial2
+				    char c = Serial.read();
+				    MySerial2.write(c);
+		 }
+
+	  }
+
+	 if (MySerial.available()) {
+	    // Leer el caracter y mostrarlo en el Monitor Serie
+		 while(MySerial.available()){
+			// delay(10);
+			  char c = MySerial.read();
+			  Serial.write(c);
+		 }
+
+	  }
+
+ */
+	//MySerial.println("¡Hola desde Arduino!");
 
 	leerEntradaTeclado();
 	demonio.demonioSerie();
@@ -159,10 +202,10 @@ void procesoAlarma(){
 
 		if(checkearMargenTiempo(tiempoMargen)){
 
-			mg.compruebaEstadoMG(pcf8575.digitalRead(MG_SENSOR));
-			pir1.compruebaEstado(pcf8575.digitalRead(PIR_SENSOR_1));
-			pir2.compruebaEstado(pcf8575.digitalRead(PIR_SENSOR_2));
-			pir3.compruebaEstado(pcf8575.digitalRead(PIR_SENSOR_3));
+			mg.compruebaEstadoMG(mcp.digitalRead(MG_SENSOR));
+			pir1.compruebaEstado(mcp.digitalRead(PIR_SENSOR_1));
+			pir2.compruebaEstado(mcp.digitalRead(PIR_SENSOR_2));
+			pir3.compruebaEstado(mcp.digitalRead(PIR_SENSOR_3));
 
 
 			if(mg.disparador()){
@@ -228,10 +271,10 @@ void procesoAlarma(){
 
 		}
 
-		mg.compruebaPhantom(pcf8575.digitalRead(MG_SENSOR),datosSensoresPhantom);
-		pir1.compruebaPhantom(pcf8575.digitalRead(PIR_SENSOR_1),datosSensoresPhantom);
-		pir2.compruebaPhantom(pcf8575.digitalRead(PIR_SENSOR_2),datosSensoresPhantom);
-		pir3.compruebaPhantom(pcf8575.digitalRead(PIR_SENSOR_3),datosSensoresPhantom);
+		mg.compruebaPhantom(mcp.digitalRead(MG_SENSOR),datosSensoresPhantom);
+		pir1.compruebaPhantom(mcp.digitalRead(PIR_SENSOR_1),datosSensoresPhantom);
+		pir2.compruebaPhantom(mcp.digitalRead(PIR_SENSOR_2),datosSensoresPhantom);
+		pir3.compruebaPhantom(mcp.digitalRead(PIR_SENSOR_3),datosSensoresPhantom);
 
 		realizarLlamadas();
 		sonarBocina();

@@ -12,7 +12,7 @@
 #include <LiquidCrystal_I2C.h>
 #include <Keypad.h>
 #include <Preferences.h>
-#include "PCF8575.h"
+#include <Adafruit_MCP23X17.h>
 
 
 #include "Autenticacion.h"
@@ -29,9 +29,12 @@
 #include "Fecha.h"
 #include "Registro.h"
 
+#include <HardwareSerial.h>
+HardwareSerial MySerial(1);
+HardwareSerial MySerial2(2);
 
 //VERSION (VE -> Version Estable VD -> Version Desarrollo)
-const char* version[] = {"MUSIC VE21R0", "04/04/23"};
+const char* version[] = {"MUSIC VE21R0", "25/06/23"};
 
 //VARIABLES GLOBALES
 ConfigSystem configSystem;
@@ -45,7 +48,10 @@ byte SD_STATUS = 0; //Comprueba si la escritura en SD esta OK
 byte sensorHabilitado[4] = {1,1,1,1};
 
 //INSTANCIAS
-PCF8575 pcf8575(0x27); //Multiplexor
+
+//MUX
+Adafruit_MCP23X17 mcp;
+
 Preferences NVSMemory; //Memoria
 
 ProcesoCentral procesoCentral;
@@ -260,7 +266,8 @@ static byte tiempoFracccion;
 	}
 
 	void watchDog(){
-		pcf8575.digitalWrite(WATCHDOG, !pcf8575.digitalRead(WATCHDOG));
+		//pcf8575.digitalWrite(WATCHDOG, !pcf8575.digitalRead(WATCHDOG));
+		mcp.digitalWrite(WATCHDOG, !mcp.digitalRead(WATCHDOG));
 	}
 
 	void sleepMode(){
@@ -269,20 +276,24 @@ static byte tiempoFracccion;
 
 		case GSM_ON:
 
-			pcf8575.digitalWrite(GSM_PIN, HIGH);
+			//pcf8575.digitalWrite(GSM_PIN, HIGH);
+			mcp.digitalWrite(GSM_PIN, HIGH);
 			break;
 
 		case GSM_OFF:
 
-			pcf8575.digitalWrite(GSM_PIN, LOW);
+			//pcf8575.digitalWrite(GSM_PIN, LOW);
+			mcp.digitalWrite(GSM_PIN, LOW);
 			break;
 
 		case GSM_TEMPORAL:
 
 			if(checkearMargenTiempo(prorrogaGSM)){
-				pcf8575.digitalWrite(GSM_PIN, LOW);
+				//pcf8575.digitalWrite(GSM_PIN, LOW);
+				mcp.digitalWrite(GSM_PIN, LOW);
 			}else {
-				pcf8575.digitalWrite(GSM_PIN, HIGH);
+				//pcf8575.digitalWrite(GSM_PIN, HIGH);
+				mcp.digitalWrite(GSM_PIN, HIGH);
 			}
 			break;
 		}
@@ -315,7 +326,8 @@ static byte tiempoFracccion;
 			}
 
 			delay(200);
-			pcf8575.digitalWrite(RESETEAR, HIGH);
+			//pcf8575.digitalWrite(RESETEAR, HIGH);
+			mcp.digitalWrite(RESETEAR, HIGH);
 		}
 
 	void resetAutomatico(){
@@ -408,11 +420,14 @@ static byte tiempoFracccion;
 
 	void checkearBateriaDeEmergencia(){
 
-		alertsInfoLcd[INFO_FALLO_BATERIA] = !pcf8575.digitalRead(SENSOR_BATERIA_RESPALDO);
+		//alertsInfoLcd[INFO_FALLO_BATERIA] = !pcf8575.digitalRead(SENSOR_BATERIA_RESPALDO);
+		alertsInfoLcd[INFO_FALLO_BATERIA] = !mcp.digitalRead(SENSOR_BATERIA_RESPALDO);
 
-		if(pcf8575.digitalRead(SENSOR_BATERIA_RESPALDO) != sensorBateriaAnterior){
+		//if(pcf8575.digitalRead(SENSOR_BATERIA_RESPALDO) != sensorBateriaAnterior){
+	    if(mcp.digitalRead(SENSOR_BATERIA_RESPALDO) != sensorBateriaAnterior){
 
-			if(pcf8575.digitalRead(SENSOR_BATERIA_RESPALDO) == HIGH){
+	    //if(pcf8575.digitalRead(SENSOR_BATERIA_RESPALDO) == HIGH){
+			if(mcp.digitalRead(SENSOR_BATERIA_RESPALDO) == LOW){
 				//insertQuery(&sqlBateriaEmergenciaActivada);
 				registro.registrarLogSistema("BATERIA DE EMERGENCIA ACTIVADA");
 			} else{
@@ -421,7 +436,8 @@ static byte tiempoFracccion;
 			}
 		}
 
-		sensorBateriaAnterior = pcf8575.digitalRead(SENSOR_BATERIA_RESPALDO);
+		//sensorBateriaAnterior = pcf8575.digitalRead(SENSOR_BATERIA_RESPALDO);
+	    sensorBateriaAnterior = mcp.digitalRead(SENSOR_BATERIA_RESPALDO);
 	}
 
 	void realizarLlamadas(){
@@ -609,19 +625,24 @@ static byte tiempoFracccion;
 	void avisoLedPuertaCochera(){
 
 		if(estadoAlarma != ESTADO_GUARDIA){
-			pcf8575.digitalWrite(LED_COCHERA, LOW);
+			//pcf8575.digitalWrite(LED_COCHERA, LOW);
+			mcp.digitalWrite(LED_COCHERA, LOW);
 		}else{
 
 			if(!checkearMargenTiempo(tiempoMargen)){
 
-				if(!pcf8575.digitalRead(MG_SENSOR)){
-					pcf8575.digitalWrite(LED_COCHERA, HIGH);
+				//if(!pcf8575.digitalRead(MG_SENSOR)){
+				if(!mcp.digitalRead(MG_SENSOR)){
+					//pcf8575.digitalWrite(LED_COCHERA, HIGH);
+					mcp.digitalWrite(LED_COCHERA, HIGH);
 				}else{
-					pcf8575.digitalWrite(LED_COCHERA, LOW);
+					//pcf8575.digitalWrite(LED_COCHERA, LOW);
+					mcp.digitalWrite(LED_COCHERA, LOW);
 				}
 
 			}else{
-				pcf8575.digitalWrite(LED_COCHERA, LOW);
+				//pcf8575.digitalWrite(LED_COCHERA, LOW);
+				mcp.digitalWrite(LED_COCHERA, LOW);
 			}
 
 		}

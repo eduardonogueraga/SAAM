@@ -422,7 +422,7 @@ void Menu::infoDatos(){
 		if(key == '3'){
 
 			char temp[30];
-			//fecha.imprimeFechaSimple().toCharArray(temp, 30); //@PEND
+			fecha.imprimeFechaSimple().toCharArray(temp, 30);
 
 			if(configSystem.MODULO_RTC){
 

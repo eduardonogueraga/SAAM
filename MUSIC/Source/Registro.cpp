@@ -28,46 +28,35 @@ byte Registro::iniciar(){
 			  return 0;
 		  }
 
-		  //Comprueba los directorios
+		  int numDirectories = sizeof(directories) / sizeof(directories[0]);
 
-		  root = SD.open("/");
+		  // Crear los directorios uno por uno
+		  for (int i = 0; i < numDirectories; i++) {
+		    const char* directory = directories[i];
 
-		  if (!SD.exists(saaLogs)) {
-		    Serial.println("Creando directorio de logs");
+		    if (!SD.exists(directory)) {
+		      // Intentar crear el directorio
+		      if (!SD.mkdir(directory)) {
+		        Serial.print("Error al crear el directorio ");
+		        Serial.println(directory);
+		        break;
 
-		    if (SD.mkdir(saaLogs)) {
-		      Serial.println("Directorio creado exitosamente.");
-		    } else {
-		      Serial.println("Error al crear el directorio.");
-		      return 0;
+		      } else {
+		        Serial.print("Directorio ");
+		        Serial.print(directory);
+		        Serial.println(" creado exitosamente.");
+		      }
 		    }
 		  }
+
+
+		  //Definimos el nombre del nuevo fichero de syslog
+		  snprintf(nombreFichero, sizeof(nombreFichero), "%s_%08d_%s%s", "syslog", leerFlagEEInt("LOG_SEQ"), fecha.imprimeFechaFichero(),".txt");
 
 		  SD_STATUS = 1;
 		  Serial.println("ALMACENIAMENTO SD OK");
 
-		   // Recorre la lista de archivos y los borra si empiezan por "log"
-		  root = SD.open(saaLogs);
-
-		    while (true) {
-		      File entry = root.openNextFile();
-		      if (!entry) {
-		        break;
-		      }
-		      String fileName = entry.name();
-		      Serial.println(fileName);
-
-		      if (fileName.startsWith("sys")) {
-		        //SD.remove("/logs/" + fileName);
-		        Serial.println(fileName);
-		      }
-		      entry.close();
-		    }
-
-		    // Cierra la carpeta "logs"
-		    root.close();
-
-		    return 1;
+		  return 1;
 
 }
 
@@ -77,29 +66,105 @@ void Registro::registrarLogSistema(char descripcion[190]){
 		return;
 
 	 //Nos movemos al diretorio de logs
-	   root = SD.open(saaLogs);
+	   root = SD.open(sysLog);
 	   if (!root) {
 		 Serial.println("No se pudo abrir la carpeta logs");
 		 return;
 	   }
 
-	   int secuencialLog = leerFlagEEInt("LOG_SEQ");
-
-	   char nombreFichero[25];
-	   snprintf(nombreFichero, sizeof(nombreFichero), "%s%08d%s", "systemlog_", secuencialLog, ".txt");
-	   //PEND ANADIR FECHA AL LOG SI RTC IS ON
-
-	   snprintf(rutaAbosuluta, sizeof(rutaAbosuluta), "%s/%s", saaLogs, nombreFichero);
+	   snprintf(rutaAbosuluta, sizeof(rutaAbosuluta), "%s/%s", sysLog, nombreFichero);
 
 	     root = SD.open(rutaAbosuluta, FILE_APPEND);
 			 if (!root) {
 			   Serial.println("Fallo al abrir el fichero de logs");
 			   return;
 			 }
-	     root.println(descripcion);
+	     root.print(descripcion);
+	     root.print("\t");
+	     root.print(fecha.imprimeFecha());
+	     root.print("\n");
 	     root.close();
 
 }
 
+void Registro::mostrarRegistro(){
 
+
+	if(!configSystem.MODULO_SD || SD_STATUS == 0)
+	return;
+
+	//Nos movemos al diretorio de logs
+	   root = SD.open(sysLog);
+	   if (!root) {
+		 Serial.println("No se pudo abrir la carpeta logs");
+		 return;
+	   }
+
+	   snprintf(rutaAbosuluta, sizeof(rutaAbosuluta), "%s/%s", sysLog, nombreFichero);
+
+
+		 File file = SD.open(rutaAbosuluta);
+		   if (file) {
+		     // Lee línea por línea hasta el final del archivo
+		     while (file.available()) {
+		       String line = file.readStringUntil('\n');
+		       Serial.println(line);
+		     }
+		     // Cierra el archivo cuando termina de leer
+		     file.close();
+		   } else {
+		     Serial.println("Error al abrir el archivo.");
+		   }
+
+		   root.close();
+}
+
+void Registro::listarRegistros(){
+
+	  root = SD.open(sysLog);
+
+		while (true) {
+		  File entry = root.openNextFile();
+		  if (!entry) {
+			break;
+		  }
+		  String fileName = entry.name();
+		  Serial.println(fileName);
+
+		  entry.close();
+		}
+
+		root.close();
+
+}
+
+void Registro::borrarRegistros(){
+
+	if(!configSystem.MODULO_SD || SD_STATUS == 0)
+	return;
+
+	  root = SD.open(sysLog);
+
+	    while (true) {
+	      File entry = root.openNextFile();
+	      if (!entry) {
+	        break;
+	      }
+	      String fileName = entry.name();
+
+	      	  // Borra el archivo
+			  if (SD.remove(fileName)) {
+				Serial.print("Archivo borrado: ");
+				Serial.println(fileName);
+			  } else {
+				Serial.print("Error al borrar el archivo: ");
+				Serial.println(fileName);
+			  }
+
+	      entry.close();
+	    }
+
+	    root.close();
+
+}
 

@@ -10,9 +10,10 @@
 
 #include "Arduino.h"
 #include "Macros.h"
-#include "PCF8575.h"
+#include <Adafruit_MCP23X17.h>
 
-extern PCF8575 pcf8575;
+
+extern Adafruit_MCP23X17 mcp;
 
 class Bocina {
 

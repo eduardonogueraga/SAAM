@@ -11,17 +11,17 @@
 #include "Arduino.h"
 #include "Macros.h"
 #include "Pantalla.h"
-//#include "Fecha.h"
-//#include "Registro.h"
+#include "Fecha.h"
+#include "Registro.h"
 
 extern char key;
 extern Pantalla pantalla;
-//extern Fecha fecha;
+extern Fecha fecha;
 extern ProcesoCentral procesoCentral;
 extern byte MODO_DEFAULT;
 extern byte sensorHabilitado[];
 extern byte alertsInfoLcd[];
-//extern Registro registro;
+extern Registro registro;
 extern ConfigSystem configSystem;
 
 extern void sonarBocina();

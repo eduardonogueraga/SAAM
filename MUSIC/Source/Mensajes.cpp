@@ -221,9 +221,10 @@ String Mensajes::asuntoAlerta(Datos &datos){
 
 void Mensajes::pieFechaBateria(){
 	if(configSystem.MODULO_RTC)
-		//this->pieMensaje = fecha.imprimeFecha(); @PEND
+		this->pieMensaje = fecha.imprimeFecha();
 
-	if(pcf8575.digitalRead(SENSOR_BATERIA_RESPALDO) == LOW){
+	//if(pcf8575.digitalRead(SENSOR_BATERIA_RESPALDO) == LOW){
+	if(mcp.digitalRead(SENSOR_BATERIA_RESPALDO) == LOW){
 		this->pieMensaje += " Bateria de emergencia desactivada";
 	}
 }

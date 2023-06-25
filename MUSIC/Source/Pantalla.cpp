@@ -127,7 +127,7 @@ void Pantalla::lcdReposo()
 	}
 	lcd.setCursor(15,1);
 
-	if(pcf8575.digitalRead(SENSOR_BATERIA_RESPALDO) == HIGH){
+	if(mcp.digitalRead(SENSOR_BATERIA_RESPALDO) == LOW){
 		lcd.print(F(" "));
 	}else{
 		lcd.print(F("!"));
@@ -371,7 +371,7 @@ void Pantalla::lcdGuardia(){
 		lcd.setCursor(0,0);
 		lcd.print(F("SMS:"));
 		lcd.setCursor(4,0);
-		lcd.print(leerFlagEE("N_SMS_ENVIADOS"));
+		lcd.print(leerFlagEEInt("N_SMS_ENVIADOS"));
 		lcd.setCursor(7,0);
 		lcd.print(F("  RESET>3"));
 

@@ -34,26 +34,25 @@
 #define CODEC_LCD 0x25 //  0x3F 0x27
 
 //SENSORES
-#define PIR_SENSOR_1 P0
-#define PIR_SENSOR_2 P1
-#define PIR_SENSOR_3 P2
-#define MG_SENSOR 	 P3
+#define PIR_SENSOR_1 5//P0
+#define PIR_SENSOR_2 7//P1
+#define PIR_SENSOR_3 6//P2
+#define MG_SENSOR 	 4//P3
 
 //BOCINA
-#define BOCINA_PIN P7
+#define BOCINA_PIN 0//P7
 
 //WATCHDOG
-#define WATCHDOG P10 // @develop ('Pines adaptados')
+#define WATCHDOG 3//P4 // @develop ('Pines adaptados')
 
 //RS485
-#define RS_CTL P6
+#define RS_CTL 1//P6
 
 //CONTROL RELES 12V
-#define RELE_TENSION_LINEA 3
-#define RELE_AUXILIAR 4
+#define RELE_AUXILIAR 10
 
 //SLEEPMODE
-#define GSM_PIN P5
+#define GSM_PIN 2//P5
 #define BT_PIN 12
 
 //COMUNICACIONES
@@ -66,13 +65,16 @@
 #define REGISTRO_SS_PIN 53
 
 //RESET
-#define RESETEAR P9
+#define RESETEAR 9//P9
 
 //LED PUERTA
-#define LED_COCHERA P8
+#define LED_COCHERA 8//P8
+
+//DIR I2C
+#define MCP_ADDR 0x27  // mcp23017 address
 
 //BATERIA E INTERRUPCIONES
-#define SENSOR_BATERIA_RESPALDO P4 //Monitoriza el flujo de tension en el booster
+#define SENSOR_BATERIA_RESPALDO 15 //Monitoriza el flujo de tension en el booster
 #define FALLO_BATERIA_PRINCIPAL 19 //Interrupcion por fallo en la bateria
 
 //SISTEMA

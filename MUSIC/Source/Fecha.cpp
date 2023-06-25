@@ -25,12 +25,18 @@ void Fecha::iniciarRTC(){
 
 String Fecha::imprimeFecha(DateTime paramFecha){
 
+	if(!configSystem.MODULO_RTC)
+		return "XX/XX/20XX 00:00:00";
+
 	(paramFecha > 0)? fecha = paramFecha : fecha = rtc.now();
 	char buffer[] = "DD/MM/YYYY hh:mm:ss";
 	return fecha.toString(buffer);
 }
 
 String Fecha::imprimeFechaSimple(DateTime paramFecha){
+
+	if(!configSystem.MODULO_RTC)
+		return "XX/XX/20XX";
 
 	(paramFecha > 0)? fecha = paramFecha : fecha = rtc.now();
 	char buffer[] = "DD/MM/YYYY";
@@ -42,8 +48,23 @@ String Fecha::imprimeFechaSQL(){
 	fecha = rtc.now();
 	char buffer[] = "YYYY-MM-DD hh:mm:ss";
 
-	return fecha.toString(buffer); //@develop
-	//return "2020-09-22 13:02:25";
+	return fecha.toString(buffer);
+}
+
+
+
+const char* Fecha::imprimeFechaFichero(){
+
+	if(!configSystem.MODULO_RTC)
+		return "XXXX_XXXX";
+
+	fecha = rtc.now();
+	char buffer[] = "DDMMYYYY_hhmmss";
+
+
+	String fechaString = fecha.toString(buffer);
+	return fechaString.c_str();
+
 }
 
 String Fecha::imprimeHora(){

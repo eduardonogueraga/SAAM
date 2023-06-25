@@ -27,8 +27,9 @@ char keys[ROWS][COLS] = {
   {'*','0','#','D'}
 };
 // Digitran keypad, bit numbers of PCF8574 i/o port
-byte rowPins[ROWS] = {4,5,6,7};
-byte colPins[COLS] = {0,1,2,3};
+
+byte rowPins[ROWS] = {3,2,1,0};
+byte colPins[COLS] = {7,6,5,4};
 
 TwoWire *jwire = &Wire;   //test passing pointer to keypad lib
 Keypad_I2C keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS, I2CADDR, PCF8574, jwire );
