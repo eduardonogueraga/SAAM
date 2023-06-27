@@ -10,17 +10,17 @@
 #define PROYECTO_MENSAJES_H_
 #include "Arduino.h"
 #include "Datos.h"
-//#include <SoftwareSerial.h>
+#include <HardwareSerial.h>
+#include "EventosJson.h"
 
 #include "Macros.h"
 #include "Env.h"
 #include "Fecha.h"
 #include <Adafruit_MCP23X17.h>
 
+extern EventosJson eventosJson;
 extern Adafruit_MCP23X17 mcp;
-
-
-//extern SoftwareSerial SIM800L;
+extern HardwareSerial UART_GSM;
 extern byte INTENTOS_REACTIVACION;
 extern byte MODO_DEFAULT;
 extern String nombreZonas[4];
@@ -35,7 +35,7 @@ class Mensajes {
 
 private:
 
-	byte MAX_SALTO [4] = {1,3,2,2};
+	byte MAX_SALTO [4] = {1,1,2,2};
 	byte cont = 0;
 
 	byte tipoMensaje;
@@ -47,9 +47,21 @@ private:
 	const byte LIMITE_MAXIMO_SMS = 15;
 	void procesarSMS();
 
+	SAAS_LITERAL_NOTIFICACIONES saasNotificaciones;
+	SAAS_LITERAL_NOTIFICACIONES_TLF saaNotificacionesTlf;
+	byte literalAsuntoSaas;
+
+
+	SAAS_LITERAL_NOTIFICACIONES nombreZonasSaas[4] = {
+	  AVISO_ALARMA_PUERTA_COCHERA_ABIERTA,
+	  AVISO_ALARMA_MOVIMIENTO_COCHERA,
+	  AVISO_ALARMA_MOVIMIENTO_ALMACEN,
+	  AVISO_ALARMA_MOVIMIENTO_PORCHE
+	};
+
 public:
 	Mensajes();
-	//void inicioSIM800(SoftwareSerial &SIM800L);
+	void inicioGSM(HardwareSerial &UART_GSM);
 	void enviarSMS();
 	void enviarSMSEmergencia();
 	void mensajeAlerta(Datos &datos);
@@ -61,6 +73,8 @@ public:
 	const String& getAsuntoMensaje() const;
 	const String& getCuerpoMensaje() const;
 	byte getTipoMensaje() const;
+	 char* getFullSMS();
+
 };
 
 #endif /* PROYECTO_MENSAJES_H_ */

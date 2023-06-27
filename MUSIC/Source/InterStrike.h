@@ -11,12 +11,12 @@
 #include "Datos.h"
 #include "Macros.h"
 #include "Bocina.h"
-//#include "Registro.h"
+#include "Registro.h"
 
 extern unsigned long tiempoMargen;
 extern ConfigSystem configSystem;
 extern Bocina bocina;
-//extern Registro registro;
+extern Registro registro;
 extern byte MODO_DEFAULT;
 
 class InterStrike {

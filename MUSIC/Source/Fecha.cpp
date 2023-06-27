@@ -52,6 +52,17 @@ String Fecha::imprimeFechaSQL(){
 }
 
 
+String Fecha::imprimeFechaJSON(DateTime paramFecha){
+
+	if(!configSystem.MODULO_RTC)
+		return "2099-01-01T00:00:00";
+
+	(paramFecha > 0)? fecha = paramFecha : fecha = rtc.now();
+	char buffer[] = "YYYY-MM-DDThh:mm:ss";
+	return fecha.toString(buffer);
+
+}
+
 
 const char* Fecha::imprimeFechaFichero(){
 
@@ -100,8 +111,7 @@ bool Fecha::comprobarHora(byte horas, byte minutos){ //Hora concreta
 
 	if(horas == fecha.hour()){
 
-		if (minutos == fecha.minute() || minutos == 0){
-
+		if (minutos == fecha.minute()){
 			return true;
 		}else {
 			return false;

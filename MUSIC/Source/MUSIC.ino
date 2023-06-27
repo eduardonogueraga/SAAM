@@ -4,6 +4,7 @@
  * Leyenda: @develop  @PEND (Pendiente de adaptar a ESP32)
  *
  * POR HACER:
+ * -Enriquecer el log con dia de la semana o temperatura
  */
 
 #include "Arduino.h"
@@ -17,7 +18,9 @@ void EstadoInicio(){
 
 	//Acutalizamos el secuencial de los logs para esta ejecucion
 	guardarFlagEE("LOG_SEQ", (leerFlagEEInt("LOG_SEQ")+1));
-	registro.registrarLogSistema("ALARMA INICIADA");
+	//Actualizamos los intentos
+	//guardarFlagEE("JSON_RETRY", 0);
+	//guardarFlagEE("JSON_SEQ", 1);
 
 	//if(!MODO_DEFAULT)
 	//printSystemInfo();
@@ -31,12 +34,13 @@ void EstadoInicio(){
 void setup()
 {
 	  Serial.begin(115200);
-	  MySerial2.begin(115200, SERIAL_8N1, 5, 18); //RX TX  (H1 = RX5 TX 18) PUERTO RS
-	  MySerial.begin(115200, SERIAL_8N1, 23, 19); //RX TX  (H2 = RX23 TX19)
+
+	  mensaje.inicioGSM(UART_GSM);
+	  UART_RS.begin(115200, SERIAL_8N1, RS_RX, RS_TX);    //RX TX  (H1 = RX5 TX 18) PUERTO RS
+
 	  Serial.println(version[0]);
 
 	  //Restaurar configuracion almacenada
-	  //EEPROM_RestoreData(EE_CONFIG_STRUCT, configSystem);
 	  configSystem = NVS_RestoreData<configuracion_sistema_t>("CONF_SYSTEM");
 
 
@@ -56,7 +60,7 @@ void setup()
 		  Serial.println(F("ERROR AL INICIAR SD"));
 		  pantallaDeErrorInicial(F("  SYSTM ERROR!  ERROR INICIAR SD"));
 	  }
-	  //mensaje.inicioSIM800(SIM800L);
+
 
 	  pantalla.lcdLoadView(&pantalla, &Pantalla::lcdInicio);
 	  delay(2000);
@@ -82,7 +86,7 @@ void setup()
 	    mcp.pinMode(RESETEAR,OUTPUT);
 	    mcp.pinMode(WATCHDOG, OUTPUT);
 	    mcp.pinMode(SENSOR_BATERIA_RESPALDO, INPUT);
-	    //attachInterrupt(digitalPinToInterrupt(FALLO_BATERIA_PRINCIPAL), interrupcionFalloAlimentacion, FALLING);
+	    //attachInterrupt(digitalPinToInterrupt(FALLO_BATERIA_PRINCIPAL), interrupcionFalloAlimentacion, FALLING); @PEND
 
 	    //Configuracion de los puertos
 
@@ -90,11 +94,15 @@ void setup()
 	    mcp.digitalWrite(RS_CTL,LOW);
 
 
+
 	   EstadoInicio();
 	   cargarEstadoPrevio();
 	   checkearAlertasDetenidas();
 	   chekearInterrupciones();
 
+	   eventosJson.iniciarModeloJSON();//TEST
+	   registro.registrarLogSistema("ALARMA INICIADA");
+	   eventosJson.guardarLog(ALARMA_INICIADA_LOG);
 
 }
 
@@ -289,7 +297,6 @@ void setEstadoGuardia()
 {
 	Serial.println(F("\nAlarma Activada"));
 	estadoAlarma = ESTADO_GUARDIA;
-	//EEPROM.update(EE_ESTADO_GUARDIA, 1);
 	guardarFlagEE("ESTADO_GUARDIA", 1);
 
 	sleepModeGSM = GSM_OFF;
@@ -298,17 +305,17 @@ void setEstadoGuardia()
 	lcd_info_tiempo = millis() + TIEMPO_ALERT_LCD;
 	setMargenTiempo(tiempoMargen,TIEMPO_ON, TIEMPO_ON_TEST);
 
-	//insertQuery(&sqlActivarAlarmaManual);
 	registro.registrarLogSistema("ALARMA ACTIVADA MANUALMENTE");
+	eventosJson.guardarEntrada();
+	//eventosJson.guardarLog(); @PEND
 }
 
 void setEstadoGuardiaReactivacion()
 {
 	Serial.println("\nAlarma Reactivada. Intentos realizados: "+ (String)INTENTOS_REACTIVACION);
 	estadoAlarma = ESTADO_GUARDIA;
-	//EEPROM.update(EE_ESTADO_GUARDIA, 1);
 	guardarFlagEE("ESTADO_GUARDIA", 1);
-
+	guardarFlagEE("F_REACTIVACION", 1);
 
 
 	limpiarSensores();
@@ -323,27 +330,24 @@ void setEstadoGuardiaReactivacion()
 	//Desabilitar puerta tras la reactivacion
 	if(configSystem.SENSORES_HABLITADOS[0] && zona == MG ){
 		flagPuertaAbierta = 1;
-		//EEPROM.update(EE_FLAG_PUERTA_ABIERTA, 1);
 		guardarFlagEE("PUERTA_ABIERTA", 1);
 
 		sensorHabilitado[0] = 0;
 		arrCopy<byte>(sensorHabilitado, configSystem.SENSORES_HABLITADOS, 4);
-		//EEPROM_SaveData(EE_CONFIG_STRUCT, configSystem);
 		NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
 	}
 
 	mensaje.mensajeReactivacion(datosSensoresPhantom);
 	datosSensoresPhantom.borraDatos();
-
-	//insertQuery(&sqlActivarAlarmaAutomatico);
 	registro.registrarLogSistema("ALARMA ACTIVADA AUTOMATICAMENTE");
+	//eventosJson.guardarLog(); @PEND
+	eventosJson.guardarEntrada();
 }
 
 void setEstadoAlerta()
 {
 	Serial.println("\nIntrusismo detectado en " + nombreZonas[zona]);
 	estadoAlarma = ESTADO_ALERTA;
-	//EEPROM.update(EE_ESTADO_ALERTA, 1);
 	guardarFlagEE("ESTADO_ALERTA", 1);
 	guardarEstadoAlerta();
 
@@ -367,7 +371,6 @@ void setEstadoEnvio()
 	setMargenTiempo(tiempoMargen,TIEMPO_REACTIVACION, TIEMPO_REACTIVACION_TEST);
 
 	mensaje.mensajeAlerta(datosSensores);
-	//EEPROM.update(EE_ESTADO_ALERTA, 0);
 	guardarFlagEE("ESTADO_ALERTA", 0);
 }
 
@@ -386,24 +389,24 @@ void setEstadoReposo()
 	sleepModeGSM = GSM_OFF;
 	estadoLlamada = TLF_1;
 	desactivaciones ++;
-	//EEPROM.update(EE_ESTADO_GUARDIA, 0);
-	//EEPROM.update(EE_ESTADO_ALERTA, 0);
 	guardarFlagEE("ESTADO_GUARDIA", 0);
 	guardarFlagEE("ESTADO_ALERTA", 0);
+
+	guardarFlagEE("F_RESTAURADO", 0);
+	guardarFlagEE("F_REACTIVACION", 0);
 
 
 	//Rehabilitar sensor puerta
 	if(flagPuertaAbierta){
 		sensorHabilitado[0] = 1;
 		arrCopy<byte>(sensorHabilitado, configSystem.SENSORES_HABLITADOS, 4);
-		//EEPROM_SaveData(EE_CONFIG_STRUCT, configSystem);
 		NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
 
 
-		//EEPROM.update(EE_FLAG_PUERTA_ABIERTA, 0);
 		guardarFlagEE("PUERTA_ABIERTA", 0);
 	}
 
-	//insertQuery(&sqlDesactivarAlarma);
 	registro.registrarLogSistema("ALARMA DESACTIVADA MANUALMENTE");
+	eventosJson.guardarEntrada();
+	//eventosJson.guardarLog(); @PEND
 }

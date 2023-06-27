@@ -13,7 +13,7 @@
 #include <Keypad.h>
 #include <Preferences.h>
 #include <Adafruit_MCP23X17.h>
-
+#include <HardwareSerial.h>
 
 #include "Autenticacion.h"
 #include "Pantalla.h"
@@ -28,10 +28,8 @@
 #include "Menu.h"
 #include "Fecha.h"
 #include "Registro.h"
+#include "EventosJson.h"
 
-#include <HardwareSerial.h>
-HardwareSerial MySerial(1);
-HardwareSerial MySerial2(2);
 
 //VERSION (VE -> Version Estable VD -> Version Desarrollo)
 const char* version[] = {"MUSIC VE21R0", "25/06/23"};
@@ -49,18 +47,26 @@ byte sensorHabilitado[4] = {1,1,1,1};
 
 //INSTANCIAS
 
+//UART
+HardwareSerial UART_GSM(1);
+HardwareSerial UART_RS(2);
+
 //MUX
 Adafruit_MCP23X17 mcp;
 
+//NVS
 Preferences NVSMemory; //Memoria
 
+//TYPE DEF
 ProcesoCentral procesoCentral;
 EstadosAlarma estadoAlarma;
 EstadosError estadoError;
 SLEEPMODE_GSM sleepModeGSM;
 LLAMADAS_GSM estadoLlamada;
 CODIGO_ERROR codigoError;
+SAAS_LITERAL_LOGS saaLiteralLogs;
 
+//CLASES
 Autenticacion auth;
 Pantalla pantalla;
 ComandoSerie demonio;
@@ -76,6 +82,7 @@ Mensajes mensaje;
 Menu menu;
 Fecha fecha;
 Registro registro;
+EventosJson eventosJson;
 
 
 //TIEMPOS MARGEN
@@ -230,9 +237,6 @@ static byte tiempoFracccion;
 			if (key != NO_KEY){
 				if(key == '#'){
 					estadoError = GUARDAR_DATOS;
-					//EEPROM.update(EE_ERROR_INTERRUPCION,0);
-					//EEPROM.update(EE_MENSAJE_EMERGENCIA,0);
-					//EEPROM.update(EE_LLAMADA_EMERGENCIA,0);
 					guardarFlagEE("ERR_INTERRUPT", 0);
 					guardarFlagEE("MENSAJE_EMERGEN", 0);
 					guardarFlagEE("LLAMADA_EMERGEN", 0);
@@ -266,7 +270,6 @@ static byte tiempoFracccion;
 	}
 
 	void watchDog(){
-		//pcf8575.digitalWrite(WATCHDOG, !pcf8575.digitalRead(WATCHDOG));
 		mcp.digitalWrite(WATCHDOG, !mcp.digitalRead(WATCHDOG));
 	}
 
@@ -275,24 +278,18 @@ static byte tiempoFracccion;
 		switch(sleepModeGSM){
 
 		case GSM_ON:
-
-			//pcf8575.digitalWrite(GSM_PIN, HIGH);
 			mcp.digitalWrite(GSM_PIN, HIGH);
 			break;
 
 		case GSM_OFF:
-
-			//pcf8575.digitalWrite(GSM_PIN, LOW);
 			mcp.digitalWrite(GSM_PIN, LOW);
 			break;
 
 		case GSM_TEMPORAL:
 
 			if(checkearMargenTiempo(prorrogaGSM)){
-				//pcf8575.digitalWrite(GSM_PIN, LOW);
 				mcp.digitalWrite(GSM_PIN, LOW);
 			}else {
-				//pcf8575.digitalWrite(GSM_PIN, HIGH);
 				mcp.digitalWrite(GSM_PIN, HIGH);
 			}
 			break;
@@ -306,11 +303,12 @@ static byte tiempoFracccion;
 		}
 
 		if(fecha.comprobarHora(0, 0)){
-			if(leerFlagEE("N_SMS_ENVIADOS") != 0){
+			if(leerFlagEEInt("N_SMS_ENVIADOS") != 0){
 				guardarFlagEE("N_SMS_ENVIADOS", 0);
-				//insertQuery(&sqlIntentosRecuperados);
 				registro.registrarLogSistema("INTENTOS SMS DIARIOS RECUPERADOS");
+				eventosJson.guardarLog(INTENTOS_SMS_DIARIOS_RECUPERADOS_LOG);
 				Serial.println(F("Intentos diarios recuperados"));
+
 			}
 		}
 
@@ -318,15 +316,15 @@ static byte tiempoFracccion;
 
 	void resetear(){
 			Serial.println(F("\nReseteando"));
-			//insertQuery(&sqlReset);
 			if(alertsInfoLcd[INFO_RESET_AUTO] == 1){
 				registro.registrarLogSistema("RESET AUTOMATICO");
+				eventosJson.guardarLog(RESET_AUTOMATICO_LOG);
 			}else {
 				registro.registrarLogSistema("RESET MANUAL");
+				eventosJson.guardarLog(RESET_MANUAL_LOG);
 			}
 
 			delay(200);
-			//pcf8575.digitalWrite(RESETEAR, HIGH);
 			mcp.digitalWrite(RESETEAR, HIGH);
 		}
 
@@ -361,20 +359,24 @@ static byte tiempoFracccion;
 	}
 
 	void cargarEstadoPrevio(){
-		   flagPuertaAbierta = leerFlagEE("PUERTA_ABIERTA") == 1;
+		   flagPuertaAbierta = leerFlagEEInt("PUERTA_ABIERTA") == 1;
 
 
-		if (leerFlagEE("ESTADO_GUARDIA") == 1 && leerFlagEE("ERR_INTERRUPT") == 0) {
+		if (leerFlagEEInt("ESTADO_GUARDIA") == 1 && leerFlagEEInt("ERR_INTERRUPT") == 0) {
 			estadoAlarma = ESTADO_GUARDIA;
 			registro.registrarLogSistema("CARGADO ESTADO GUARDIA PREVIO");
-			//insertQuery(&sqlUpdateEntradaRestaurada);
+			//eventosJson.guardarLog(RESET_MANUAL_LOG); @PEND
+
+			//Informar de que se ha restaurado una entrada
+			guardarFlagEE("F_RESTAURADO", 1);
 		}
+
+
 	}
 
 	void checkearAlertasDetenidas(){
-		if (leerFlagEE("ESTADO_ALERTA") == 1 && leerFlagEE("ERR_INTERRUPT") == 0) {
+		if (leerFlagEEInt("ESTADO_ALERTA") == 1 && leerFlagEEInt("ERR_INTERRUPT") == 0) {
 
-			//EEPROM_RestoreData(EE_DATOS_SALTOS, eeDatosSalto);
 			eeDatosSalto = NVS_RestoreData<datos_saltos_t>("SALTO_DATA");
 
 			int* datos = datosSensores.getDatos();
@@ -382,11 +384,11 @@ static byte tiempoFracccion;
 			zona = eeDatosSalto.ZONA;
 			INTENTOS_REACTIVACION = eeDatosSalto.INTENTOS_REACTIVACION;
 
-			//insertQuery(&sqlUpdateSaltoRestaurado);
 			char registroConjunto[50];
 			snprintf(registroConjunto, sizeof(registroConjunto), "%s%s", "CARGADO ESTADO ALERTA EN ", nombreZonas[zona]);
 
 			registro.registrarLogSistema(registroConjunto);
+			//eventosJson.guardarLog(RESET_MANUAL_LOG); @PEND
 
 			Serial.println("\nIntrusismo restaurado en " + nombreZonas[zona]);
 			estadoAlarma = ESTADO_ALERTA;
@@ -402,47 +404,38 @@ static byte tiempoFracccion;
 		eeDatosSalto.INTENTOS_REACTIVACION = INTENTOS_REACTIVACION;
 
 		NVS_SaveData<datos_saltos_t>("SALTO_DATA", eeDatosSalto);
-		//EEPROM_SaveData(EE_DATOS_SALTOS, eeDatosSalto);
 	}
 
 	void guardarEstadoInterrupcion(){
 
-		//EEPROM.update(EE_ERROR_INTERRUPCION,1);
 		guardarFlagEE("ERR_INTERRUPT", 1);
 
-		//EEPROM.update(EE_INTERRUPCIONES_HISTORICO, (EEPROM.read(EE_INTERRUPCIONES_HISTORICO)+1));
 		guardarFlagEE("INTERUP_HIST", (leerFlagEE("INTERUP_HIST") + 1));
 
 		configSystem.MODULO_RTC = 0;
-		//EEPROM_SaveData(EE_CONFIG_STRUCT, configSystem); //Apagar RTC durante las interrupciones
 		NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
 	}
 
 	void checkearBateriaDeEmergencia(){
-
-		//alertsInfoLcd[INFO_FALLO_BATERIA] = !pcf8575.digitalRead(SENSOR_BATERIA_RESPALDO);
 		alertsInfoLcd[INFO_FALLO_BATERIA] = !mcp.digitalRead(SENSOR_BATERIA_RESPALDO);
 
-		//if(pcf8575.digitalRead(SENSOR_BATERIA_RESPALDO) != sensorBateriaAnterior){
 	    if(mcp.digitalRead(SENSOR_BATERIA_RESPALDO) != sensorBateriaAnterior){
 
-	    //if(pcf8575.digitalRead(SENSOR_BATERIA_RESPALDO) == HIGH){
 			if(mcp.digitalRead(SENSOR_BATERIA_RESPALDO) == LOW){
-				//insertQuery(&sqlBateriaEmergenciaActivada);
 				registro.registrarLogSistema("BATERIA DE EMERGENCIA ACTIVADA");
+				eventosJson.guardarLog(BATERIA_EMERGENCIA_ACTIVADA_LOG);
 			} else{
-				//insertQuery(&sqlBateriaEmergenciaDesactivada);
 				registro.registrarLogSistema("BATERIA DE EMERGENCIA DESACTIVADA");
+				eventosJson.guardarLog(BATERIA_EMERGENCIA_DESACTIVADA_LOG);
 			}
 		}
 
-		//sensorBateriaAnterior = pcf8575.digitalRead(SENSOR_BATERIA_RESPALDO);
 	    sensorBateriaAnterior = mcp.digitalRead(SENSOR_BATERIA_RESPALDO);
 	}
 
 	void realizarLlamadas(){
 
-		if(!MODO_DEFAULT)
+		if(MODO_DEFAULT) //@develop !MODO_DEFAULT
 			return;
 
 		static byte estadoAnterior;
@@ -453,10 +446,12 @@ static byte tiempoFracccion;
 
 			if(millis() > tiempoMargen - (TIEMPO_REACTIVACION*0.95) && millis() < tiempoMargen - (TIEMPO_REACTIVACION*0.90)){
 				mensaje.llamarTlf((char*)telefonoLlamada_1);
-				//insertQuery(&sqlLlamadas);
 				registro.registrarLogSistema("LLAMANDO A MOVIL");
+				eventosJson.guardarLog(LLAMANDO_A_MOVIL_LOG);
 				estadoLlamada = COLGAR;
 				estadoAnterior = TLF_1;
+
+				eventosJson.guardarNotificacion(0, 0,"X", TLF_NUM_2);
 			}
 
 			break;
@@ -465,10 +460,13 @@ static byte tiempoFracccion;
 
 			if(millis() > tiempoMargen - (TIEMPO_REACTIVACION*0.80)){
 				mensaje.llamarTlf((char*)telefonoLlamada_2);
-				//insertQuery(&sqlLlamadas);
 				registro.registrarLogSistema("LLAMANDO A MOVIL");
+				eventosJson.guardarLog(LLAMANDO_A_MOVIL_LOG);
 				estadoLlamada = COLGAR;
 				estadoAnterior = TLF_2;
+
+				eventosJson.guardarNotificacion(0, 0,"X", TLF_NUM_3);
+
 			}
 
 			break;
@@ -512,7 +510,6 @@ static byte tiempoFracccion;
 			}else {
 				Serial.println(F("Vuelve desde el principio"));
 
-				//EEPROM_RestoreData(EE_DATOS_SALTOS, eeDatosSalto);
 				eeDatosSalto = NVS_RestoreData<datos_saltos_t>("SALTO_DATA");
 				int* datos = datosSensores.getDatos();
 				arrCopy<int>(eeDatosSalto.DATOS_SENSOR,datos ,TOTAL_SENSORES);
@@ -526,10 +523,9 @@ static byte tiempoFracccion;
 	void interrupcionFalloAlimentacion(){
 		Serial.println(F("\nInterrupcion por fallo en la alimentacion"));
 		codigoError = ERR_FALLO_ALIMENTACION;
-		//insertQuery(&sqlError);
 		registro.registrarLogSistema("INTERRUPCION POR FALLO EN LA ALIMENTACION");
+		eventosJson.guardarLog(FALLO_ALIMENTACION_LOG);
 		procesoCentral = ERROR;
-		//EEPROM.update(EE_CODIGO_ERROR, ERR_FALLO_ALIMENTACION);
 		guardarFlagEE("CODIGO_ERROR", ERR_FALLO_ALIMENTACION);
 		guardarEstadoInterrupcion();
 	}
@@ -569,7 +565,6 @@ static byte tiempoFracccion;
 		case GUARDAR_DATOS:
 			setEstadoErrorComprobarDatos();
 			setEstadoReposo(); //Desactiva
-			//insertQuery(&sqlUpdateEntradaModoAuto);
 			break;
 
 		case COMPROBAR_DATOS:
@@ -602,7 +597,6 @@ static byte tiempoFracccion;
 
 			if(checkearMargenTiempo(tiempoMargen)){
 				setEstadoErrorEsperarAyuda();
-				//EEPROM.update(EE_LLAMADA_EMERGENCIA, 1);
 				guardarFlagEE("LLAMADA_EMERGEN", 1);
 			}
 
@@ -625,23 +619,17 @@ static byte tiempoFracccion;
 	void avisoLedPuertaCochera(){
 
 		if(estadoAlarma != ESTADO_GUARDIA){
-			//pcf8575.digitalWrite(LED_COCHERA, LOW);
 			mcp.digitalWrite(LED_COCHERA, LOW);
 		}else{
 
 			if(!checkearMargenTiempo(tiempoMargen)){
-
-				//if(!pcf8575.digitalRead(MG_SENSOR)){
 				if(!mcp.digitalRead(MG_SENSOR)){
-					//pcf8575.digitalWrite(LED_COCHERA, HIGH);
 					mcp.digitalWrite(LED_COCHERA, HIGH);
 				}else{
-					//pcf8575.digitalWrite(LED_COCHERA, LOW);
 					mcp.digitalWrite(LED_COCHERA, LOW);
 				}
 
 			}else{
-				//pcf8575.digitalWrite(LED_COCHERA, LOW);
 				mcp.digitalWrite(LED_COCHERA, LOW);
 			}
 

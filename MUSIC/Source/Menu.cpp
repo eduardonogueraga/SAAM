@@ -125,10 +125,10 @@ void Menu::configModos(){
 
 		if(key == '1'){
 			MODO_DEFAULT = !MODO_DEFAULT;
-			//insertQuery(&sqlModoAlarma);
 			char registroConjunto[50];
 			snprintf(registroConjunto, sizeof(registroConjunto), "%s%d", "ALARMA ESTABLECIDA EN MODO: ",MODO_DEFAULT);
 			registro.registrarLogSistema(registroConjunto);
+			eventosJson.guardarLog((MODO_DEFAULT)?ALARMA_ESTABLECIDA_MODO_DEFAULT_LOG :ALARMA_ESTABLECIDA_MODO_PRUEBA_LOG);
 		}
 
 		if(key == '#')
@@ -141,7 +141,6 @@ void Menu::configModos(){
 
 		if(key == '1'){
 			configSystem.MODO_SENSIBLE = !configSystem.MODO_SENSIBLE;
-			//EEPROM_SaveData(EE_CONFIG_STRUCT, configSystem);
 			NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
 		}
 
@@ -178,12 +177,11 @@ void Menu::configSensores(){
 		if(key == '1'){
 			sensorHabilitado[0] = !sensorHabilitado[0];
 			arrCopy<byte>(sensorHabilitado, configSystem.SENSORES_HABLITADOS, 4);
-			//EEPROM_SaveData(EE_CONFIG_STRUCT, configSystem);
 			NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
 
 			if(!sensorHabilitado[0]){
-				//insertQuery(&sqlSensorPuertaDeshabilitado);
 				registro.registrarLogSistema("SENSOR PUERTA COCHERA DESHABILITADO");
+				eventosJson.guardarLog(SENSOR_PUERTA_DESCONECTADO_LOG);
 			}
 		}
 
@@ -261,7 +259,6 @@ void Menu::configModulos(){
 
 		if(key == '1'){
 			configSystem.MODULO_SD = !configSystem.MODULO_SD;
-			//EEPROM_SaveData(EE_CONFIG_STRUCT, configSystem);
 			NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
 		}
 		if(key == '#')
@@ -275,7 +272,6 @@ void Menu::configModulos(){
 
 		if(key == '1'){
 			configSystem.MODULO_RTC = !configSystem.MODULO_RTC;
-			//EEPROM_SaveData(EE_CONFIG_STRUCT, configSystem);
 			NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
 		}
 		if(key == '#')
@@ -317,7 +313,6 @@ void Menu::modficarSensorPir(byte num){
 	if(key == '1'){
 		sensorHabilitado[num] = !sensorHabilitado[num];
 		arrCopy<byte>(sensorHabilitado, configSystem.SENSORES_HABLITADOS,4);
-	    //EEPROM_SaveData(EE_CONFIG_STRUCT, configSystem);
 	    NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
 	}
 
@@ -428,7 +423,6 @@ void Menu::infoDatos(){
 
 				configSystem.SMS_HISTORICO = 0;
 				strcpy(configSystem.FECHA_SMS_HITORICO, temp);
-				//EEPROM_SaveData(EE_CONFIG_STRUCT, configSystem);
 				NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
 			}
 			pantalla.limpiarPantalla();
@@ -438,7 +432,6 @@ void Menu::infoDatos(){
 	case DATOS_ERR_HISTORICO:
 		pantalla.lcdLoadView(&pantalla, &Pantalla::menuInfoErrHistorico);
 		if(key == '3'){
-			//EEPROM.update(EE_INTERRUPCIONES_HISTORICO, 0);
 			guardarFlagEE("INTERUP_HIST", 0);
 			pantalla.limpiarPantalla();
 		}
@@ -452,10 +445,9 @@ void Menu::infoDatos(){
 		pantalla.lcdLoadView(&pantalla, &Pantalla::menuInfoSMSDiario);
 		if(key == '3'){
 
-			//EEPROM.update(MENSAJES_ENVIADOS, 0);
 			guardarFlagEE("N_SMS_ENVIADOS", 0);
-			//insertQuery(&sqlIntentosRecuperados);
 			registro.registrarLogSistema("INTENTOS SMS DIARIOS RECUPERADOS");
+			eventosJson.guardarLog(INTENTOS_SMS_DIARIOS_RECUPERADOS_LOG);
 			pantalla.limpiarPantalla();
 		}
 		break;

@@ -13,6 +13,7 @@
 #include "Pantalla.h"
 #include "Fecha.h"
 #include "Registro.h"
+#include "EventosJson.h"
 
 extern char key;
 extern Pantalla pantalla;
@@ -23,6 +24,7 @@ extern byte sensorHabilitado[];
 extern byte alertsInfoLcd[];
 extern Registro registro;
 extern ConfigSystem configSystem;
+extern EventosJson eventosJson;
 
 extern void sonarBocina();
 extern void pararBocina();

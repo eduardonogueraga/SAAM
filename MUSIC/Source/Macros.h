@@ -8,7 +8,6 @@
 #ifndef SOURCE_MACROS_H_
 #define SOURCE_MACROS_H_
 
-#include <EEPROM.h>
 
 
 //MACROS
@@ -56,10 +55,12 @@
 #define BT_PIN 12
 
 //COMUNICACIONES
-#define GSM_TX 8
-#define GSM_RX 9
-#define BT_TX 10
-#define BT_RX 11
+#define GSM_TX 19
+#define GSM_RX 23
+
+#define RS_TX 18
+#define RS_RX 5
+
 
 //SD
 #define REGISTRO_SS_PIN 53
@@ -109,8 +110,6 @@ int leerFlagEEInt(const char* key);
 template <typename T> void NVS_SaveData(const char* key, T value);
 template <typename T> T NVS_RestoreData(const char* key);
 
-void insertQuery(void (*otherFunction)(String*));
-void insertQuery(void (*otherFunction)(String*, String, String), String param1, String param2);
 
 void sqlMensajes(String *p);
 void sqlSmsIntentosRealizados(String *p);
@@ -210,6 +209,44 @@ typedef enum {
 	SMS_TIPO_INFO,
 	SMS_TIPO_ERROR,
 } TiposMensaje;
+
+//LITERALES SAAS
+
+typedef enum  {
+  AVISO_ALARMA_MOVIMIENTO_PORCHE = 113,
+  AVISO_ALARMA_MOVIMIENTO_COCHERA = 114,
+  AVISO_ALARMA_MOVIMIENTO_ALMACEN = 115,
+  AVISO_ALARMA_PUERTA_COCHERA_ABIERTA = 116,
+  ALARMA_REACTIVADA_EXITO = 117,
+  MOVIMIENTO_DETEC_SABOTAJE_ALIMENTACION = 118,
+  FALLO_ALIMENTACION_PRINCIPAL = 119,
+  BATERIA_EMERGENCIA_DESACTIVADA= 120
+}	SAAS_LITERAL_NOTIFICACIONES;
+
+
+typedef enum  {
+	TLF_NUM_1 = 1,
+	TLF_NUM_2 = 0,
+	TLF_NUM_3= 2
+}	SAAS_LITERAL_NOTIFICACIONES_TLF;
+
+
+typedef enum  {
+	ALARMA_INICIADA_LOG = 121,
+	INTENTOS_SMS_DIARIOS_RECUPERADOS_LOG = 122,
+	SENSOR_PUERTA_DESCONECTADO_LOG = 123,
+	BATERIA_EMERGENCIA_ACTIVADA_LOG = 124,
+	BATERIA_EMERGENCIA_DESACTIVADA_LOG = 125,
+	INTENTOS_SMS_REALIZADOS_LOG = 126,
+	INTENTOS_SMS_DIARIOS_ACABADOS_LOG = 127,
+	ALARMA_ESTABLECIDA_MODO_DEFAULT_LOG = 128,
+	ALARMA_ESTABLECIDA_MODO_PRUEBA_LOG = 129,
+	LLAMANDO_A_MOVIL_LOG = 130,
+	RESET_AUTOMATICO_LOG = 131,
+	RESET_MANUAL_LOG = 132,
+	FALLO_ALIMENTACION_LOG = 133,
+	FALLO_SENSOR_LOG = 134
+} SAAS_LITERAL_LOGS;
 
 //MENU
 

@@ -12,17 +12,21 @@
 #include "Registro.h"
 #include "Macros.h"
 #include "Datos.h"
+#include "EventosJson.h"
 
 extern void setEstadoGuardia();
 extern void setEstadoReposo();
 extern void setEstadoEnvio();
 extern void resetear();
+extern void desactivarAlarma();
 
 extern byte MODO_DEFAULT;
 extern ProcesoCentral procesoCentral;
 extern ConfigSystem configSystem;
 extern InterStrike pir1, pir2, pir3, mg;
 extern Datos datosSensores;
+extern EventosJson eventosJson;
+
 
 
 extern Registro registro;

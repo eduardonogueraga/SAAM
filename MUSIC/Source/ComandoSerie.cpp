@@ -33,6 +33,7 @@ void ComandoSerie::comprobarComando() {
 	if (data.indexOf("set off") >= 0) {
 
 		setEstadoReposo();
+		//desactivarAlarma();
 	}
 	if (data.indexOf("set mode") >= 0) {
 
@@ -85,7 +86,6 @@ void ComandoSerie::comprobarComando() {
 
 		sensorHabilitado[0] = !sensorHabilitado[0];
 		arrCopy<byte>(sensorHabilitado, configSystem.SENSORES_HABLITADOS, 4);
-		//EEPROM_SaveData(EE_CONFIG_STRUCT, configSystem);
 		NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
 
 		if(!sensorHabilitado[0]){
@@ -113,6 +113,19 @@ void ComandoSerie::comprobarComando() {
 
 	if (data.indexOf("ls")>=0){
 		registro.listarRegistros();
+	}
+
+	if (data.indexOf("json")>=0){
+		eventosJson.mostrarModeloJSON();
+	}
+
+	if (data.indexOf("purge")>=0){
+		eventosJson.purgarModeloJSON();
+	}
+
+
+	if (data.indexOf("new")>=0){
+		eventosJson.componerJSON();
 	}
 
 	if(data.indexOf("power")>=0){

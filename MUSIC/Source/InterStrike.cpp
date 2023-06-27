@@ -8,8 +8,10 @@
 #include "InterStrike.h"
 #include "Datos.h"
 #include "Registro.h"
+#include "EventosJson.h"
 
 extern Registro registro;
+extern EventosJson eventosJson;
 
 
 	InterStrike::InterStrike(byte numero, byte max, Datos &datos, long tiempoCeguera, long tiempoExposicion, long tiempoStrikeFondo)
@@ -70,24 +72,21 @@ extern Registro registro;
 					Serial.print(this->numero);
 					Serial.print(": ");
 					Serial.println(strike);
-					//insertQuery(&sqlSensorEstandar, ("PIR"+(String)(this->numero)), "ONLINE");
-					//insertQuery(&sqlSalto);
 
 
 					snprintf(registroConjunto, sizeof(registroConjunto), "%s%d%s", "MOVIMIENTO EN PIR",this->numero," ONLINE");
 					registro.registrarLogSistema(registroConjunto);
+					eventosJson.guardarDeteccion(this->strike, this->max, 1, this->numero, 1);
 
-					if(!MODO_DEFAULT)
-					bocina.bocinaAlert();
+
 
 				} else {
 					Serial.print("\nSensor ");
 					Serial.print(this->numero);
 					Serial.print(" deshabilitado");
-					//insertQuery(&sqlSensorEstandar, ("PIR"+(String)(this->numero)), "OFFLINE");
-					//insertQuery(&sqlSalto);
 					snprintf(registroConjunto, sizeof(registroConjunto), "%s%d%s", "MOVIMIENTO EN PIR",this->numero," OFFLINE");
 					registro.registrarLogSistema(registroConjunto);
+					eventosJson.guardarDeteccion(this->strike, this->max, 1, this->numero, 0);
 
 				}
 			}
@@ -137,9 +136,8 @@ extern Registro registro;
 					if(strike==0){
 						strike++;
 						Serial.print("\nSignal strike MG");
-						//insertQuery(&sqlSensorEstandar, "PUERTA COCHERA", "ONLINE");
-						//insertQuery(&sqlSalto);
 						registro.registrarLogSistema("DETECCION ABERTURA DE PUERTA");
+						eventosJson.guardarDeteccion(this->strike, this->max, 1, this->numero, 1);
 					}
 				}
 			}
@@ -214,19 +212,17 @@ extern Registro registro;
 					Serial.println(strike);
 
 					_datos.setDatos(this->numero, strike);
-					//insertQuery(&sqlSensorPhantom, ("PIR"+(String)(this->numero)), "ONLINE");
-					//insertQuery(&sqlSalto);
 					snprintf(registroConjunto, sizeof(registroConjunto), "%s%d%s", "PHANTOM EN PIR",this->numero," ONLINE");
 					registro.registrarLogSistema(registroConjunto);
+					eventosJson.guardarDeteccion(this->strike, this->max, 0, this->numero, 1);
 				}
 			} else {
 				Serial.print("\nSensor ");
 				Serial.print(this->numero);
 				Serial.print(" deshabilitado");
-				//insertQuery(&sqlSensorPhantom, ("PIR"+(String)(this->numero)), "OFFLINE");
-				//insertQuery(&sqlSalto);
 				snprintf(registroConjunto, sizeof(registroConjunto), "%s%d%s", "PHANTOM EN PIR",this->numero," OFFLINE");
 				registro.registrarLogSistema(registroConjunto);
+				eventosJson.guardarDeteccion(this->strike, this->max, 0, this->numero, 0);
 			}
 		}
 
