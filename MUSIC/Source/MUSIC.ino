@@ -63,7 +63,7 @@ void setup()
 
 
 	  pantalla.lcdLoadView(&pantalla, &Pantalla::lcdInicio);
-	  delay(2000);
+	  delay(1000);
 
 
 	  //Declaracion de los puertos I/O

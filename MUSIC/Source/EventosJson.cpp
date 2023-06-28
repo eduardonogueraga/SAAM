@@ -58,6 +58,8 @@ JsonObject EventosJson::crearNuevaEntrada(char reg[]){
 	entryObj["reg"] = reg;
 	entryObj["date"] = fecha.imprimeFechaJSON();
 
+	comprobarMemoriaDisponible();
+
 	return entryObj;
 }
 
@@ -113,6 +115,7 @@ void EventosJson::guardarEvento(char eventName[],char reg[]) {
 
 	}
 
+	comprobarMemoriaDisponible();
 }
 
  void EventosJson::componerJSON(){
@@ -157,10 +160,6 @@ void EventosJson::purgarModeloJSON(){
 	SALIDA_JSON = "";
 	Serial.println(JSON_DOC.memoryUsage());
 
-	Serial.println("Despues de borrar");
-	serializeJsonPretty(JSON_DOC, SALIDA_JSON);
-	Serial.println(SALIDA_JSON);
-
 }
 
 void EventosJson::mostrarModeloJSON(){
@@ -173,12 +172,8 @@ void EventosJson::mostrarModeloJSON(){
 	//Se imprime el resultado en el monitor serie
 	Serial.println(SALIDA_JSON);
 
+    Serial.println(JSON_DOC.memoryUsage());
 
-	if (JSON_DOC.memoryUsage() > MAX_SIZE_JSON) {
-		Serial.println("El tamaño utilizado supera el tamaño máximo establecido");
-	} else {
-		Serial.println("El tamaño utilizado es menor o igual al tamaño máximo establecido");
-	}
 
 }
 
@@ -251,3 +246,25 @@ void EventosJson::guardarLog(byte id){
 	guardarEvento("Log",reg);
 }
 
+void EventosJson::comprobarMemoriaDisponible(){
+
+	if(JSON_DOC.memoryUsage() >= (MAX_SIZE_JSON-400)){
+		Serial.println("JSON Overload exportando a fichero");
+		this->exportarFichero();
+	}
+
+}
+
+void EventosJson::exportarFichero(){
+
+	//Añadir ID a cadena para tratar
+	if(!registro.exportarEventosJson(&JSON_DOC)){
+		//TODO Si no se puede guardar se envia directamente
+	}
+
+	//Vaciar memoria JSON
+	purgarModeloJSON();
+	//Preparamos el modelo vacio
+	componerJSON();
+
+}

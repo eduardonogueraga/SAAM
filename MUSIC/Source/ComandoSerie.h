@@ -38,8 +38,11 @@ extern void interrupcionFalloAlimentacion();
 class ComandoSerie {
 
 private:
-	String data ="";
+	String comandoRecibido;
+	char data[100];
 	void comprobarComando();
+	boolean compararCadena(const char* data, const char* cadena);
+	void nombreComando(const char* data);
 
 public:
 	ComandoSerie();

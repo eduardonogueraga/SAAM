@@ -14,32 +14,37 @@
 #include <fcntl.h>
 #include "Macros.h"
 #include "Fecha.h"
+#include <ArduinoJson.h>
+
 
 extern ConfigSystem configSystem;
 extern byte SD_STATUS;
 
-#define sck 14
-#define miso 2
-#define mosi 15
-#define ss 13
+
 
 extern Fecha fecha;
 
 class Registro {
 private:
 	File root;
-	const char sysLog[15] = "/saa/sys/log";
-	const char httpLog[15] = "/saa/http/log";
-	const char* directories[5] = {"/saa", "/saa/sys","/saa/http", "/saa/sys/log", "/saa/http/log"};
+	const char* directories[6] = {"/saa",
+									"/saa/sys",
+									"/saa/http",
+									"/saa/sys/log",
+									"/saa/sys/json",
+									"/saa/http/log"};
 	char rutaAbosuluta[60];
-	char nombreFichero[40];
+	char nombreFicheroLog[40];
+	char nombreFicheroJsonRequest[25] = "TEMP_JSON_RESQUEST.txt";
+	RegistroDirectorios registroDirectorios;
 public:
 	Registro();
 	byte iniciar();
 	void registrarLogSistema(char descripcion[190]);
-	void mostrarRegistro();
-	void listarRegistros();
-	void borrarRegistros();
+	void mostrarRegistro(RegistroDirectorios dir = DIR_LOGS);
+	void listarRegistros(RegistroDirectorios dir = DIR_LOGS);
+	void borrarRegistros(RegistroDirectorios dir = DIR_LOGS);
+	byte exportarEventosJson(StaticJsonDocument<MAX_SIZE_JSON>* json);
 };
 
 #endif /* SOURCE_REGISTRO_H_ */

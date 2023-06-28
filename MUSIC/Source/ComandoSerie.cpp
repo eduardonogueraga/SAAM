@@ -17,25 +17,41 @@ void ComandoSerie::demonioSerie(){
 	if (Serial.available() > 0 ){
 
 		if(Serial.available() > 0)
-			data = Serial.readStringUntil('\n');
+
+		comandoRecibido = Serial.readStringUntil('\n');
+		comandoRecibido.trim();
+		comandoRecibido.toCharArray(data, sizeof(data));
 
 		comprobarComando();
 	}
 
 }
 
+boolean ComandoSerie::compararCadena(const char* data, const char* cadena) {
+  return strcmp(data, cadena) == 0;
+}
+
+void ComandoSerie::nombreComando(const char* data){
+	Serial.print("demonio@saa:~$	");
+	Serial.println(data);
+}
+
 void ComandoSerie::comprobarComando() {
 
-	if (data.indexOf("set on") >= 0) {
 
+	if (compararCadena(data, "set on")) {
+		nombreComando(data);
 		setEstadoGuardia();
 	}
-	if (data.indexOf("set off") >= 0) {
 
+	if (compararCadena(data, "set off")) {
+		nombreComando(data);
 		setEstadoReposo();
 		//desactivarAlarma();
 	}
-	if (data.indexOf("set mode") >= 0) {
+
+	if (compararCadena(data, "set mode")) {
+		nombreComando(data);
 
 		if(MODO_DEFAULT){
 			Serial.println("Alarma en modo de pruebas");
@@ -46,8 +62,8 @@ void ComandoSerie::comprobarComando() {
 		}
 	}
 
-	if (data.indexOf("menu") >= 0) {
-
+	if (compararCadena(data, "menu")) {
+		nombreComando(data);
 		if(procesoCentral == ALARMA){
 			procesoCentral = MENU;
 
@@ -62,28 +78,28 @@ void ComandoSerie::comprobarComando() {
 
 	}
 
-	if (data.indexOf("pir1") >= 0) {
-
+	if (compararCadena(data, "pir1")) {
+		nombreComando(data);
 		pir1.pingSensor();
 	}
 
-	if (data.indexOf("pir2") >= 0) {
-
+	if (compararCadena(data, "pir2")) {
+		nombreComando(data);
 		pir2.pingSensor();
 	}
 
-	if (data.indexOf("pir3") >= 0) {
-
+	if (compararCadena(data, "pir3")) {
+		nombreComando(data);
 		pir3.pingSensor();
 	}
 
-	if (data.indexOf("mg") >= 0) {
-
+	if (compararCadena(data, "mg")) {
+		nombreComando(data);
 		mg.pingSensor();
 	}
 
-	if (data.indexOf("ch puerta") >= 0) {
-
+	if (compararCadena(data, "ch puerta")) {
+		nombreComando(data);
 		sensorHabilitado[0] = !sensorHabilitado[0];
 		arrCopy<byte>(sensorHabilitado, configSystem.SENSORES_HABLITADOS, 4);
 		NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
@@ -96,55 +112,90 @@ void ComandoSerie::comprobarComando() {
 		}
 	}
 
-	if (data.indexOf("mail") >= 0) {
-
+	if (compararCadena(data, "mail")) {
+		nombreComando(data);
 		setEstadoEnvio();
 	}
 
-	if (data.indexOf("reg")>=0){
+
+	if (compararCadena(data, "ls")){
+		nombreComando(data);
+		registro.listarRegistros();
+	}
+
+	if (compararCadena(data, "log")){
+		nombreComando(data);
 		Serial.println("Mostrando contenido");
 		registro.mostrarRegistro();
 	}
 
 
-	if (data.indexOf("clear")>=0){
+	if (compararCadena(data, "clear")){
+		nombreComando(data);
 		registro.borrarRegistros();
 	}
 
-	if (data.indexOf("ls")>=0){
-		registro.listarRegistros();
-	}
 
-	if (data.indexOf("json")>=0){
+	if (compararCadena(data, "clear json")){
+			nombreComando(data);
+			registro.borrarRegistros(DIR_JSON_REQUEST);
+		}
+
+
+	if (compararCadena(data, "json")){
+		nombreComando(data);
 		eventosJson.mostrarModeloJSON();
 	}
 
-	if (data.indexOf("purge")>=0){
+	if (compararCadena(data, "json -p")){
+		nombreComando(data);
 		eventosJson.purgarModeloJSON();
 	}
 
 
-	if (data.indexOf("new")>=0){
+	if (compararCadena(data, "json -make")){
+		nombreComando(data);
 		eventosJson.componerJSON();
 	}
 
-	if(data.indexOf("power")>=0){
+	if (compararCadena(data, "cat json")){
+		nombreComando(data);
+		registro.mostrarRegistro(DIR_JSON_REQUEST);
+	}
+
+	if (compararCadena(data, "ls json")){
+		nombreComando(data);
+		registro.listarRegistros(DIR_JSON_REQUEST);
+	}
+
+	if (compararCadena(data, "json -e")){
+		nombreComando(data);
+		eventosJson.exportarFichero();
+	}
+
+	if(compararCadena(data, "power")){
+		nombreComando(data);
 		interrupcionFalloAlimentacion();
 	}
 
-	if(data.indexOf("d")>=0){
+	if(compararCadena(data, "d")){
+		nombreComando(data);
 		Serial.println(datosSensores.imprimeDatos());
 	}
 
-	if(data.indexOf("info")>=0){
+	if(compararCadena(data, "info")){
+		nombreComando(data);
 		printSystemInfo();
 	}
 
-	if(data.indexOf("bye")>=0){
+	if(compararCadena(data, "bye")){
+		nombreComando(data);
 		resetear();
 	}
 
 }
+
+
 
 
 

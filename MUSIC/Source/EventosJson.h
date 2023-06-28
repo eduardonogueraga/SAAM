@@ -9,12 +9,15 @@
 #define SOURCE_EVENTOSJSON_H_
 
 #include "Arduino.h"
+#include "Registro.h"
 #include <ArduinoJson.h>
 #include "Fecha.h"
 
-#define MAX_SIZE_JSON 1024
 
+
+extern Registro registro;
 extern Fecha fecha;
+
 
 extern byte MODO_DEFAULT;
 extern byte INTENTOS_REACTIVACION;
@@ -38,6 +41,9 @@ public:
 	void guardarDeteccion(byte strikes, byte umbral, byte modo, byte id, byte estado,  byte valor = 1);
 	void guardarNotificacion(byte tipo, byte asunto , char cuerpo[],byte tlf);
 	void guardarLog(byte id);
+
+	void comprobarMemoriaDisponible();
+	void exportarFichero();
 };
 
 #endif /* SOURCE_EVENTOSJSON_H_ */

@@ -7,6 +7,11 @@
 
 #include "Registro.h"
 
+#define sck 14
+#define miso 2
+#define mosi 15
+#define ss 13
+
 File root; // @suppress("Type cannot be resolved")
 SPIClass SDSPI(HSPI);
 
@@ -51,7 +56,8 @@ byte Registro::iniciar(){
 
 
 		  //Definimos el nombre del nuevo fichero de syslog
-		  snprintf(nombreFichero, sizeof(nombreFichero), "%s_%08d_%s%s", "syslog", leerFlagEEInt("LOG_SEQ"), fecha.imprimeFechaFichero(),".txt");
+		  snprintf(nombreFicheroLog, sizeof(nombreFicheroLog), "%s_%08d_%s%s", "syslog", leerFlagEEInt("LOG_SEQ"), fecha.imprimeFechaFichero(),".txt");
+
 
 		  SD_STATUS = 1;
 		  Serial.println("ALMACENIAMENTO SD OK");
@@ -66,13 +72,13 @@ void Registro::registrarLogSistema(char descripcion[190]){
 		return;
 
 	 //Nos movemos al diretorio de logs
-	   root = SD.open(sysLog);
+	   root = SD.open(directories[DIR_LOGS]);
 	   if (!root) {
 		 Serial.println("No se pudo abrir la carpeta logs");
 		 return;
 	   }
 
-	   snprintf(rutaAbosuluta, sizeof(rutaAbosuluta), "%s/%s", sysLog, nombreFichero);
+	   snprintf(rutaAbosuluta, sizeof(rutaAbosuluta), "%s/%s", directories[DIR_LOGS], nombreFicheroLog);
 
 	     root = SD.open(rutaAbosuluta, FILE_APPEND);
 			 if (!root) {
@@ -87,23 +93,32 @@ void Registro::registrarLogSistema(char descripcion[190]){
 
 }
 
-void Registro::mostrarRegistro(){
+void Registro::mostrarRegistro(RegistroDirectorios dir){
 
 
 	if(!configSystem.MODULO_SD || SD_STATUS == 0)
 	return;
 
+	const char* nombreDir = directories[dir];
+
 	//Nos movemos al diretorio de logs
-	   root = SD.open(sysLog);
+	   root = SD.open(directories[dir]);
 	   if (!root) {
-		 Serial.println("No se pudo abrir la carpeta logs");
+		 Serial.print("No se pudo abrir la carpeta ");
+		 Serial.println(nombreDir);
+
 		 return;
 	   }
 
-	   snprintf(rutaAbosuluta, sizeof(rutaAbosuluta), "%s/%s", sysLog, nombreFichero);
+	   File file;
 
+	   if(dir == DIR_LOGS){
+		   snprintf(rutaAbosuluta, sizeof(rutaAbosuluta), "%s/%s", directories[dir], nombreFicheroLog);
+		   file = SD.open(rutaAbosuluta);
+	   }else {
+		   file = root.openNextFile(); //Solo para directorios con unico fichero
+	   }
 
-		 File file = SD.open(rutaAbosuluta);
 		   if (file) {
 		     // Lee línea por línea hasta el final del archivo
 		     while (file.available()) {
@@ -119,9 +134,9 @@ void Registro::mostrarRegistro(){
 		   root.close();
 }
 
-void Registro::listarRegistros(){
+void Registro::listarRegistros(RegistroDirectorios dir){
 
-	  root = SD.open(sysLog);
+	  root = SD.open(directories[dir]);
 
 		while (true) {
 		  File entry = root.openNextFile();
@@ -138,12 +153,12 @@ void Registro::listarRegistros(){
 
 }
 
-void Registro::borrarRegistros(){
+void Registro::borrarRegistros(RegistroDirectorios dir){
 
 	if(!configSystem.MODULO_SD || SD_STATUS == 0)
 	return;
 
-	  root = SD.open(sysLog);
+	  root = SD.open(directories[dir]);
 
 	    while (true) {
 	      File entry = root.openNextFile();
@@ -167,4 +182,42 @@ void Registro::borrarRegistros(){
 	    root.close();
 
 }
+
+
+byte Registro::exportarEventosJson(StaticJsonDocument<MAX_SIZE_JSON>* json){
+
+	if(!configSystem.MODULO_SD || SD_STATUS == 0)
+		return 0;
+
+	//Nos movemos al diretorio de logs
+	root = SD.open(directories[DIR_JSON_REQUEST]);
+	if (!root) {
+		Serial.println("No se pudo abrir la carpeta json");
+		return 0;
+	}
+
+
+	snprintf(rutaAbosuluta, sizeof(rutaAbosuluta), "%s/%s", directories[DIR_JSON_REQUEST], nombreFicheroJsonRequest);
+
+	root = SD.open(rutaAbosuluta, FILE_APPEND);
+	if (!root) {
+		Serial.println("Fallo al abrir el fichero de json");
+		return 0;
+	}
+
+	String SALIDA_JSON = "";
+	serializeJson(*json, SALIDA_JSON);
+
+	//Se imprime el resultado en el monitor serie
+	Serial.println(SALIDA_JSON);
+
+	root.print(SALIDA_JSON);
+	root.print("\n");
+	root.close();
+
+
+	return 1;
+
+}
+
 

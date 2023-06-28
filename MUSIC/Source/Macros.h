@@ -82,6 +82,9 @@
 #define TIEMPO_ALERT_LCD 6000
 #define	NUMERO_ALERTAS 4
 #define TOTAL_SENSORES 4 //EL numero de sensores activos
+#define MAX_SIZE_JSON 10240 //Bytes maximos del modelo JSON
+
+
 
 //MACROS EEPROM
 #define MENSAJES_ENVIADOS 0
@@ -209,6 +212,16 @@ typedef enum {
 	SMS_TIPO_INFO,
 	SMS_TIPO_ERROR,
 } TiposMensaje;
+
+
+typedef enum {
+	DIR_RAIZ,
+	DIR_SISTEMA,
+	DIR_HTTP,
+	DIR_LOGS,
+	DIR_JSON_REQUEST,
+	DIR_HTTP_LOG,
+} RegistroDirectorios;
 
 //LITERALES SAAS
 
