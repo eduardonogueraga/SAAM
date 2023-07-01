@@ -173,6 +173,12 @@ void ComandoSerie::comprobarComando() {
 		eventosJson.exportarFichero();
 	}
 
+	if (compararCadena(data, "json -save")){
+		nombreComando(data);
+		eventosJson.guardarJsonNVS();
+	}
+
+
 	if(compararCadena(data, "power")){
 		nombreComando(data);
 		interrupcionFalloAlimentacion();

@@ -20,28 +20,21 @@
 #include "EventosJson.h"
 
 EventosJson::EventosJson() {
-	// TODO Auto-generated constructor stub
 }
 
 
 void EventosJson::iniciarModeloJSON() {
 
-	//TODO Comprobar si existe en NVS de lo contrario se crea
+	 //Restaurar modelo almacenado
+	//TODO comprobar previamiente si hay algo
+	JSON_DOC = NVS_RestoreDataJSON<StaticJsonDocument<MAX_SIZE_JSON>>("MODELO_JSON");
 
-	actualizarCabeceraJSON();
-	// Se crea un array "Entry" dentro del objeto JSON principal
-
-
-
-	//TEST
-	/*
-	crearNuevaEntrada("1|0|0|0");
-	guardarEvento("Detection","0|0|0|0|105|1|1");
-	guardarEvento("Notice","1|116|Pendiente|2");
-	guardarEvento("Log","105");
-	*/
-	//TEST
-
+	// Comprueba si el documento está vacío
+	if (JSON_DOC.isNull()) {
+	  Serial.println("MODELO JSON VACIO");
+	  crearNuevoModeloJson();
+	  NVS_SaveDataJSON<StaticJsonDocument<MAX_SIZE_JSON>>("MODELO_JSON", JSON_DOC);
+	}
 
 }
 
@@ -121,10 +114,12 @@ void EventosJson::guardarEvento(char eventName[],char reg[]) {
  void EventosJson::componerJSON(){
 	 //Actualizar el ID
 	 guardarFlagEE("JSON_SEQ", (leerFlagEEInt("JSON_SEQ")+1));
-	 actualizarCabeceraJSON();
+	 crearNuevoModeloJson();
+
+	 //TODO actualizar los datos de la cabecera
  }
 
- void EventosJson::actualizarCabeceraJSON(){
+ StaticJsonDocument<MAX_SIZE_JSON> EventosJson::crearNuevoModeloJson(){
 
 	 JSON_DOC["version"] = "VE21R0";
 	 JSON_DOC["retry"] = String(leerFlagEEInt("JSON_RETRY"));
@@ -151,6 +146,8 @@ void EventosJson::guardarEvento(char eventName[],char reg[]) {
 			 "|104;"+String(configSystem.SENSORES_HABLITADOS[2])+
 			 "|105;"+String(configSystem.SENSORES_HABLITADOS[3]);
 	 E_ARR_SYSTEM["reset"] = fecha.imprimeFechaJSON(fecha.getFechaReset());
+
+	 return JSON_DOC;
  }
 
 
@@ -267,4 +264,9 @@ void EventosJson::exportarFichero(){
 	//Preparamos el modelo vacio
 	componerJSON();
 
+}
+
+void EventosJson::guardarJsonNVS(){
+
+	NVS_SaveDataJSON<StaticJsonDocument<MAX_SIZE_JSON>>("MODELO_JSON", JSON_DOC);
 }

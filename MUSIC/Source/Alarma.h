@@ -731,11 +731,10 @@ static byte tiempoFracccion;
 	  T value; //Struct generico
 
 	  NVSMemory.getBytes(key, &value, sizeof(value));
-      NVSMemory.end();
+	  NVSMemory.end();
 
 	  // Devolvemos el struct leído
 	  return value;
 	}
-
 
 #endif /* SOURCE_ALARMA_H_ */

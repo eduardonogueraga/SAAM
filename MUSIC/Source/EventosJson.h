@@ -23,6 +23,8 @@ extern byte MODO_DEFAULT;
 extern byte INTENTOS_REACTIVACION;
 extern EstadosAlarma estadoAlarma;
 
+extern ConfigSystem configSystem;
+
 class EventosJson {
 private:
 	StaticJsonDocument<MAX_SIZE_JSON> JSON_DOC;
@@ -32,7 +34,7 @@ public:
 	void iniciarModeloJSON();
 	JsonObject crearNuevaEntrada(char reg[]);
 	void guardarEvento(char eventName[],char reg[]);
-	void actualizarCabeceraJSON();
+	StaticJsonDocument<MAX_SIZE_JSON> crearNuevoModeloJson();
 	void componerJSON();
 	void purgarModeloJSON();
 	void mostrarModeloJSON();
@@ -44,6 +46,7 @@ public:
 
 	void comprobarMemoriaDisponible();
 	void exportarFichero();
+	void guardarJsonNVS();
 };
 
 #endif /* SOURCE_EVENTOSJSON_H_ */
