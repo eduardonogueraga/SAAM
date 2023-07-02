@@ -34,6 +34,7 @@ private:
 									"/saa/sys/json",
 									"/saa/http/log"};
 	char rutaAbosuluta[60];
+	char rutaAbosulutaTemporal[60];
 	char nombreFicheroLog[40];
 	char nombreFicheroJsonRequest[25] = "TEMP_JSON_RESQUEST.txt";
 	RegistroDirectorios registroDirectorios;
@@ -45,6 +46,7 @@ public:
 	void listarRegistros(RegistroDirectorios dir = DIR_LOGS);
 	void borrarRegistros(RegistroDirectorios dir = DIR_LOGS);
 	byte exportarEventosJson(StaticJsonDocument<MAX_SIZE_JSON>* json);
+	String extraerPrimerElemento(RegistroDirectorios dir = DIR_JSON_REQUEST);
 };
 
 #endif /* SOURCE_REGISTRO_H_ */

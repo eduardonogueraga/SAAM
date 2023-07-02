@@ -18,6 +18,8 @@ void EstadoInicio(){
 
 	//Acutalizamos el secuencial de los logs para esta ejecucion
 	guardarFlagEE("LOG_SEQ", (leerFlagEEInt("LOG_SEQ")+1));
+
+
 	//Actualizamos los intentos
 	//guardarFlagEE("JSON_RETRY", 0);
 	//guardarFlagEE("JSON_SEQ", 1);
@@ -100,7 +102,7 @@ void setup()
 	   checkearAlertasDetenidas();
 	   chekearInterrupciones();
 
-	   eventosJson.iniciarModeloJSON();//TEST
+	   eventosJson.iniciarModeloJSON();
 	   registro.registrarLogSistema("ALARMA INICIADA");
 	   eventosJson.guardarLog(ALARMA_INICIADA_LOG);
 

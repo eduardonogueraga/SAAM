@@ -220,4 +220,61 @@ byte Registro::exportarEventosJson(StaticJsonDocument<MAX_SIZE_JSON>* json){
 
 }
 
+String Registro::extraerPrimerElemento(RegistroDirectorios dir){
+
+	String line = "";
+
+	if(!configSystem.MODULO_SD || SD_STATUS == 0)
+		return line;
+
+
+	snprintf(rutaAbosuluta, sizeof(rutaAbosuluta), "%s/%s", directories[dir], nombreFicheroJsonRequest);
+	snprintf(rutaAbosulutaTemporal, sizeof(rutaAbosulutaTemporal), "%s/%s", directories[dir], "temp.txt");
+
+	const char* nombreDir = directories[dir];
+
+	File file;
+	File tempFile = SD.open(rutaAbosulutaTemporal, FILE_APPEND);
+
+	//Nos movemos al diretorio de logs
+	root = SD.open(directories[dir]);
+	if (!root) {
+		Serial.print("No se pudo abrir la carpeta ");
+		Serial.println(nombreDir);
+
+		return line;
+	}
+
+	file = root.openNextFile();
+
+	if (file) {
+
+		byte flag_primera_linea = 1;
+
+		while (file.available()) {
+			if(flag_primera_linea == 1){
+				line = file.readStringUntil('\n');
+				flag_primera_linea = 0;
+			}else {
+				tempFile.print(file.readStringUntil('\n'));
+				tempFile.print("\n");
+			}
+		}
+
+		file.close();
+		tempFile.close();
+
+		//Borrar original
+		SD.remove(rutaAbosuluta);
+		//Renombrar fichero
+		SD.rename(rutaAbosulutaTemporal, rutaAbosuluta);
+
+	} else {
+		Serial.println("Error al abrir el archivo.");
+	}
+
+	root.close();
+
+	return line;
+}
 

@@ -8,8 +8,6 @@
 #ifndef SOURCE_MACROS_H_
 #define SOURCE_MACROS_H_
 
-#include <Preferences.h>
-extern Preferences NVSMemory;
 
 //MACROS
 #define TIEMPO_OFF_TEST 0.1666
@@ -83,7 +81,7 @@ extern Preferences NVSMemory;
 #define TIEMPO_ALERT_LCD 6000
 #define	NUMERO_ALERTAS 4
 #define TOTAL_SENSORES 4 //EL numero de sensores activos
-#define MAX_SIZE_JSON 1024 //Bytes maximos del modelo JSON
+#define MAX_SIZE_JSON 3584 //Bytes maximos del modelo JSON 3.5K
 
 
 
@@ -336,40 +334,6 @@ template <class T> void arrCopy(int origen[], int destino[], byte tam) {
 	int *q = destino;
 	while (p != origen + tam)
 		*q++ = *p++;
-}
-
-//Error raro
-
-template <typename T> void NVS_SaveDataJSON(const char* key, T value) {
-
-	NVSMemory.begin("SAA_DATA", false);
-	NVSMemory.putBytes(key, &value, sizeof(value));
-	NVSMemory.end();
-}
-
-
-template <typename T> T NVS_RestoreDataJSON(const char* key) {
-
-  NVSMemory.begin("SAA_DATA", false);
-  T value; //Struct generico
-  NVSMemory.getBytes(key, &value, sizeof(value));
-  /*
-  // Leer el valor de la clave
-    int valor = NVSMemory.getInt(key, 0);
-
-    // Verificar si el valor leído es válido
-    bool existe = (valor != 0);
-
-	if(existe){
-		  NVSMemory.getBytes(key, &value, sizeof(value));
-	}else {
-		 Serial.println("No existe objeto llamando a constructor");
-		  value = T();
-	}
-*/
-  NVSMemory.end();
-
-  return value;
 }
 
 #endif /* SOURCE_MACROS_H_ */

@@ -11,12 +11,14 @@
 #include "Arduino.h"
 #include "Registro.h"
 #include <ArduinoJson.h>
+#include <Preferences.h>
 #include "Fecha.h"
 
 
 
 extern Registro registro;
 extern Fecha fecha;
+extern Preferences NVSMemory;
 
 
 extern byte MODO_DEFAULT;
@@ -29,6 +31,9 @@ class EventosJson {
 private:
 	StaticJsonDocument<MAX_SIZE_JSON> JSON_DOC;
 	String SALIDA_JSON;
+
+	void guardarJsonNVS(StaticJsonDocument<MAX_SIZE_JSON>& jsonDoc);
+	byte cargarJsonNVS(StaticJsonDocument<MAX_SIZE_JSON>& jsonDoc);
 public:
 	EventosJson();
 	void iniciarModeloJSON();
@@ -47,6 +52,10 @@ public:
 	void comprobarMemoriaDisponible();
 	void exportarFichero();
 	void guardarJsonNVS();
+	void cargarJsonNVS();
+	void actualizarCabecera();
+
+	void enviarInformeSaas();
 };
 
 #endif /* SOURCE_EVENTOSJSON_H_ */

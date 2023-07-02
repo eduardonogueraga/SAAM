@@ -136,10 +136,16 @@ void ComandoSerie::comprobarComando() {
 	}
 
 
+	if (compararCadena(data, "json -h")){
+		nombreComando(data);
+
+		Serial.println(registro.extraerPrimerElemento());
+	}
+
 	if (compararCadena(data, "clear json")){
-			nombreComando(data);
-			registro.borrarRegistros(DIR_JSON_REQUEST);
-		}
+		nombreComando(data);
+		registro.borrarRegistros(DIR_JSON_REQUEST);
+	}
 
 
 	if (compararCadena(data, "json")){
@@ -178,6 +184,24 @@ void ComandoSerie::comprobarComando() {
 		eventosJson.guardarJsonNVS();
 	}
 
+	if (compararCadena(data, "json -load")){
+		nombreComando(data);
+		eventosJson.cargarJsonNVS();
+	}
+
+	if (compararCadena(data, "json -t")){
+			nombreComando(data);
+			eventosJson.purgarModeloJSON();
+			eventosJson.componerJSON();
+			eventosJson.guardarJsonNVS();
+			eventosJson.cargarJsonNVS();
+		}
+
+
+	if (compararCadena(data, "json -send")){
+		nombreComando(data);
+		eventosJson.enviarInformeSaas();
+	}
 
 	if(compararCadena(data, "power")){
 		nombreComando(data);

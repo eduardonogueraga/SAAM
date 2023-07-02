@@ -25,15 +25,10 @@ EventosJson::EventosJson() {
 
 void EventosJson::iniciarModeloJSON() {
 
-	 //Restaurar modelo almacenado
-	//TODO comprobar previamiente si hay algo
-	JSON_DOC = NVS_RestoreDataJSON<StaticJsonDocument<MAX_SIZE_JSON>>("MODELO_JSON");
-
-	// Comprueba si el documento está vacío
-	if (JSON_DOC.isNull()) {
-	  Serial.println("MODELO JSON VACIO");
-	  crearNuevoModeloJson();
-	  NVS_SaveDataJSON<StaticJsonDocument<MAX_SIZE_JSON>>("MODELO_JSON", JSON_DOC);
+	//Restaurar modelo almacenado
+	if (!cargarJsonNVS(JSON_DOC)) {
+		Serial.println("MODELO JSON VACIO");
+		componerJSON();
 	}
 
 }
@@ -112,11 +107,13 @@ void EventosJson::guardarEvento(char eventName[],char reg[]) {
 }
 
  void EventosJson::componerJSON(){
+	 Serial.println("Componiendo Modelo");
+
 	 //Actualizar el ID
 	 guardarFlagEE("JSON_SEQ", (leerFlagEEInt("JSON_SEQ")+1));
 	 crearNuevoModeloJson();
 
-	 //TODO actualizar los datos de la cabecera
+	 guardarJsonNVS(JSON_DOC);
  }
 
  StaticJsonDocument<MAX_SIZE_JSON> EventosJson::crearNuevoModeloJson(){
@@ -153,6 +150,7 @@ void EventosJson::guardarEvento(char eventName[],char reg[]) {
 
 void EventosJson::purgarModeloJSON(){
 
+	Serial.print("Purgando Modelo: ");
 	JSON_DOC.clear();
 	SALIDA_JSON = "";
 	Serial.println(JSON_DOC.memoryUsage());
@@ -163,12 +161,12 @@ void EventosJson::mostrarModeloJSON(){
 
 	// Se serializa el objeto JSON a una cadena de caracteres
 	//serializeJson(JSON_DOC, SALIDA_JSON);
-	SALIDA_JSON = "";
+	SALIDA_JSON.clear();
 	serializeJsonPretty(JSON_DOC, SALIDA_JSON);
 
 	//Se imprime el resultado en el monitor serie
 	Serial.println(SALIDA_JSON);
-
+	SALIDA_JSON.clear();
     Serial.println(JSON_DOC.memoryUsage());
 
 
@@ -248,12 +246,16 @@ void EventosJson::comprobarMemoriaDisponible(){
 	if(JSON_DOC.memoryUsage() >= (MAX_SIZE_JSON-400)){
 		Serial.println("JSON Overload exportando a fichero");
 		this->exportarFichero();
+	}else {
+		//Si la memoria no ha sido superada actualizo en NVS
+		guardarJsonNVS(JSON_DOC);
 	}
 
 }
 
 void EventosJson::exportarFichero(){
 
+	actualizarCabecera();
 	//Añadir ID a cadena para tratar
 	if(!registro.exportarEventosJson(&JSON_DOC)){
 		//TODO Si no se puede guardar se envia directamente
@@ -267,6 +269,115 @@ void EventosJson::exportarFichero(){
 }
 
 void EventosJson::guardarJsonNVS(){
+	guardarJsonNVS(JSON_DOC);
+}
 
-	NVS_SaveDataJSON<StaticJsonDocument<MAX_SIZE_JSON>>("MODELO_JSON", JSON_DOC);
+void EventosJson::cargarJsonNVS(){
+	cargarJsonNVS(JSON_DOC);
+}
+
+
+
+void EventosJson::guardarJsonNVS(StaticJsonDocument<MAX_SIZE_JSON>& jsonDoc) {
+	// Serializar el documento JSON en un String
+	String jsonString;
+	serializeJson(jsonDoc, jsonString);
+
+	Serial.print("Guardando Modelo: ");
+	Serial.println(jsonString);
+
+	NVSMemory.begin("SAA_DATA", false);
+	NVSMemory.putString("MODELO_JSON", jsonString);
+	NVSMemory.end();
+
+}
+
+byte EventosJson::cargarJsonNVS(StaticJsonDocument<MAX_SIZE_JSON>& jsonDoc) {
+
+	NVSMemory.begin("SAA_DATA", false);
+	String jsonString = NVSMemory.getString("MODELO_JSON");
+	NVSMemory.end();
+
+	Serial.print("Cargando Modelo: ");
+	Serial.println(jsonString);
+
+	if(jsonString.isEmpty() || jsonString.c_str() == nullptr){
+		return 0;
+	}
+
+	// Deserializar el String en el documento JSON
+	DeserializationError error = deserializeJson(jsonDoc, jsonString);
+
+	// Test if parsing succeeds.
+	if (error) {
+		Serial.print(F("deserializeJson() failed: "));
+		Serial.println(error.f_str());
+		return 0;
+	}
+
+	return 1;
+}
+
+
+void EventosJson::actualizarCabecera(){
+
+	JSON_DOC["retry"] = String(leerFlagEEInt("JSON_RETRY"));
+	JSON_DOC["id"] = String(leerFlagEEInt("JSON_SEQ"));
+	JSON_DOC["date"] = fecha.imprimeFechaJSON();
+
+	//Recuperamos los datos del sistema
+	JsonArray system = JSON_DOC["System"];
+	JsonObject lastSystem;
+
+	for (JsonObject e : system) {
+		lastSystem = e;
+	}
+
+	lastSystem["action"] = String(MODO_DEFAULT);
+	lastSystem["msen"] = String(configSystem.MODO_SENSIBLE);
+	lastSystem["alive"] = String(millis());
+	lastSystem["numsms"] = String(leerFlagEEInt("N_SMS_ENVIADOS"));
+	lastSystem["modules"] = String(configSystem.MODULO_SD)+
+			"|" + String(configSystem.MODULO_RTC)+
+			"|0";
+	lastSystem["sensors"] = 	"102;"+String(configSystem.SENSORES_HABLITADOS[0])+
+			"|103;"+String(configSystem.SENSORES_HABLITADOS[1])+
+			"|104;"+String(configSystem.SENSORES_HABLITADOS[2])+
+			"|105;"+String(configSystem.SENSORES_HABLITADOS[3]);
+	lastSystem["reset"] = fecha.imprimeFechaJSON(fecha.getFechaReset());
+
+}
+
+void EventosJson::enviarInformeSaas(){
+
+	Serial.println(F("Enviando informe a SAAS"));
+	String modelo;
+
+	//Comprobar si existen paquetes exportados
+	while(true){
+
+		modelo = registro.extraerPrimerElemento();
+
+		if(modelo.isEmpty() || modelo.c_str() == nullptr){
+			Serial.println(F("No hay paquetes pendientes"));
+			break;
+		}
+
+		Serial.println(modelo);
+		//Enviar
+
+	}
+
+	//Se envia el modelo actual
+	actualizarCabecera();
+	serializeJson(JSON_DOC, SALIDA_JSON);
+	Serial.println(SALIDA_JSON);
+	SALIDA_JSON.clear();
+	//Enviar
+
+	//Vaciar memoria JSON
+	purgarModeloJSON();
+	//Preparamos el nuevo modelo vacio
+	componerJSON();
+
 }
