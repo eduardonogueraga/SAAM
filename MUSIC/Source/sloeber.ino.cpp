@@ -13,6 +13,7 @@
 
 void setup();
 void loop();
+void loop2(void *parameter);
 void procesosSistema() ;
 void procesosPrincipales() ;
 void procesoAlarma();

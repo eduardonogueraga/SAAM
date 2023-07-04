@@ -36,7 +36,6 @@ void EstadoInicio(){
 void setup()
 {
 	  Serial.begin(115200);
-
 	  mensaje.inicioGSM(UART_GSM);
 	  UART_RS.begin(115200, SERIAL_8N1, RS_RX, RS_TX);    //RX TX  (H1 = RX5 TX 18) PUERTO RS
 
@@ -97,14 +96,17 @@ void setup()
 
 
 
-	   EstadoInicio();
-	   cargarEstadoPrevio();
-	   checkearAlertasDetenidas();
-	   chekearInterrupciones();
+	    EstadoInicio();
+	    cargarEstadoPrevio();
+	    checkearAlertasDetenidas();
+	    chekearInterrupciones();
 
-	   eventosJson.iniciarModeloJSON();
-	   registro.registrarLogSistema("ALARMA INICIADA");
-	   eventosJson.guardarLog(ALARMA_INICIADA_LOG);
+	    eventosJson.iniciarModeloJSON();
+	    registro.registrarLogSistema("ALARMA INICIADA");
+	    eventosJson.guardarLog(ALARMA_INICIADA_LOG);
+
+	    //Hilo 0
+	    xTaskCreatePinnedToCore(loop2,"loop_2",1000,NULL,1,&tareaLoopDos,0);
 
 }
 
@@ -150,6 +152,14 @@ void loop()
 
 }
 
+
+void loop2(void *parameter){
+  for(;;){
+	  linea.mantenerComunicacion();
+	  delay(100);
+  }
+  vTaskDelay(10);
+}
 
 void procesosSistema(){
 

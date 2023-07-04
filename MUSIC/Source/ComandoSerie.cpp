@@ -203,6 +203,13 @@ void ComandoSerie::comprobarComando() {
 		eventosJson.enviarInformeSaas();
 	}
 
+	if (compararCadena(data, "rs -t")){
+		nombreComando(data);
+		UART_RS.println("###INIT##MASTER#PORCHE#REPLY#NONE#L1:0;L2:0#19#PL1-1:0;PL1-2:0;PL1-3:0;PL1-4:0;PL2-1:0;PL2-2:0;PL2-3:0;PL2-4:0#END###");
+		delay(5);
+	}
+
+
 	if(compararCadena(data, "power")){
 		nombreComando(data);
 		interrupcionFalloAlimentacion();

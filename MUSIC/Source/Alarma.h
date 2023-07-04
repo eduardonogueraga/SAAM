@@ -29,10 +29,14 @@
 #include "Fecha.h"
 #include "Registro.h"
 #include "EventosJson.h"
+#include "ComunicacionLinea.h"
 
 
 //VERSION (VE -> Version Estable VD -> Version Desarrollo)
 const char* version[] = {"MUSIC VE21R0", "25/06/23"};
+
+//RTOS
+TaskHandle_t tareaLoopDos;
 
 //VARIABLES GLOBALES
 ConfigSystem configSystem;
@@ -83,6 +87,7 @@ Menu menu;
 Fecha fecha;
 Registro registro;
 EventosJson eventosJson;
+ComunicacionLinea linea;
 
 
 //TIEMPOS MARGEN
@@ -736,5 +741,6 @@ static byte tiempoFracccion;
 	  // Devolvemos el struct leído
 	  return value;
 	}
+
 
 #endif /* SOURCE_ALARMA_H_ */
