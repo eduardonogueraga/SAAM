@@ -26,6 +26,27 @@ ComunicacionLinea::ComunicacionLinea() { // @suppress("Class members should be p
 }
 
 void ComunicacionLinea::mantenerComunicacion(){
+
+	/*
+	 idea obj terminal = databank
+
+	 Itero los terminales de la linea
+
+	 	 pregunto a tX => genero la traza correspondiente
+	 	 	 espero respuesta X tiempo => escucharLinea
+	 	 	 	 obtengo respuesta => leer
+	 	 	 	 	 	 	 	 => entiendo la respuesta => guardo la informacion en el terminal y  paso al siguente
+	 	 	 	 	 	 	 	 => no entiendo la respuesta pido un retry => genero la traza correspondiente
+	 	 	 	 	 	 	 	 	 	=> entiendo la respuesta guardo y paso al siguente
+	 	 	 	 	 	 	 	 	 	=> no entiendo la respuesta paso al siguente y meto un strike (pueden ser otro tipo de strikes)
+
+	  	  	 no obtengo respuesta => paso al siguente y meto un strike al terminal
+	 */
+
+
+
+
+
 	//SI LA TRAMA ES VALIDA LA PROCESA
 	if(!escucharLinea()){
 		return;
@@ -59,14 +80,26 @@ void ComunicacionLinea::mantenerComunicacion(){
 
 bool ComunicacionLinea::escucharLinea() {
 
+	if(gotoUart==1){ //Control serie
+		gotoUart=0;
+		const char datosFake[] = "###INIT##MASTER#PORCHE#REPLY#N#0;0#280#1;0;0;1;0;0;1;0#END###";
+		strncpy(tramaRecibida, datosFake, sizeof(tramaRecibida) - 1);
+		tramaRecibida[sizeof(tramaRecibida) - 1] = '\0';
+		goto uartData;
+	}
+
+
 	if (UART_RS.available() > 0) {
 		delay(5); //Espera al paquete
 
 		limpiarBuffer(tramaRecibida);
 
-		size_t byteCount = UART_RS.readBytesUntil('\n', tramaRecibida, sizeof(tramaRecibida) - 1); //read in data to buffer
+		byteCount = UART_RS.readBytesUntil('\n', tramaRecibida, sizeof(tramaRecibida) - 1); //read in data to buffer
 		tramaRecibida[byteCount] = NULL;	//put an end character on the data
-		//Serial.println(tramaRecibida);
+
+		uartData:
+
+		Serial.println(tramaRecibida);
 
 		UART_RS.flush();
 		char *inicioPuntero = strstr(tramaRecibida, INICIO_TRAMA);
@@ -95,19 +128,35 @@ bool ComunicacionLinea::escucharLinea() {
 					extraerDatosToken(i);
 				}
 
-				//Serial.println("DATOS RECUPERADOS: " + String(dataCount));
+				//SUBTRAMA SENSORES
+				token =  strtok(NULL, DELIMITADOR);
 
-				if (dataCount == MAX_DATOS_TRAMA){
+				if ((token != NULL && strlen(token) > 1) && strlen(token) < sizeof(subTramaSensores)) {
+					strncpy(subTramaSensores, token, sizeof(subTramaSensores) - 1);
+					subTramaSensores[sizeof(subTramaSensores) - 1] = '\0';
+				}
+				else {
+					Serial.print(F("ERROR AL INSERTAR SENSORES"));
+				}
 
-					/*
-					Serial.println(" SALIDA:"); //TEST
 
-					for (byte i = 0; i < MAX_DATOS_TRAMA; i++){
-						Serial.println(datosStrings[i]);
+				Serial.println("Trama principal:");
+				for (byte i = 0; i < MAX_DATOS_TRAMA; i++) {
+					Serial.print(i);
+					Serial.print(": ");
+					Serial.println(datosStrings[i]);
+				}
 
-					}
-					*/
+				Serial.println("Subtrama sensores:");
+				extraerDatosSensores(subTramaSensores,valorSensores, MAX_DATOS_SUB_TRAMA);
+				Serial.println("Subtrama estado del servicio:");
+				extraerDatosSensores(datosStrings[ESTADO_SERVICIO],valorControlLineas, MAX_DATOS_CTL_LINEA);
 
+				Serial.println("Num datos recolectados:");
+				Serial.println(dataCount);
+
+				if (dataCount == (MAX_DATOS_TRAMA + MAX_DATOS_SUB_TRAMA + MAX_DATOS_CTL_LINEA)){
+					Serial.println(F("OK MAN"));
 					return true;
 
 				}else {
@@ -131,17 +180,47 @@ bool ComunicacionLinea::escucharLinea() {
 
 void ComunicacionLinea::extraerDatosToken(byte posicion){
 
-	if ((token != NULL && strlen(token) > 1) && strlen(token) < sizeof(datosStrings[posicion])) {
+	if ((token != NULL && strlen(token) > 0) && strlen(token) < sizeof(datosStrings[posicion])) {
 		strncpy(datosStrings[posicion], token, sizeof(datosStrings[posicion]));
 		dataCount++;
 	}
 	else {
-		Serial.println(F("ERROR AL INSERTAR EL DATO: "));
-		Serial.print(posicion);
+		Serial.print(F("ERROR AL INSERTAR EL DATO: "));
+		Serial.println(posicion);
 
 	}
 
 }
+
+
+void ComunicacionLinea::extraerDatosSensores(char* subTrama, byte* arrSalida, byte maxDatosSubTrama) {
+
+	for (byte i = 0; i < maxDatosSubTrama; i++) {
+		if (i == 0) {
+			token = strtok(subTrama, SUB_DELIMITADOR);
+		}
+		else {
+			token = strtok(NULL, SUB_DELIMITADOR);
+		}
+
+		if ((token != NULL && strlen(token) > 0) && strlen(token) < sizeof(arrSalida)) {
+			arrSalida[i] = atoi(token);
+			dataCount++;
+		}
+		else {
+			Serial.print(F("ERROR AL INSERTAR SENSOR: "));
+			Serial.print(i);
+		}
+	}
+
+	//Imprime datos TEST
+	for (byte i = 0; i < maxDatosSubTrama; i++) {
+		Serial.print(i);
+		Serial.print(": ");
+		Serial.println(arrSalida[i]);
+	}
+}
+
 
 void ComunicacionLinea::borrarDatosStrings(){
 	for(byte i = 0; i < MAX_DATOS_TRAMA; i++){
@@ -252,4 +331,8 @@ void ComunicacionLinea::writeChar(char *TEXTO_ENVIO) {
 		UART_RS.write(TEXTO_ENVIO[i]);
 		delay(5);
 	}
+}
+
+void ComunicacionLinea::testUart(){
+	gotoUart = 1;
 }

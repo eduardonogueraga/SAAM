@@ -14,6 +14,7 @@
 #include "Datos.h"
 #include "EventosJson.h"
 #include <HardwareSerial.h>
+#include "ComunicacionLinea.h"
 
 
 extern void setEstadoGuardia();
@@ -29,6 +30,7 @@ extern InterStrike pir1, pir2, pir3, mg;
 extern Datos datosSensores;
 extern EventosJson eventosJson;
 extern HardwareSerial UART_RS;
+extern ComunicacionLinea linea;
 
 
 extern Registro registro;

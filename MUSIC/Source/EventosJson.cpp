@@ -283,8 +283,8 @@ void EventosJson::guardarJsonNVS(StaticJsonDocument<MAX_SIZE_JSON>& jsonDoc) {
 	String jsonString;
 	serializeJson(jsonDoc, jsonString);
 
-	Serial.print("Guardando Modelo: ");
-	Serial.println(jsonString);
+	//Serial.print("Guardando Modelo: ");
+	//Serial.println(jsonString);
 
 	NVSMemory.begin("SAA_DATA", false);
 	NVSMemory.putString("MODELO_JSON", jsonString);
@@ -298,8 +298,8 @@ byte EventosJson::cargarJsonNVS(StaticJsonDocument<MAX_SIZE_JSON>& jsonDoc) {
 	String jsonString = NVSMemory.getString("MODELO_JSON");
 	NVSMemory.end();
 
-	Serial.print("Cargando Modelo: ");
-	Serial.println(jsonString);
+	//Serial.print("Cargando Modelo: ");
+	//Serial.println(jsonString);
 
 	if(jsonString.isEmpty() || jsonString.c_str() == nullptr){
 		return 0;
