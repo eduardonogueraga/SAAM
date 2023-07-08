@@ -87,9 +87,12 @@
 enum infoTrazas{DESTINATARIO, AUTOR, METODO, METODO_DESC, ESTADO_SERVICIO, FOTOSENSOR};
 enum metodosTrazas{MTH_DATA, MTH_RETRY, MTH_RESET};
 
+#define N_TERMINALES_LINEA 2
+
 #define MAX_DATOS_TRAMA 6
 #define MAX_DATOS_SUB_TRAMA 8
 #define MAX_DATOS_CTL_LINEA 2
+#define MAX_REINTENTOS_MASTER 2
 
 enum infoMapeoSensores {
 	L101_SENSOR,
@@ -103,6 +106,19 @@ enum infoMapeoSensores {
 	C01_LINEA,
 	C02_LINEA,
 };
+
+typedef enum {
+	SILENCIO,
+	TRAMA_KO,
+	TRAMA_OK
+} LecturasLinea;
+
+typedef enum {
+	LLAMAR_TERMINAL,
+	ESCUCHAR_LINEA,
+	SOLICITAR_REINTENTO,
+	REINTENTAR
+} EstadosTerminal;
 
 
 //DEFINICIONES DE FUNCIONES

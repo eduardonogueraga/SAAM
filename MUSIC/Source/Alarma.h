@@ -30,10 +30,11 @@
 #include "Registro.h"
 #include "EventosJson.h"
 #include "ComunicacionLinea.h"
+#include "Terminal.h"
 
 
 //VERSION (VE -> Version Estable VD -> Version Desarrollo)
-const char* version[] = {"MUSIC VE21R0", "25/06/23"};
+const char* version[] = {"MUSIC VE21R0", "08/07/23"};
 
 //RTOS
 TaskHandle_t tareaLoopDos;
@@ -88,6 +89,13 @@ Fecha fecha;
 Registro registro;
 EventosJson eventosJson;
 ComunicacionLinea linea;
+
+//Terminales en linea
+Terminal T_COCHERA = Terminal("COCHERA");
+Terminal T_PORCHE = Terminal("PORCHE");
+//Terminal T_ALMACEN = Terminal("ALMACEN");
+
+Terminal T_LIST[] = {T_COCHERA, T_PORCHE/*, T_ALMACEN*/};
 
 
 //TIEMPOS MARGEN

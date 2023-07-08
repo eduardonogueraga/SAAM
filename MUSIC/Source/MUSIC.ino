@@ -149,14 +149,16 @@ void loop()
 
 	procesosSistema();
 	procesosPrincipales();
+	linea.mantenerComunicacion();
 
 }
 
 
 void loop2(void *parameter){
   for(;;){
-	  linea.mantenerComunicacion();
-	  delay(100);
+	  //linea.mantenerComunicacion();
+	 // delay(100);
+		delay(2000);
   }
   vTaskDelay(10);
 }

@@ -12,7 +12,8 @@
  *      Ejemplos trazas
  *
  *      SAAM -> TERMINAL
- *      ###INIT#PORCHE#MASTER#DATA#NONE#NONE#NONE#NONE#END###
+ *      ###INIT#PORCHE#MASTER#DATA#N#N#N#N#END###
+ *
  *
  *      TERMINAL -> SAAM
  *      ###INIT##MASTER#PORCHE#REPLY#NONE#L1:0;L2:0#19#PL1-1:0;PL1-2:0;PL1-3:0;PL1-4:0;PL2-1:0;PL2-2:0;PL2-3:0;PL2-4:0#END###
@@ -22,67 +23,51 @@
 #include "ComunicacionLinea.h"
 
 ComunicacionLinea::ComunicacionLinea() { // @suppress("Class members should be properly initialized")
-	// TODO Auto-generated constructor stub
+	terminalComposer = LLAMAR_TERMINAL;
+	lecturaLinea = SILENCIO;
+
+	this->numeroReintentosTerminal = 0;
+	this->numeroReintentosMaster = 0;
 }
 
 void ComunicacionLinea::mantenerComunicacion(){
+	//Se interrogan a los terminales conectados
 
-	/*
-	 idea obj terminal = databank
+	if(this->flagSalidaComposer == 0){ //@TEST
+		Serial.println("TEST RS");
+	}else {
 
-	 Itero los terminales de la linea
-
-	 	 pregunto a tX => genero la traza correspondiente
-	 	 	 espero respuesta X tiempo => escucharLinea
-	 	 	 	 obtengo respuesta => leer
-	 	 	 	 	 	 	 	 => entiendo la respuesta => guardo la informacion en el terminal y  paso al siguente
-	 	 	 	 	 	 	 	 => no entiendo la respuesta pido un retry => genero la traza correspondiente
-	 	 	 	 	 	 	 	 	 	=> entiendo la respuesta guardo y paso al siguente
-	 	 	 	 	 	 	 	 	 	=> no entiendo la respuesta paso al siguente y meto un strike (pueden ser otro tipo de strikes)
-
-	  	  	 no obtengo respuesta => paso al siguente y meto un strike al terminal
-	 */
-
-
-
-
-
-	//SI LA TRAMA ES VALIDA LA PROCESA
-	if(!escucharLinea()){
 		return;
 	}
 
-	//String metodo = datosStrings[METODO];
+	for (int i = 0; i < N_TERMINALES_LINEA; i++) { //N_TERMINALES_LINEA
 
-	char metodo[20];
-	char metodoDatos[20] = "DATA";
-	char metodoReset[20] = "RESET";
-	strncpy(metodo, datosStrings[METODO], sizeof(metodo));
+		while (!this->flagSalidaComposer) {
+			this->interrogarTerminal(T_LIST[i]);
+		}
 
-
-	//DETERMINA LA RESPUESTA
-	if (strcmp(metodo, metodoDatos) == 0) {
-		this->constructorTramaDatos(MTH_DATA);
-		this->enviarTrazaDatos();
-	}else if(strcmp(metodo, metodoReset) == 0){
-		this->constructorTramaDatos(MTH_RESET);
-		this->enviarTrazaDatos();
-
-		//resetear();
+		this->flagSalidaComposer = 0;
 	}
-	else	{
-		this->constructorTramaDatos(MTH_RETRY);
-		this->enviarTrazaDatos();
-	}
+
+	this->flagSalidaComposer = 1; //@TEST
+
+/*
+	if(!escucharLinea(T_LIST[0])){
+			return;
+		}
+*/
 
 }
 
 
-bool ComunicacionLinea::escucharLinea() {
+LecturasLinea ComunicacionLinea::escucharLinea(Terminal &terminal) {
+
+	lecturaLinea = SILENCIO;
 
 	if(gotoUart==1){ //Control serie
 		gotoUart=0;
-		const char datosFake[] = "###INIT##MASTER#PORCHE#REPLY#N#0;0#280#1;0;0;1;0;0;1;0#END###";
+		const char datosFake[] = "###INIT##MASTER#COCHERA#REPLY#N#0;0#280#1;0;0;1;0;0;1;0#END###";
+		//const char datosFake[] = "###INIT##MASTER#PORCHE#RETRY#N#N#N#N#END###";
 		strncpy(tramaRecibida, datosFake, sizeof(tramaRecibida) - 1);
 		tramaRecibida[sizeof(tramaRecibida) - 1] = '\0';
 		goto uartData;
@@ -120,6 +105,7 @@ bool ComunicacionLinea::escucharLinea() {
 			extraerDatosToken();
 
 
+
 			if (strcmp(datosStrings[DESTINATARIO], TERMINAL_NAME) == 0) {
 				//LLAMAN A ESTE DISPOSITIVO, PROSIGUE LA EXTRACCION DE LOS DATOS
 
@@ -128,53 +114,73 @@ bool ComunicacionLinea::escucharLinea() {
 					extraerDatosToken(i);
 				}
 
-				//SUBTRAMA SENSORES
-				token =  strtok(NULL, DELIMITADOR);
-
-				if ((token != NULL && strlen(token) > 1) && strlen(token) < sizeof(subTramaSensores)) {
-					strncpy(subTramaSensores, token, sizeof(subTramaSensores) - 1);
-					subTramaSensores[sizeof(subTramaSensores) - 1] = '\0';
-				}
-				else {
-					Serial.print(F("ERROR AL INSERTAR SENSORES"));
-				}
-
-
+				/*
 				Serial.println("Trama principal:");
 				for (byte i = 0; i < MAX_DATOS_TRAMA; i++) {
 					Serial.print(i);
 					Serial.print(": ");
 					Serial.println(datosStrings[i]);
 				}
+				*/
 
-				Serial.println("Subtrama sensores:");
-				extraerDatosSensores(subTramaSensores,valorSensores, MAX_DATOS_SUB_TRAMA);
-				Serial.println("Subtrama estado del servicio:");
-				extraerDatosSensores(datosStrings[ESTADO_SERVICIO],valorControlLineas, MAX_DATOS_CTL_LINEA);
+				if (strcmp(datosStrings[AUTOR], terminal.getTerminalName()) != 0) { //Optimizar los terminales solo escriben al master
+					Serial.println(F("REMITENTE INCORRECTO"));
+					lecturaLinea = TRAMA_KO;
+					return lecturaLinea;
+				}
 
-				Serial.println("Num datos recolectados:");
-				Serial.println(dataCount);
+				if (strcmp(datosStrings[METODO], metodoRespuesta) == 0){
+					//EL METODO ES DE RESPUESTA Y CONTIENE INFORMACION
+					//SUBTRAMA SENSORES
+					token =  strtok(NULL, DELIMITADOR);
 
-				if (dataCount == (MAX_DATOS_TRAMA + MAX_DATOS_SUB_TRAMA + MAX_DATOS_CTL_LINEA)){
-					Serial.println(F("OK MAN"));
-					return true;
+					if ((token != NULL && strlen(token) > 1) && strlen(token) < sizeof(subTramaSensores)) {
+						strncpy(subTramaSensores, token, sizeof(subTramaSensores) - 1);
+						subTramaSensores[sizeof(subTramaSensores) - 1] = '\0';
+					}
+					else {
+						Serial.print(F("ERROR AL INSERTAR SENSORES"));
+					}
+
+
+					//Serial.println("Subtrama sensores:");
+					extraerDatosSensores(subTramaSensores,valorSensores, terminal.getNumSensores());
+					//Serial.println("Subtrama estado del servicio:");
+					extraerDatosSensores(datosStrings[ESTADO_SERVICIO],valorControlLineas, terminal.getNumLineasCtl());
 
 				}else {
-					Serial.println(F("FALTAN DATOS TRAMA (INCONSISENTE)"));
+					//Si es otro metodo sumo el resto de campos no tratados
+					dataCount = dataCount + terminal.getNumSensores() + terminal.getNumLineasCtl();
 				}
+
+				//Serial.println("Num datos recolectados:");
+				//Serial.println(dataCount);
+
+				if (dataCount == (MAX_DATOS_TRAMA + terminal.getNumSensores() + terminal.getNumLineasCtl())){
+					Serial.println(F("OK MAN"));
+					lecturaLinea = TRAMA_OK;
+				} else {
+					Serial.println(F("FALTAN DATOS TRAMA (INCONSISENTE)"));
+					lecturaLinea = TRAMA_KO;
+				}
+
+				return lecturaLinea;
 			}
 			else{
 				Serial.println(F("TERMINAL NO RELACIONADO"));
+				lecturaLinea = TRAMA_KO;
+				return lecturaLinea;
 			}
 
 		}else{
 			Serial.println(F("TRAMA SIN INICIO O FIN (INCONSISENTE)"));
-
+			lecturaLinea = TRAMA_KO;
+			return lecturaLinea;
 		}
 
 	}
 
-	return false;
+	return lecturaLinea;
 
 }
 
@@ -214,11 +220,13 @@ void ComunicacionLinea::extraerDatosSensores(char* subTrama, byte* arrSalida, by
 	}
 
 	//Imprime datos TEST
+	/*
 	for (byte i = 0; i < maxDatosSubTrama; i++) {
 		Serial.print(i);
 		Serial.print(": ");
 		Serial.println(arrSalida[i]);
 	}
+	*/
 }
 
 
@@ -238,6 +246,7 @@ void ComunicacionLinea::limpiarBuffer(char *str){
 
 void ComunicacionLinea::enviarTrazaDatos(){
    digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission
+   Serial.println(tramaEnviada);
    this->writeChar(tramaEnviada);
    digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode
 }
@@ -253,58 +262,26 @@ void ComunicacionLinea::enviarTrazaDatos(){
  *
  *	###INIT#PORCHE#MASTER#DATA#NONE#NONE#NONE#NONE#END###
  */
-void ComunicacionLinea::constructorTramaDatos(byte metodo){
-
-/*
-    sprintf(VALOR_FOTORESISTENCIA, "%d", sensor.getValorFotoResistencia());
-	mapeoSensores = sensor.getMuestrasSensor();
+void ComunicacionLinea::constructorTramaDatos(Terminal &terminal, byte metodo){
 
 	limpiarBuffer(tramaEnviada); //LIMPIA LA TRAMA ANTERIOR
 
 	strncat(tramaEnviada, INICIO_TRAMA, sizeof(tramaEnviada));
-	strncat(tramaEnviada, DELIMITADOR, sizeof(tramaEnviada));
-	strncat(tramaEnviada, "MASTER", sizeof(tramaEnviada)); 		//DESTINATARIO
+	strncat(tramaEnviada, terminal.getTerminalName(), sizeof(tramaEnviada)); 		//DESTINATARIO
 	strncat(tramaEnviada, DELIMITADOR, sizeof(tramaEnviada));
 	strncat(tramaEnviada, TERMINAL_NAME, sizeof(tramaEnviada));
 	strncat(tramaEnviada, DELIMITADOR, sizeof(tramaEnviada));
-	strncat(tramaEnviada, (metodo == MTH_RETRY)?"RETRY":"REPLY", sizeof(tramaEnviada));
-	strncat(tramaEnviada, DELIMITADOR, sizeof(tramaEnviada));
-	//strncat(tramaEnviada, (metodo == MTH_RETRY)?"MTH_FAIL":"NONE", sizeof(tramaEnviada));
 	this->procesarMetodo(metodo);
 	strncat(tramaEnviada, DELIMITADOR, sizeof(tramaEnviada));
-	strncat(tramaEnviada, "L1:", sizeof(tramaEnviada));
-	strncat(tramaEnviada, (mapeoSensores[C01_LINEA])?"1":"0", sizeof(tramaEnviada));
-	strncat(tramaEnviada, SUB_DELIMITADOR, sizeof(tramaEnviada));
-	strncat(tramaEnviada, "L2:", sizeof(tramaEnviada));
-	strncat(tramaEnviada, (mapeoSensores[C02_LINEA])?"1":"0", sizeof(tramaEnviada));
+	strncat(tramaEnviada, CAMPO_NULO, sizeof(tramaEnviada));
 	strncat(tramaEnviada, DELIMITADOR, sizeof(tramaEnviada));
-	strncat(tramaEnviada, VALOR_FOTORESISTENCIA, sizeof(tramaEnviada)); 		//FOTORESISTENCIA
+	strncat(tramaEnviada, CAMPO_NULO, sizeof(tramaEnviada));
 	strncat(tramaEnviada, DELIMITADOR, sizeof(tramaEnviada));
-	strncat(tramaEnviada, "PL1-1:", sizeof(tramaEnviada));
-	strncat(tramaEnviada, (mapeoSensores[L101_SENSOR])?"1":"0", sizeof(tramaEnviada));
-	strncat(tramaEnviada, SUB_DELIMITADOR, sizeof(tramaEnviada));
-	strncat(tramaEnviada, "PL1-2:", sizeof(tramaEnviada));
-	strncat(tramaEnviada, (mapeoSensores[L102_SENSOR])?"1":"0", sizeof(tramaEnviada));
-	strncat(tramaEnviada, SUB_DELIMITADOR, sizeof(tramaEnviada));
-	strncat(tramaEnviada, "PL1-3:", sizeof(tramaEnviada));
-	strncat(tramaEnviada, (mapeoSensores[L103_SENSOR])?"1":"0", sizeof(tramaEnviada));
-	strncat(tramaEnviada, SUB_DELIMITADOR, sizeof(tramaEnviada));
-	strncat(tramaEnviada, "PL1-4:", sizeof(tramaEnviada));
-	strncat(tramaEnviada, (mapeoSensores[L104_SENSOR])?"1":"0", sizeof(tramaEnviada));
-	strncat(tramaEnviada, SUB_DELIMITADOR, sizeof(tramaEnviada));
-	strncat(tramaEnviada, "PL2-1:", sizeof(tramaEnviada));
-	strncat(tramaEnviada, (mapeoSensores[L201_SENSOR])?"1":"0", sizeof(tramaEnviada));
-	strncat(tramaEnviada, SUB_DELIMITADOR, sizeof(tramaEnviada));
-	strncat(tramaEnviada, "PL2-2:", sizeof(tramaEnviada));
-	strncat(tramaEnviada, (mapeoSensores[L202_SENSOR])?"1":"0", sizeof(tramaEnviada));
-	strncat(tramaEnviada, SUB_DELIMITADOR, sizeof(tramaEnviada));
-	strncat(tramaEnviada, "PL2-3:", sizeof(tramaEnviada));
-	strncat(tramaEnviada, (mapeoSensores[L203_SENSOR])?"1":"0", sizeof(tramaEnviada));
-	strncat(tramaEnviada, SUB_DELIMITADOR, sizeof(tramaEnviada));
-	strncat(tramaEnviada, "PL2-4:", sizeof(tramaEnviada));
-	strncat(tramaEnviada, (mapeoSensores[L204_SENSOR])?"1":"0", sizeof(tramaEnviada));
+	strncat(tramaEnviada, CAMPO_NULO, sizeof(tramaEnviada));
+	strncat(tramaEnviada, DELIMITADOR, sizeof(tramaEnviada));
+	strncat(tramaEnviada, CAMPO_NULO, sizeof(tramaEnviada));
 	strncat(tramaEnviada, FIN_TRAMA, sizeof(tramaEnviada));
-*/
+
 }
 
 void ComunicacionLinea::procesarMetodo(byte metodo){
@@ -312,11 +289,11 @@ void ComunicacionLinea::procesarMetodo(byte metodo){
 	switch(metodo){
 
 	case MTH_DATA:
-		strncat(tramaEnviada, "NONE", sizeof(tramaEnviada));
+		strncat(tramaEnviada, "DATA", sizeof(tramaEnviada));
 		break;
 
 	case MTH_RETRY:
-		strncat(tramaEnviada, "MTH_FAIL", sizeof(tramaEnviada));
+		strncat(tramaEnviada, "RETRY", sizeof(tramaEnviada));
 		break;
 
 	case MTH_RESET:
@@ -336,3 +313,129 @@ void ComunicacionLinea::writeChar(char *TEXTO_ENVIO) {
 void ComunicacionLinea::testUart(){
 	gotoUart = 1;
 }
+
+
+void ComunicacionLinea::interrogarTerminal(Terminal &terminal){
+
+	switch (terminalComposer) {
+	case LLAMAR_TERMINAL:
+
+		this->constructorTramaDatos(terminal, MTH_DATA);
+		this->enviarTrazaDatos();
+
+		//Define el tiempo de espera
+		tiempoEspera = millis() + TIEMPO_ESPERA_MASTER;
+		terminalComposer = ESCUCHAR_LINEA;
+
+		 Serial.println("RS: ESCUCHAR LINEA"); //@TEST
+		 this->testUart(); //@TEST
+		break;
+
+	case ESCUCHAR_LINEA:
+
+		if (millis() < tiempoEspera) {
+			LecturasLinea lectura = escucharLinea(terminal);
+
+			if(lectura != SILENCIO){
+
+				Serial.println("RS: SE RECIBE CONTENIDO"); //@TEST
+
+				if (lectura == TRAMA_OK) {
+					//Leer el metodo para identificar lo que nos ha trasmitido el terminal
+					Serial.println("RS: TRAMA OK"); //@TEST
+
+					strncpy(metodo, datosStrings[METODO], sizeof(metodo));
+
+					if (strcmp(metodo, metodoRespuesta) == 0) {
+						//El terminal devuelve la informacion OK
+
+						Serial.println("RS: METODO DATA"); //@TEST
+						//guardarInformacionTerminal();
+
+						terminal.limpiarStrikes();
+						this->numeroReintentosTerminal = 0;
+						this->numeroReintentosMaster = 0;
+
+						terminalComposer = LLAMAR_TERMINAL;
+						this->flagSalidaComposer = 1;
+
+					}else if(strcmp(metodo, metodoReintento) == 0){
+						//El terminal destino no entendio nuestra peticion y solicita reintento
+						Serial.println("RS: METODO REINTENTO"); //@TEST
+
+						terminal.addBadCommStrike();
+						this->numeroReintentosMaster++;
+						terminalComposer = REINTENTAR;
+
+
+					} else	{
+						//Metodo  reconocido solicitamos reintento
+						Serial.println("RS: N-A METODO"); //@TEST
+
+						terminal.addBadReplyStrike();
+						this->numeroReintentosTerminal++;
+						terminalComposer = SOLICITAR_REINTENTO;
+					}
+
+
+				} else {
+					//Trama incorrecta solicitamos reintento
+					Serial.println("RS: TRAMA CORRUPTA"); //@TEST
+					terminal.addBadReplyStrike();
+					this->numeroReintentosTerminal++;
+					terminalComposer = SOLICITAR_REINTENTO;
+				}
+
+			}
+
+		} else {
+			// No se obtuvo respuesta marcamos strike al terminal y saltamos al siguente
+			Serial.println("RS: SIN RESPUESTA"); //@TEST
+			terminal.addNoReplyStrike();
+			terminalComposer = LLAMAR_TERMINAL;
+
+			this->flagSalidaComposer = 1;
+		}
+		break;
+
+	case SOLICITAR_REINTENTO:
+		// Generar la traza correspondiente y entender la respuesta
+		Serial.println("RS: SOLICTAMOS REINTENTO"); //@TEST
+
+		    Serial.print("RS: NUM REINTENTOS: "); //@TEST
+			Serial.println(numeroReintentosTerminal); //@TEST
+
+		if(numeroReintentosTerminal < 2){
+			this->constructorTramaDatos(terminal, MTH_RETRY);
+			this->enviarTrazaDatos();
+			//Define el tiempo de espera
+			tiempoEspera = millis() + TIEMPO_ESPERA_MASTER;
+
+			this->testUart(); //@TEST
+			terminalComposer = ESCUCHAR_LINEA;
+		}else {
+			//Demasiados reintentos iteramos al siguente terminal
+			Serial.println("RS: DEMASIADOS REINTENTOS"); //@TEST
+			terminalComposer = LLAMAR_TERMINAL;
+			this->flagSalidaComposer = 1;
+		}
+
+		break;
+
+
+	case REINTENTAR:
+		Serial.println("RS: REINTENTO MASTER"); //@TEST
+		terminalComposer = LLAMAR_TERMINAL;
+		Serial.print("RS: NUM REINTENTOS: "); //@TEST
+		Serial.println(numeroReintentosMaster); //@TEST
+
+		if(numeroReintentosMaster >= MAX_REINTENTOS_MASTER){
+			Serial.println("RS: DEMASIADOS REINTENTOS 2"); //@TEST
+			this->flagSalidaComposer = 1;
+		}
+
+		break;
+	}
+
+}
+
