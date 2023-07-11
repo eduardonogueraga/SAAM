@@ -7,6 +7,8 @@
  * -Enriquecer el log con dia de la semana o temperatura
  */
 
+
+
 #include "Arduino.h"
 #include "Alarma.h"
 
@@ -38,6 +40,7 @@ void setup()
 	  Serial.begin(115200);
 	  mensaje.inicioGSM(UART_GSM);
 	  UART_RS.begin(115200, SERIAL_8N1, RS_RX, RS_TX);    //RX TX  (H1 = RX5 TX 18) PUERTO RS
+	  UART_RS.setTimeout(10);
 
 	  Serial.println(version[0]);
 
@@ -95,7 +98,6 @@ void setup()
 	    mcp.digitalWrite(RS_CTL,LOW);
 
 
-
 	    EstadoInicio();
 	    cargarEstadoPrevio();
 	    checkearAlertasDetenidas();
@@ -106,7 +108,17 @@ void setup()
 	    eventosJson.guardarLog(ALARMA_INICIADA_LOG);
 
 	    //Hilo 0
-	    xTaskCreatePinnedToCore(loop2,"loop_2",1000,NULL,1,&tareaLoopDos,0);
+	    xTaskCreatePinnedToCore(loop2,"loop_2",5000,NULL,1,&tareaLoopDos,0);
+
+
+	    //Asignar el semaforo
+	  	 semaphore = xSemaphoreCreateMutex();
+
+	    //overrideMcp.setSemaphore(semaphore);
+
+
+	    // Iniciar el planificador de tareas
+	    //vTaskStartScheduler();
 
 }
 
@@ -114,53 +126,23 @@ void setup()
 void loop()
 {
 
-	  //Serial.print("Estado de la entrada digital: ");
-	  //Serial.println(digitalRead(SENSOR_BATERIA_RESPALDO));
-
-	 // delay(1000); // Esperar 1 segundo
-
-	 //Serial.println("###TRAZA|PRUEBA|TEST|FIN###");
-	 // delay(2000);
-/*
-	 if (Serial.available()) {
-		 while(Serial.available()){
-			 // Leer el caracter y enviarlo al puerto Serial2
-				    char c = Serial.read();
-				    MySerial2.write(c);
-		 }
-
-	  }
-
-	 if (MySerial.available()) {
-	    // Leer el caracter y mostrarlo en el Monitor Serie
-		 while(MySerial.available()){
-			// delay(10);
-			  char c = MySerial.read();
-			  Serial.write(c);
-		 }
-
-	  }
-
- */
-	//MySerial.println("¡Hola desde Arduino!");
-
 	leerEntradaTeclado();
 	demonio.demonioSerie();
 
 	procesosSistema();
 	procesosPrincipales();
-	linea.mantenerComunicacion();
+	//linea.mantenerComunicacion();
 
 }
 
 
 void loop2(void *parameter){
   for(;;){
-	  //linea.mantenerComunicacion();
-	 // delay(100);
-		delay(2000);
+
+	  linea.mantenerComunicacion();
+	  vTaskDelay(10);
+
   }
-  vTaskDelay(10);
 }
 
 void procesosSistema(){

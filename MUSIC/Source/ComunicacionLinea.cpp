@@ -31,16 +31,26 @@ ComunicacionLinea::ComunicacionLinea() { // @suppress("Class members should be p
 }
 
 void ComunicacionLinea::mantenerComunicacion(){
+
+
+	//mcp.digitalWrite(RS_CTL,LOW);
+
+	if(!escucharLinea(T_LIST[0])){
+			return;
+		}
+
+
+
+/*
 	//Se interrogan a los terminales conectados
 
 	if(this->flagSalidaComposer == 0){ //@TEST
 		Serial.println("TEST RS");
 	}else {
-
 		return;
 	}
 
-	for (int i = 0; i < N_TERMINALES_LINEA; i++) { //N_TERMINALES_LINEA
+	for (int i = 0; i < 1; i++) { //N_TERMINALES_LINEA
 
 		while (!this->flagSalidaComposer) {
 			this->interrogarTerminal(T_LIST[i]);
@@ -49,14 +59,9 @@ void ComunicacionLinea::mantenerComunicacion(){
 		this->flagSalidaComposer = 0;
 	}
 
-	this->flagSalidaComposer = 1; //@TEST
-
-/*
-	if(!escucharLinea(T_LIST[0])){
-			return;
-		}
+	//this->flagSalidaComposer = 1; //@TEST
+	//delay(500);
 */
-
 }
 
 
@@ -66,7 +71,7 @@ LecturasLinea ComunicacionLinea::escucharLinea(Terminal &terminal) {
 
 	if(gotoUart==1){ //Control serie
 		gotoUart=0;
-		const char datosFake[] = "###INIT##MASTER#COCHERA#REPLY#N#0;0#280#1;0;0;1;0;0;1;0#END###";
+		const char datosFake[] = "###INIT#MASTER#PORCHE#REPLY#N#0;0#280#1;0;0;1;0;0;1;0#END###";
 		//const char datosFake[] = "###INIT##MASTER#PORCHE#RETRY#N#N#N#N#END###";
 		strncpy(tramaRecibida, datosFake, sizeof(tramaRecibida) - 1);
 		tramaRecibida[sizeof(tramaRecibida) - 1] = '\0';
@@ -75,7 +80,7 @@ LecturasLinea ComunicacionLinea::escucharLinea(Terminal &terminal) {
 
 
 	if (UART_RS.available() > 0) {
-		delay(5); //Espera al paquete
+		//delay(5); //Espera al paquete
 
 		limpiarBuffer(tramaRecibida);
 
@@ -100,34 +105,27 @@ LecturasLinea ComunicacionLinea::escucharLinea(Terminal &terminal) {
 			//Serial.println(tramaRecibida);
 
 			int cursorDatos = (inicioPuntero - tramaRecibida) + strlen(INICIO_TRAMA); //POSICION TRAS EL INICIO DE LA TRAMA
-
 			token =  strtok(&tramaRecibida[cursorDatos], DELIMITADOR);
-			extraerDatosToken();
 
-
-
-			if (strcmp(datosStrings[DESTINATARIO], TERMINAL_NAME) == 0) {
-				//LLAMAN A ESTE DISPOSITIVO, PROSIGUE LA EXTRACCION DE LOS DATOS
-
-				for (byte i = 1; i < MAX_DATOS_TRAMA; i++) {
+			//Datos basicos
+			for (byte i = 0; i < MAX_DATOS_TRAMA; i++) {
+				if(i!=0){
 					token =  strtok(NULL, DELIMITADOR);
-					extraerDatosToken(i);
 				}
+				extraerDatosToken(i);
+			}
 
-				/*
-				Serial.println("Trama principal:");
-				for (byte i = 0; i < MAX_DATOS_TRAMA; i++) {
-					Serial.print(i);
-					Serial.print(": ");
-					Serial.println(datosStrings[i]);
-				}
-				*/
+/*
+			Serial.println("Trama principal:");
+			for (byte i = 0; i < MAX_DATOS_TRAMA; i++) {
+				Serial.print(i);
+				Serial.print(": ");
+				Serial.println(datosStrings[i]);
+			}
 
-				if (strcmp(datosStrings[AUTOR], terminal.getTerminalName()) != 0) { //Optimizar los terminales solo escriben al master
-					Serial.println(F("REMITENTE INCORRECTO"));
-					lecturaLinea = TRAMA_KO;
-					return lecturaLinea;
-				}
+*/
+			if (strcmp(datosStrings[AUTOR], terminal.getTerminalName()) == 0) {
+				//EL REMITENTE ES EL CORRECTO, PROSIGUE LA EXTRACCION DE LOS DATOS
 
 				if (strcmp(datosStrings[METODO], metodoRespuesta) == 0){
 					//EL METODO ES DE RESPUESTA Y CONTIENE INFORMACION
@@ -153,8 +151,8 @@ LecturasLinea ComunicacionLinea::escucharLinea(Terminal &terminal) {
 					dataCount = dataCount + terminal.getNumSensores() + terminal.getNumLineasCtl();
 				}
 
-				//Serial.println("Num datos recolectados:");
-				//Serial.println(dataCount);
+				Serial.println("Num datos recolectados:");
+				Serial.println(dataCount);
 
 				if (dataCount == (MAX_DATOS_TRAMA + terminal.getNumSensores() + terminal.getNumLineasCtl())){
 					Serial.println(F("OK MAN"));
@@ -167,7 +165,7 @@ LecturasLinea ComunicacionLinea::escucharLinea(Terminal &terminal) {
 				return lecturaLinea;
 			}
 			else{
-				Serial.println(F("TERMINAL NO RELACIONADO"));
+				Serial.println(F("REMITENTE INCORRECTO"));
 				lecturaLinea = TRAMA_KO;
 				return lecturaLinea;
 			}
@@ -227,6 +225,7 @@ void ComunicacionLinea::extraerDatosSensores(char* subTrama, byte* arrSalida, by
 		Serial.println(arrSalida[i]);
 	}
 	*/
+
 }
 
 
@@ -245,10 +244,10 @@ void ComunicacionLinea::limpiarBuffer(char *str){
 
 
 void ComunicacionLinea::enviarTrazaDatos(){
-   digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission
+   mcp.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission
    Serial.println(tramaEnviada);
    this->writeChar(tramaEnviada);
-   digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode
+   mcp.digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode
 }
 
 
@@ -266,6 +265,7 @@ void ComunicacionLinea::constructorTramaDatos(Terminal &terminal, byte metodo){
 
 	limpiarBuffer(tramaEnviada); //LIMPIA LA TRAMA ANTERIOR
 
+	strncat(tramaEnviada, BLINDAJE_SERIE, sizeof(tramaEnviada));
 	strncat(tramaEnviada, INICIO_TRAMA, sizeof(tramaEnviada));
 	strncat(tramaEnviada, terminal.getTerminalName(), sizeof(tramaEnviada)); 		//DESTINATARIO
 	strncat(tramaEnviada, DELIMITADOR, sizeof(tramaEnviada));
@@ -281,6 +281,9 @@ void ComunicacionLinea::constructorTramaDatos(Terminal &terminal, byte metodo){
 	strncat(tramaEnviada, DELIMITADOR, sizeof(tramaEnviada));
 	strncat(tramaEnviada, CAMPO_NULO, sizeof(tramaEnviada));
 	strncat(tramaEnviada, FIN_TRAMA, sizeof(tramaEnviada));
+	strncat(tramaEnviada, BLINDAJE_SERIE, sizeof(tramaEnviada));
+
+	 sprintf(tramaEnviada, "%s\n", tramaEnviada);
 
 }
 
@@ -306,7 +309,7 @@ void ComunicacionLinea::procesarMetodo(byte metodo){
 void ComunicacionLinea::writeChar(char *TEXTO_ENVIO) {
 	for (int i = 0; i < strlen(TEXTO_ENVIO); i++){
 		UART_RS.write(TEXTO_ENVIO[i]);
-		delay(5);
+		//delay(5);
 	}
 }
 
@@ -319,19 +322,25 @@ void ComunicacionLinea::interrogarTerminal(Terminal &terminal){
 
 	switch (terminalComposer) {
 	case LLAMAR_TERMINAL:
+		mcp.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission
 
 		this->constructorTramaDatos(terminal, MTH_DATA);
-		this->enviarTrazaDatos();
+		//this->enviarTrazaDatos();
+
+		  this->writeChar(tramaEnviada);
+		  Serial.println(tramaEnviada);
 
 		//Define el tiempo de espera
 		tiempoEspera = millis() + TIEMPO_ESPERA_MASTER;
 		terminalComposer = ESCUCHAR_LINEA;
 
 		 Serial.println("RS: ESCUCHAR LINEA"); //@TEST
-		 this->testUart(); //@TEST
+		 //this->testUart(); //@TEST
 		break;
 
 	case ESCUCHAR_LINEA:
+
+		mcp.digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode
 
 		if (millis() < tiempoEspera) {
 			LecturasLinea lectura = escucharLinea(terminal);
@@ -406,12 +415,19 @@ void ComunicacionLinea::interrogarTerminal(Terminal &terminal){
 			Serial.println(numeroReintentosTerminal); //@TEST
 
 		if(numeroReintentosTerminal < 2){
+			mcp.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission
+
 			this->constructorTramaDatos(terminal, MTH_RETRY);
-			this->enviarTrazaDatos();
+			//this->enviarTrazaDatos();
+
+
+			  this->writeChar(tramaEnviada);
+			  Serial.println(tramaEnviada);
+
 			//Define el tiempo de espera
 			tiempoEspera = millis() + TIEMPO_ESPERA_MASTER;
 
-			this->testUart(); //@TEST
+			//this->testUart(); //@TEST
 			terminalComposer = ESCUCHAR_LINEA;
 		}else {
 			//Demasiados reintentos iteramos al siguente terminal

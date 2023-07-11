@@ -24,6 +24,7 @@ Terminal::Terminal(char* nombreTerminal, byte numFotoSensor, byte numLineasCtl, 
 	this->DATOS_FOTOSENSOR = 0;
 	this->BAD_REPLY_STRIKE = 0;
 	this->NO_REPLY_STRIKE = 0;
+	this->BAD_COMM_STRIKE = 0;
 }
 
 byte Terminal::getDatosFotosensor() const {

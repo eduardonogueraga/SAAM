@@ -32,6 +32,8 @@
 #include "ComunicacionLinea.h"
 #include "Terminal.h"
 
+#include "MUXMCP23X17.h"
+
 
 //VERSION (VE -> Version Estable VD -> Version Desarrollo)
 const char* version[] = {"MUSIC VE21R0", "08/07/23"};
@@ -58,6 +60,9 @@ HardwareSerial UART_RS(2);
 
 //MUX
 Adafruit_MCP23X17 mcp;
+
+SemaphoreHandle_t semaphore;
+MUXMCP23X17 overrideMcp;
 
 //NVS
 Preferences NVSMemory; //Memoria
@@ -95,7 +100,7 @@ Terminal T_COCHERA = Terminal("COCHERA");
 Terminal T_PORCHE = Terminal("PORCHE");
 //Terminal T_ALMACEN = Terminal("ALMACEN");
 
-Terminal T_LIST[] = {T_COCHERA, T_PORCHE/*, T_ALMACEN*/};
+Terminal T_LIST[] = { T_PORCHE/*,T_COCHERA, T_ALMACEN*/};
 
 
 //TIEMPOS MARGEN
@@ -291,7 +296,8 @@ static byte tiempoFracccion;
 		switch(sleepModeGSM){
 
 		case GSM_ON:
-			mcp.digitalWrite(GSM_PIN, HIGH);
+			overrideMcp.digitalWrite(GSM_PIN, HIGH,&semaphore);
+			//mcp.digitalWrite(GSM_PIN, HIGH);
 			break;
 
 		case GSM_OFF:

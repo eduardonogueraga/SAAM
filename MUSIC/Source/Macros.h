@@ -120,7 +120,6 @@ typedef enum {
 	REINTENTAR
 } EstadosTerminal;
 
-
 //DEFINICIONES DE FUNCIONES
 void printSystemInfo();
 
@@ -131,7 +130,6 @@ int leerFlagEEInt(const char* key);
 
 template <typename T> void NVS_SaveData(const char* key, T value);
 template <typename T> T NVS_RestoreData(const char* key);
-
 
 
 void pantallaDeErrorInicial(String mensaje);

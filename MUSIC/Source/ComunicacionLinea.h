@@ -12,11 +12,13 @@
 #include "Macros.h"
 #include <HardwareSerial.h>
 #include "Terminal.h"
+#include <Adafruit_MCP23X17.h>
 
 #define TIEMPO_ESPERA_MASTER 5000
 
 extern HardwareSerial UART_RS;
 extern Terminal T_LIST[];
+extern Adafruit_MCP23X17 mcp;
 
 class ComunicacionLinea {
 
@@ -35,8 +37,9 @@ private:
 	char tramaRecibida[200] = "";
 	char tramaEnviada[200] = "";
 	char subTramaSensores[30] = "";
-	const char INICIO_TRAMA[10] = "###INIT#";
-	const char FIN_TRAMA[10] = "#END###";
+	const char INICIO_TRAMA[10] = "INIT#";
+	const char FIN_TRAMA[10] = "#END";
+	const char BLINDAJE_SERIE[5] = "###";
 	const char DELIMITADOR[2] = "#";
 	const char CAMPO_NULO[2] = "N";
 	const char SUB_DELIMITADOR[2] = ";";
@@ -64,6 +67,7 @@ private:
 	void procesarMetodo(byte metodo);
 	void writeChar(char *TEXTO_ENVIO);
 	void interrogarTerminal(Terminal &terminal);
+
 public:
 	ComunicacionLinea();
 	void mantenerComunicacion();
