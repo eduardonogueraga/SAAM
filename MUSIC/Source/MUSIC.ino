@@ -59,6 +59,8 @@ void setup()
 	    //while (1);
 	  }
 
+	  //Asignar el semaforo
+	  semaphore = xSemaphoreCreateMutex();
 
 	  if(registro.iniciar() == 0){
 		  Serial.println(F("ERROR AL INICIAR SD"));
@@ -94,8 +96,8 @@ void setup()
 
 	    //Configuracion de los puertos
 
-	    mcp.digitalWrite(LED_COCHERA, LOW);
-	    mcp.digitalWrite(RS_CTL,LOW);
+	    rcomp1.digitalWrite(LED_COCHERA, LOW);
+	    rcomp1.digitalWrite(RS_CTL,LOW);
 
 
 	    EstadoInicio();
@@ -110,11 +112,6 @@ void setup()
 	    //Hilo 0
 	    xTaskCreatePinnedToCore(loop2,"loop_2",5000,NULL,1,&tareaLoopDos,0);
 
-
-	    //Asignar el semaforo
-	  	 semaphore = xSemaphoreCreateMutex();
-
-	    //overrideMcp.setSemaphore(semaphore);
 
 
 	    // Iniciar el planificador de tareas
@@ -132,17 +129,29 @@ void loop()
 	procesosSistema();
 	procesosPrincipales();
 	//linea.mantenerComunicacion();
+	//rcomp1.test();
 
 }
 
 
 void loop2(void *parameter){
-  for(;;){
+	for(;;){
 
-	  linea.mantenerComunicacion();
-	  vTaskDelay(10);
+		/*
+		Serial.print("hola: ");
+		Serial.println(xPortGetCoreID());
+		Serial.println(rcomp0.digitalRead(SENSOR_BATERIA_RESPALDO));
+		delay(1000);
+		 */
+		//rcomp0.digitalRead(SENSOR_BATERIA_RESPALDO);
+		//rcomp0.digitalWrite(RS_CTL, HIGH);
+		//delay(100);
 
-  }
+		//linea.mantenerComunicacion();
+		//rcomp0.test();
+		vTaskDelay(10);
+
+	}
 }
 
 void procesosSistema(){
@@ -206,10 +215,10 @@ void procesoAlarma(){
 
 		if(checkearMargenTiempo(tiempoMargen)){
 
-			mg.compruebaEstadoMG(mcp.digitalRead(MG_SENSOR));
-			pir1.compruebaEstado(mcp.digitalRead(PIR_SENSOR_1));
-			pir2.compruebaEstado(mcp.digitalRead(PIR_SENSOR_2));
-			pir3.compruebaEstado(mcp.digitalRead(PIR_SENSOR_3));
+			mg.compruebaEstadoMG(rcomp1.digitalRead(MG_SENSOR));
+			pir1.compruebaEstado(rcomp1.digitalRead(PIR_SENSOR_1));
+			pir2.compruebaEstado(rcomp1.digitalRead(PIR_SENSOR_2));
+			pir3.compruebaEstado(rcomp1.digitalRead(PIR_SENSOR_3));
 
 
 			if(mg.disparador()){
@@ -275,10 +284,10 @@ void procesoAlarma(){
 
 		}
 
-		mg.compruebaPhantom(mcp.digitalRead(MG_SENSOR),datosSensoresPhantom);
-		pir1.compruebaPhantom(mcp.digitalRead(PIR_SENSOR_1),datosSensoresPhantom);
-		pir2.compruebaPhantom(mcp.digitalRead(PIR_SENSOR_2),datosSensoresPhantom);
-		pir3.compruebaPhantom(mcp.digitalRead(PIR_SENSOR_3),datosSensoresPhantom);
+		mg.compruebaPhantom(rcomp1.digitalRead(MG_SENSOR),datosSensoresPhantom);
+		pir1.compruebaPhantom(rcomp1.digitalRead(PIR_SENSOR_1),datosSensoresPhantom);
+		pir2.compruebaPhantom(rcomp1.digitalRead(PIR_SENSOR_2),datosSensoresPhantom);
+		pir3.compruebaPhantom(rcomp1.digitalRead(PIR_SENSOR_3),datosSensoresPhantom);
 
 		realizarLlamadas();
 		sonarBocina();

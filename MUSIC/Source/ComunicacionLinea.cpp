@@ -33,8 +33,6 @@ ComunicacionLinea::ComunicacionLinea() { // @suppress("Class members should be p
 void ComunicacionLinea::mantenerComunicacion(){
 
 
-	//mcp.digitalWrite(RS_CTL,LOW);
-
 	if(!escucharLinea(T_LIST[0])){
 			return;
 		}
@@ -244,10 +242,10 @@ void ComunicacionLinea::limpiarBuffer(char *str){
 
 
 void ComunicacionLinea::enviarTrazaDatos(){
-   mcp.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission
+   rcomp0.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission
    Serial.println(tramaEnviada);
    this->writeChar(tramaEnviada);
-   mcp.digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode
+   rcomp0.digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode
 }
 
 
@@ -322,7 +320,7 @@ void ComunicacionLinea::interrogarTerminal(Terminal &terminal){
 
 	switch (terminalComposer) {
 	case LLAMAR_TERMINAL:
-		mcp.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission
+		rcomp0.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission
 
 		this->constructorTramaDatos(terminal, MTH_DATA);
 		//this->enviarTrazaDatos();
@@ -340,7 +338,7 @@ void ComunicacionLinea::interrogarTerminal(Terminal &terminal){
 
 	case ESCUCHAR_LINEA:
 
-		mcp.digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode
+		rcomp0.digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode
 
 		if (millis() < tiempoEspera) {
 			LecturasLinea lectura = escucharLinea(terminal);
@@ -359,7 +357,7 @@ void ComunicacionLinea::interrogarTerminal(Terminal &terminal){
 						//El terminal devuelve la informacion OK
 
 						Serial.println("RS: METODO DATA"); //@TEST
-						//guardarInformacionTerminal();
+						terminal.guardarDatosTerminal();
 
 						terminal.limpiarStrikes();
 						this->numeroReintentosTerminal = 0;
@@ -415,7 +413,7 @@ void ComunicacionLinea::interrogarTerminal(Terminal &terminal){
 			Serial.println(numeroReintentosTerminal); //@TEST
 
 		if(numeroReintentosTerminal < 2){
-			mcp.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission
+			rcomp0.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission
 
 			this->constructorTramaDatos(terminal, MTH_RETRY);
 			//this->enviarTrazaDatos();

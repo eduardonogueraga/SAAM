@@ -16,10 +16,13 @@
 #include "Macros.h"
 #include "Env.h"
 #include "Fecha.h"
-#include <Adafruit_MCP23X17.h>
+//#include <Adafruit_MCP23X17.h>
+
+#include "RecursosCompartidosRTOS.h"
+extern RecursosCompartidosRTOS rcomp1;
 
 extern EventosJson eventosJson;
-extern Adafruit_MCP23X17 mcp;
+//extern Adafruit_MCP23X17 mcp;
 extern HardwareSerial UART_GSM;
 extern byte INTENTOS_REACTIVACION;
 extern byte MODO_DEFAULT;

@@ -15,6 +15,7 @@
 #include "EventosJson.h"
 #include <HardwareSerial.h>
 #include "ComunicacionLinea.h"
+#include "Terminal.h"
 
 
 extern void setEstadoGuardia();
@@ -31,6 +32,8 @@ extern Datos datosSensores;
 extern EventosJson eventosJson;
 extern HardwareSerial UART_RS;
 extern ComunicacionLinea linea;
+
+extern Terminal T_COCHERA;
 
 
 extern Registro registro;

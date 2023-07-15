@@ -127,7 +127,7 @@ void Pantalla::lcdReposo()
 	}
 	lcd.setCursor(15,1);
 
-	if(mcp.digitalRead(SENSOR_BATERIA_RESPALDO) == LOW){
+	if(rcomp1.digitalRead(SENSOR_BATERIA_RESPALDO) == LOW){
 		lcd.print(F(" "));
 	}else{
 		lcd.print(F("!"));

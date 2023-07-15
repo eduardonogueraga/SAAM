@@ -24,6 +24,35 @@ private:
 
 	byte DATOS_FOTOSENSOR;
 
+
+	struct Data {
+		int value;
+		int array[8];
+		unsigned long millisTime;
+	};
+
+	typedef	struct Nodo {
+		Data data;
+		struct Nodo* siguente;
+	}Nodo;
+
+	typedef	struct Lista {
+		Nodo* cabeza;
+		int longitud;
+	} Lista;
+
+	Lista listaTerminal;
+
+	Nodo* CrearNodo(Data data);
+	void DestruirNodo(Nodo* nodo);
+	int listaLongitud(Lista* lista);
+	int listaVacia(Lista* lista);
+	void RecorrerLista(Lista* lista);
+	void InsertarPrincipio(Lista* lista, Data data);
+	void InsertarFinal(Lista* lista, Data data);
+	void EliminarPrincipio(Lista* lista);
+	void EliminarUltimo(Lista* lista);
+
 public:
 	Terminal(char* nombreTerminal, byte numFotoSensor = 1, byte numLineasCtl = 2, byte numSensores = 8);
 
@@ -42,6 +71,11 @@ public:
 	void addNoReplyStrike();
 	void addBadCommStrike();
 	void limpiarStrikes();
+
+	void guardarDatosTerminal();
+	void recorrerDatosTerminal();
+	void borrarPrimerElemento();
+	void borrarUltimoElemento();
 
 };
 

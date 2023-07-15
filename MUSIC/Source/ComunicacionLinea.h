@@ -12,13 +12,20 @@
 #include "Macros.h"
 #include <HardwareSerial.h>
 #include "Terminal.h"
-#include <Adafruit_MCP23X17.h>
+//#include <Adafruit_MCP23X17.h>
 
 #define TIEMPO_ESPERA_MASTER 5000
 
 extern HardwareSerial UART_RS;
 extern Terminal T_LIST[];
-extern Adafruit_MCP23X17 mcp;
+//extern Adafruit_MCP23X17 mcp;
+
+
+#include "RecursosCompartidosRTOS.h"
+extern RecursosCompartidosRTOS rcomp0;
+
+
+extern SemaphoreHandle_t semaphore;
 
 class ComunicacionLinea {
 

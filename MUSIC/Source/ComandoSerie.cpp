@@ -210,6 +210,30 @@ void ComandoSerie::comprobarComando() {
 	}
 
 
+	if (compararCadena(data, "t -add")){
+		nombreComando(data);
+		T_COCHERA.guardarDatosTerminal();
+	}
+
+	if (compararCadena(data, "t -show")){
+		nombreComando(data);
+		T_COCHERA.recorrerDatosTerminal();
+	}
+
+
+	if (compararCadena(data, "t -df")){
+		nombreComando(data);
+		T_COCHERA.borrarPrimerElemento();
+	}
+
+
+	if (compararCadena(data, "t -dl")){
+		nombreComando(data);
+		T_COCHERA.borrarUltimoElemento();
+	}
+
+
+
 	if(compararCadena(data, "power")){
 		nombreComando(data);
 		interrupcionFalloAlimentacion();
@@ -223,6 +247,12 @@ void ComandoSerie::comprobarComando() {
 	if(compararCadena(data, "info")){
 		nombreComando(data);
 		printSystemInfo();
+	}
+
+	if(compararCadena(data, "clock")){
+		nombreComando(data);
+		configSystem.MODULO_RTC = !configSystem.MODULO_RTC;
+		NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
 	}
 
 	if(compararCadena(data, "bye")){

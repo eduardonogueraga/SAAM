@@ -32,7 +32,8 @@
 #include "ComunicacionLinea.h"
 #include "Terminal.h"
 
-#include "MUXMCP23X17.h"
+//#include "MUXMCP23X17.h"
+#include "RecursosCompartidosRTOS.h"
 
 
 //VERSION (VE -> Version Estable VD -> Version Desarrollo)
@@ -62,7 +63,11 @@ HardwareSerial UART_RS(2);
 Adafruit_MCP23X17 mcp;
 
 SemaphoreHandle_t semaphore;
-MUXMCP23X17 overrideMcp;
+//MUXMCP23X17 mcp(&semaphore);
+
+RecursosCompartidosRTOS rcomp0(&semaphore,&mcp);
+RecursosCompartidosRTOS rcomp1(&semaphore,&mcp);
+
 
 //NVS
 Preferences NVSMemory; //Memoria
@@ -288,7 +293,7 @@ static byte tiempoFracccion;
 	}
 
 	void watchDog(){
-		mcp.digitalWrite(WATCHDOG, !mcp.digitalRead(WATCHDOG));
+		rcomp1.digitalWrite(WATCHDOG, !rcomp1.digitalRead(WATCHDOG));
 	}
 
 	void sleepMode(){
@@ -296,20 +301,19 @@ static byte tiempoFracccion;
 		switch(sleepModeGSM){
 
 		case GSM_ON:
-			overrideMcp.digitalWrite(GSM_PIN, HIGH,&semaphore);
-			//mcp.digitalWrite(GSM_PIN, HIGH);
+			rcomp1.digitalWrite(GSM_PIN, HIGH);
 			break;
 
 		case GSM_OFF:
-			mcp.digitalWrite(GSM_PIN, LOW);
+			rcomp1.digitalWrite(GSM_PIN, LOW);
 			break;
 
 		case GSM_TEMPORAL:
 
 			if(checkearMargenTiempo(prorrogaGSM)){
-				mcp.digitalWrite(GSM_PIN, LOW);
+				rcomp1.digitalWrite(GSM_PIN, LOW);
 			}else {
-				mcp.digitalWrite(GSM_PIN, HIGH);
+				rcomp1.digitalWrite(GSM_PIN, HIGH);
 			}
 			break;
 		}
@@ -344,7 +348,7 @@ static byte tiempoFracccion;
 			}
 
 			delay(200);
-			mcp.digitalWrite(RESETEAR, HIGH);
+			rcomp1.digitalWrite(RESETEAR, HIGH);
 		}
 
 	void resetAutomatico(){
@@ -436,11 +440,11 @@ static byte tiempoFracccion;
 	}
 
 	void checkearBateriaDeEmergencia(){
-		alertsInfoLcd[INFO_FALLO_BATERIA] = !mcp.digitalRead(SENSOR_BATERIA_RESPALDO);
+		alertsInfoLcd[INFO_FALLO_BATERIA] = !rcomp1.digitalRead(SENSOR_BATERIA_RESPALDO);
 
-	    if(mcp.digitalRead(SENSOR_BATERIA_RESPALDO) != sensorBateriaAnterior){
+	    if(rcomp1.digitalRead(SENSOR_BATERIA_RESPALDO) != sensorBateriaAnterior){
 
-			if(mcp.digitalRead(SENSOR_BATERIA_RESPALDO) == LOW){
+			if(rcomp1.digitalRead(SENSOR_BATERIA_RESPALDO) == LOW){
 				registro.registrarLogSistema("BATERIA DE EMERGENCIA ACTIVADA");
 				eventosJson.guardarLog(BATERIA_EMERGENCIA_ACTIVADA_LOG);
 			} else{
@@ -449,7 +453,7 @@ static byte tiempoFracccion;
 			}
 		}
 
-	    sensorBateriaAnterior = mcp.digitalRead(SENSOR_BATERIA_RESPALDO);
+	    sensorBateriaAnterior = rcomp1.digitalRead(SENSOR_BATERIA_RESPALDO);
 	}
 
 	void realizarLlamadas(){
@@ -638,18 +642,18 @@ static byte tiempoFracccion;
 	void avisoLedPuertaCochera(){
 
 		if(estadoAlarma != ESTADO_GUARDIA){
-			mcp.digitalWrite(LED_COCHERA, LOW);
+			rcomp1.digitalWrite(LED_COCHERA, LOW);
 		}else{
 
 			if(!checkearMargenTiempo(tiempoMargen)){
-				if(!mcp.digitalRead(MG_SENSOR)){
-					mcp.digitalWrite(LED_COCHERA, HIGH);
+				if(!rcomp1.digitalRead(MG_SENSOR)){
+					rcomp1.digitalWrite(LED_COCHERA, HIGH);
 				}else{
-					mcp.digitalWrite(LED_COCHERA, LOW);
+					rcomp1.digitalWrite(LED_COCHERA, LOW);
 				}
 
 			}else{
-				mcp.digitalWrite(LED_COCHERA, LOW);
+				rcomp1.digitalWrite(LED_COCHERA, LOW);
 			}
 
 		}
