@@ -102,11 +102,12 @@ ComunicacionLinea linea;
 
 //Terminales en linea
 Terminal T_COCHERA = Terminal("COCHERA");
-Terminal T_PORCHE = Terminal("PORCHE");
+//Terminal T_PORCHE = Terminal("PORCHE");
 //Terminal T_ALMACEN = Terminal("ALMACEN");
 
-Terminal T_LIST[] = { T_PORCHE/*,T_COCHERA, T_ALMACEN*/};
+Terminal* T_LIST[] = { &T_COCHERA };
 
+int flagTest = 1; //@TEST ONLY
 
 //TIEMPOS MARGEN
 

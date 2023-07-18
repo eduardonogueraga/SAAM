@@ -128,7 +128,7 @@ void loop()
 
 	procesosSistema();
 	procesosPrincipales();
-	//linea.mantenerComunicacion();
+	linea.mantenerComunicacion();
 	//rcomp1.test();
 
 }

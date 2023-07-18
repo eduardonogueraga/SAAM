@@ -7,6 +7,7 @@
 
 #ifndef SOURCE_FECHA_H_
 #define SOURCE_FECHA_H_
+#include "Arduino.h"
 #include <RTClib.h>
 #include "Macros.h"
 extern ConfigSystem configSystem;

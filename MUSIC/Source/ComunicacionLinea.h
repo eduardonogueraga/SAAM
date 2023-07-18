@@ -17,15 +17,12 @@
 #define TIEMPO_ESPERA_MASTER 5000
 
 extern HardwareSerial UART_RS;
-extern Terminal T_LIST[];
+extern Terminal* T_LIST[];
 //extern Adafruit_MCP23X17 mcp;
 
 
 #include "RecursosCompartidosRTOS.h"
 extern RecursosCompartidosRTOS rcomp0;
-
-
-extern SemaphoreHandle_t semaphore;
 
 class ComunicacionLinea {
 
@@ -54,6 +51,7 @@ private:
 	char datosStrings[MAX_DATOS_TRAMA][10];
 	byte valorSensores[MAX_DATOS_SUB_TRAMA]; //Numero de sensores por terminal
 	byte valorControlLineas[MAX_DATOS_CTL_LINEA]; //Numero de lineas de control por terminal
+	int	 valorFotoSensor;
 	size_t byteCount;
 	byte gotoUart= 0;
 	unsigned long tiempoEspera;

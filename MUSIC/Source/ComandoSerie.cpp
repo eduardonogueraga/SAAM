@@ -212,12 +212,22 @@ void ComandoSerie::comprobarComando() {
 
 	if (compararCadena(data, "t -add")){
 		nombreComando(data);
-		T_COCHERA.guardarDatosTerminal();
+		 byte myArray[] = {1, 2, 3, 4, 5, 6, 7, 8};
+		 byte myArray2[] = {1, 2};
+		T_COCHERA.guardarDatosTerminal(myArray, myArray2);
 	}
 
 	if (compararCadena(data, "t -show")){
 		nombreComando(data);
 		T_COCHERA.recorrerDatosTerminal();
+
+		Serial.println(T_COCHERA.getDatosFotosensor());
+		/*
+		for (int i = 0; i < 2; i++) {
+			Serial.print(T_COCHERA.datosControlLineas[i]);
+			Serial.print(" ");
+		}
+		*/
 	}
 
 

@@ -32,10 +32,17 @@ ComunicacionLinea::ComunicacionLinea() { // @suppress("Class members should be p
 
 void ComunicacionLinea::mantenerComunicacion(){
 
+/*
+if(flagTest){
+	 byte myArray[] = {1, 2, 3, 4, 5, 6, 7, 8};
+	 //T_LIST_2[0]->guardarDatosTerminal(myArray);
+		 flagTest = 0;
+}
+*/
 
-	if(!escucharLinea(T_LIST[0])){
-			return;
-		}
+	if(!escucharLinea(*T_LIST[0])){
+		return;
+	}
 
 
 
@@ -69,7 +76,7 @@ LecturasLinea ComunicacionLinea::escucharLinea(Terminal &terminal) {
 
 	if(gotoUart==1){ //Control serie
 		gotoUart=0;
-		const char datosFake[] = "###INIT#MASTER#PORCHE#REPLY#N#0;0#280#1;0;0;1;0;0;1;0#END###";
+		const char datosFake[] = "###INIT#MASTER#COCHERA#REPLY#N#0;1#280#1;0;1;1;1;0;1;0#END###";
 		//const char datosFake[] = "###INIT##MASTER#PORCHE#RETRY#N#N#N#N#END###";
 		strncpy(tramaRecibida, datosFake, sizeof(tramaRecibida) - 1);
 		tramaRecibida[sizeof(tramaRecibida) - 1] = '\0';
@@ -113,7 +120,7 @@ LecturasLinea ComunicacionLinea::escucharLinea(Terminal &terminal) {
 				extraerDatosToken(i);
 			}
 
-/*
+
 			Serial.println("Trama principal:");
 			for (byte i = 0; i < MAX_DATOS_TRAMA; i++) {
 				Serial.print(i);
@@ -121,7 +128,7 @@ LecturasLinea ComunicacionLinea::escucharLinea(Terminal &terminal) {
 				Serial.println(datosStrings[i]);
 			}
 
-*/
+
 			if (strcmp(datosStrings[AUTOR], terminal.getTerminalName()) == 0) {
 				//EL REMITENTE ES EL CORRECTO, PROSIGUE LA EXTRACCION DE LOS DATOS
 
@@ -139,10 +146,12 @@ LecturasLinea ComunicacionLinea::escucharLinea(Terminal &terminal) {
 					}
 
 
-					//Serial.println("Subtrama sensores:");
+					Serial.println("Subtrama sensores:");
 					extraerDatosSensores(subTramaSensores,valorSensores, terminal.getNumSensores());
-					//Serial.println("Subtrama estado del servicio:");
+					Serial.println("Subtrama estado del servicio:");
 					extraerDatosSensores(datosStrings[ESTADO_SERVICIO],valorControlLineas, terminal.getNumLineasCtl());
+
+					valorFotoSensor =  atoi(datosStrings[FOTOSENSOR]);
 
 				}else {
 					//Si es otro metodo sumo el resto de campos no tratados
@@ -154,6 +163,10 @@ LecturasLinea ComunicacionLinea::escucharLinea(Terminal &terminal) {
 
 				if (dataCount == (MAX_DATOS_TRAMA + terminal.getNumSensores() + terminal.getNumLineasCtl())){
 					Serial.println(F("OK MAN"));
+
+					terminal.setDatosFotosensor(valorFotoSensor); //@TEST ONLY
+					terminal.guardarDatosTerminal(valorSensores, valorControlLineas); //@TEST ONLY
+
 					lecturaLinea = TRAMA_OK;
 				} else {
 					Serial.println(F("FALTAN DATOS TRAMA (INCONSISENTE)"));
@@ -357,7 +370,9 @@ void ComunicacionLinea::interrogarTerminal(Terminal &terminal){
 						//El terminal devuelve la informacion OK
 
 						Serial.println("RS: METODO DATA"); //@TEST
-						terminal.guardarDatosTerminal();
+
+						terminal.setDatosFotosensor(valorFotoSensor);
+						terminal.guardarDatosTerminal(valorSensores, valorControlLineas);
 
 						terminal.limpiarStrikes();
 						this->numeroReintentosTerminal = 0;

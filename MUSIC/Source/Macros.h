@@ -120,6 +120,20 @@ typedef enum {
 	REINTENTAR
 } EstadosTerminal;
 
+
+typedef enum {
+	TERMINAL_OK,
+	DETECCION,
+	DETECCION_FOTOSENIBLE,
+	AVERIA,
+	SABOTAJE,
+	NO_REPLY,
+	BAD_REPLY,
+	BAD_COMM
+} InterpretacionTerminal;
+
+
+
 //DEFINICIONES DE FUNCIONES
 void printSystemInfo();
 

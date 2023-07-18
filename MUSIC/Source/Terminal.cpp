@@ -30,7 +30,7 @@ Terminal::Terminal(char* nombreTerminal, byte numFotoSensor, byte numLineasCtl, 
 	this->listaTerminal.longitud = 0;
 }
 
-byte Terminal::getDatosFotosensor() const {
+int Terminal::getDatosFotosensor() const {
 	return DATOS_FOTOSENSOR;
 }
 
@@ -54,7 +54,7 @@ const char* Terminal::getTerminalName() const {
 	return TERMINAL_NAME;
 }
 
-void Terminal::setDatosFotosensor(byte datosFotosensor) {
+void Terminal::setDatosFotosensor(int datosFotosensor) {
 	DATOS_FOTOSENSOR = datosFotosensor;
 }
 
@@ -92,13 +92,25 @@ void Terminal::limpiarStrikes(){
 
 
 
-void Terminal::guardarDatosTerminal(){
+void Terminal::guardarDatosTerminal(byte* arrSensorSamples, byte* arrControlLineas){
+	Serial.println("Guardando datos");
 
-	Data data1;
-	srand(time(NULL));
-	data1.value = rand();
+	Data datosNodo;
 
-	this->InsertarFinal(&this->listaTerminal, data1);
+	//Determino si el array contiene algo sino se descarta el nodo
+	if(arrSum<byte>(arrSensorSamples, MAX_DATOS_SUB_TRAMA)){
+		for (int i = 0; i < MAX_DATOS_SUB_TRAMA; i++) {
+			datosNodo.sampleSensores[i] = arrSensorSamples[i];
+		}
+		datosNodo.marcaTiempo = millis();
+		this->InsertarFinal(&this->listaTerminal, datosNodo);
+	}
+
+	//Guardo la informacion sobre el estado del servicio
+	for (int i = 0; i < MAX_DATOS_CTL_LINEA; i++) {
+		datosControlLineas[i] = arrControlLineas[i];
+	}
+
 }
 
 void Terminal::recorrerDatosTerminal(){
@@ -111,6 +123,140 @@ void Terminal::borrarPrimerElemento(){
 
 void Terminal::borrarUltimoElemento(){
 	this->EliminarUltimo(&this->listaTerminal);
+}
+
+
+InterpretacionTerminal Terminal::evaluarDatosTerminal(){
+
+	byte flagEstadoServicio = 0;
+	byte flagFotoSensor = 0;
+	byte flagDeteccion = 0;
+
+	//Evalua el estado del servicio si existen i o superan los umbrales de strike
+	if(getNoReplyStrike() >= UMBRAL_NO_REPLY_STRIKE){
+		interpretacion = NO_REPLY;
+		return interpretacion;
+	}
+	if(getBadCommStrike() >= UMBRAL_BAD_COMM_STRIKE){
+		interpretacion = BAD_COMM;
+		return interpretacion;
+	}
+
+	if(getBadReplyStrike() >= UMBRAL_BAD_REPLY_STRIKE){
+		interpretacion = BAD_REPLY;
+		return interpretacion;
+	}
+
+
+	//Evalua los datos estaticos
+		//Comprobamos los controles de linea
+	for (int i = 0; i < getNumLineasCtl(); i++) {
+		//hay que determinar si existen porcentajes altos en sesores para deteminar averia o sabotaje
+		if(datosControlLineas[i]){
+			flagEstadoServicio = 1;
+		}
+	}
+
+	//Comprobamos los valores del sensor fotosensible
+	if(getNumFotoSensor() && getDatosFotosensor() > UMBRAL_FOTORESISTENCIA){
+		persistenciaFotoresistencia++;
+
+		if(persistenciaFotoresistencia > UMBRAL_PERSISTENCIA_FOTORESISTENCIA)
+		flagFotoSensor =1;
+	}
+
+	//Evalua los datos en la lista
+	if(!listaVacia(&this->listaTerminal)){
+
+		//Se controla que no pueda haber un desbordamiento
+		if (listaLongitud(&this->listaTerminal) < MAX_NODOS_EN_EJECUCION) {
+			EliminarPrincipio(&this->listaTerminal);
+		}
+
+		//Se eliminan los nodos mayores
+		purgarNodosViejos(&this->listaTerminal);
+
+		//Revisamos si hay nuevos nodos
+		if(nodosRevisados < listaLongitud(&this->listaTerminal)){
+			//Se itera por cada sensor el contenido de la lista
+			double porcentajeDeteccion = 0.0;
+
+			for (int i = 0; i < getNumSensores(); i++) {
+				double sensorPorcentaje = EvaluarSensor(&listaTerminal, i);
+				if(sensorPorcentaje >= UMBRAL_SENSOR_INDIVIDUAL){
+					flagDeteccion =1;
+				}
+				porcentajeDeteccion += sensorPorcentaje;
+			}
+
+			if(porcentajeDeteccion >= UMBRAL_SENSOR_TOTAL){
+				flagDeteccion =1;
+			}
+
+			nodosRevisados = listaLongitud(&this->listaTerminal);
+		}
+
+	}
+
+	if(flagEstadoServicio && flagDeteccion){
+		interpretacion = SABOTAJE;
+	}else if(flagEstadoServicio){
+		interpretacion = AVERIA;
+	}else if(flagDeteccion){
+		interpretacion = DETECCION;
+	}else if(flagFotoSensor){
+		interpretacion = DETECCION_FOTOSENIBLE;
+	}
+	else {
+		interpretacion = TERMINAL_OK;
+	}
+
+	return interpretacion;
+
+
+}
+
+
+double Terminal::calcularPorcentaje(int nSaltos, int nMatch, int maxMatchConsecutivo) {
+    return ((nSaltos * PORCENTAJE_SALTO_UNITARIO) + ((nMatch * 100.0) / static_cast<double>(maxMatchConsecutivo)));
+}
+
+double Terminal::EvaluarSensor(Lista* lista, int numSensor) {
+
+	if(lista->cabeza == NULL || lista->cabeza->siguente == NULL){
+		return NULL;
+	}
+
+    Nodo* puntero = lista->cabeza;
+    int contadorMatch = 0;
+    int contadorSalto = 0;
+    unsigned long diferenciaTiempo = 0;
+    unsigned long diferenciaTiempoAux = 0;
+
+    while (puntero) {
+        if (puntero->data.sampleSensores[numSensor]) {
+            contadorSalto++;
+            if (diferenciaTiempoAux == 0) {
+                diferenciaTiempoAux = puntero->data.marcaTiempo;
+            } else {
+                diferenciaTiempo = puntero->data.marcaTiempo - diferenciaTiempoAux;
+                diferenciaTiempoAux = puntero->data.marcaTiempo;
+
+                if (diferenciaTiempo <= TIEMPO_COMBO) {
+                    contadorMatch++;
+                } else {
+                    contadorMatch = 0;
+                }
+            }
+        }else {
+        	//COMO GESTIONAMOS ESTO?
+          if((puntero->data.marcaTiempo - diferenciaTiempo) > TIEMPO_COMBO)
+           contadorMatch = 0;
+        }
+        puntero = puntero->siguente;
+    }
+
+    return  calcularPorcentaje(contadorSalto, contadorMatch, 3);
 }
 
 
@@ -133,6 +279,27 @@ int Terminal::listaVacia(Lista* lista){
 	return lista->cabeza == NULL;
 }
 
+void Terminal::purgarNodosViejos(Lista* lista){
+
+	if(lista->cabeza == NULL){
+		return;
+	}
+
+	Nodo* puntero = lista->cabeza;
+
+	while(puntero && (puntero->data.marcaTiempo + TIEMPO_VIDA_NODO) <= millis()){
+		Nodo* eliminado = puntero;
+		puntero = puntero->siguente; //Muevo el iterador una posicion
+		lista->cabeza = puntero; //Actualizo la cabeza
+
+		DestruirNodo(eliminado);
+		lista->longitud--;
+		nodosRevisados--; //Los descarto para equilibrar la lista
+
+	}
+}
+
+
 void Terminal::RecorrerLista(Lista* lista){
 
 	if(lista->cabeza == NULL){
@@ -143,12 +310,24 @@ void Terminal::RecorrerLista(Lista* lista){
 	int contador = 0;
 
 	while(puntero->siguente){
-		printf("Nodo: %d valor: %d\n", contador, puntero->data.value);
+		printf("Nodo: %d valor: %d\n", contador, puntero->data.marcaTiempo);
+
+		  for (int i = 0; i < 8; i++) {
+		    Serial.print(puntero->data.sampleSensores[i]);
+		    Serial.print(" ");
+		  }
+		  Serial.println();
+
 		contador++;
 		puntero = puntero->siguente; //Muevo el iterador una posicion
 	}
 
-	printf("Nodo: %d valor: %d\n", contador, puntero->data.value);
+	printf("Nodo: %d valor: %d\n", contador, puntero->data.marcaTiempo);
+	for (int i = 0; i < 8; i++) {
+		Serial.print(puntero->data.sampleSensores[i]);
+		Serial.print(" ");
+	}
+	Serial.println();
 
 }
 
