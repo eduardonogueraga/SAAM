@@ -8,10 +8,13 @@
 
 #ifndef PROYECTO_MENSAJES_H_
 #define PROYECTO_MENSAJES_H_
+
+
 #include "Arduino.h"
 #include "Datos.h"
 #include <HardwareSerial.h>
 #include "EventosJson.h"
+
 
 #include "Macros.h"
 #include "Env.h"
@@ -61,6 +64,9 @@ private:
 	  AVISO_ALARMA_MOVIMIENTO_ALMACEN,
 	  AVISO_ALARMA_MOVIMIENTO_PORCHE
 	};
+
+
+
 
 public:
 	Mensajes();

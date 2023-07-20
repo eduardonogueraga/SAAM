@@ -31,6 +31,7 @@ extern InterStrike pir1, pir2, pir3, mg;
 extern Datos datosSensores;
 extern EventosJson eventosJson;
 extern HardwareSerial UART_RS;
+extern HardwareSerial UART_GSM;
 extern ComunicacionLinea linea;
 
 extern Terminal T_COCHERA;

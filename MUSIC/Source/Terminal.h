@@ -9,7 +9,7 @@
 #define MUSIC_SOURCE_TERMINAL_H_
 
 #define MAX_NODOS_EN_EJECUCION 20
-#define TIEMPO_COMBO 700 //Tiempo para que se considere que un salto es consecutivo en el tiempo
+#define TIEMPO_COMBO 15000 //Tiempo para que se considere que un salto es consecutivo en el tiempo
 #define TIEMPO_VIDA_NODO 25000
 
 #define UMBRAL_NO_REPLY_STRIKE 5
@@ -17,9 +17,21 @@
 #define UMBRAL_BAD_COMM_STRIKE 10
 #define UMBRAL_FOTORESISTENCIA 150
 #define UMBRAL_PERSISTENCIA_FOTORESISTENCIA 3
+#define UMBRAL_SABOTAJE 30.0
+#define UMBRAL_SENSOR_INDIVIDUAL 99.0
+#define UMBRAL_SENSOR_TOTAL 200.0
+#define PORCENTAJE_SALTO_UNITARIO 4.0
+
+#define FRACCION_SALTO 3
 
 #include "Arduino.h"
 #include "Macros.h"
+#include "EventosJson.h"
+#include "Registro.h"
+
+
+extern Registro registro;
+extern EventosJson eventosJson;
 
 class Terminal {
 
@@ -33,13 +45,13 @@ private:
 	unsigned int BAD_REPLY_STRIKE;
 	unsigned int BAD_COMM_STRIKE;
 
-	const double UMBRAL_SENSOR_INDIVIDUAL = 99;
-	const double UMBRAL_SENSOR_TOTAL = 200;
-	const double PORCENTAJE_SALTO_UNITARIO = 4.0;
-
+	double porcentajeDeteccion = 0.0;
 
 	int DATOS_FOTOSENSOR;
 	byte datosControlLineas[MAX_DATOS_CTL_LINEA];
+
+	int sampleSensoresPhantom[MAX_DATOS_SUB_TRAMA];
+	unsigned long maxEjecucion = 0;
 
 
 	struct Data {
@@ -70,10 +82,14 @@ private:
 	void EliminarUltimo(Lista* lista);
 	double calcularPorcentaje(int nSaltos, int nMatch, int maxMatchConsecutivo);
 	double EvaluarSensor(Lista* lista, int numSensor);
+	void EvaluarSensorPhantom(Lista* lista);
 	void purgarNodosViejos(Lista* lista);
 
 	byte nodosRevisados = 0;
 	byte persistenciaFotoresistencia = 0;
+
+	SAAS_PARAMETROS_SALTO saasParametrosSalto;
+
 
 public:
 	Terminal(char* nombreTerminal, byte numFotoSensor = 1, byte numLineasCtl = 2, byte numSensores = 8);
@@ -103,6 +119,9 @@ public:
 	void borrarUltimoElemento();
 
 	InterpretacionTerminal evaluarDatosTerminal();
+	void evaluarPhantomTerminal();
+	void controlNodosEnMemoria();
+	void limpiarResultadoPhantom();
 
 };
 

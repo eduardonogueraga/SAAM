@@ -8,12 +8,18 @@
 #ifndef SOURCE_ALARMA_H_
 #define SOURCE_ALARMA_H_
 
+#define TINY_GSM_MODEM_SIM800
+
 #include "Arduino.h"
 #include <LiquidCrystal_I2C.h>
 #include <Keypad.h>
 #include <Preferences.h>
 #include <Adafruit_MCP23X17.h>
 #include <HardwareSerial.h>
+
+#include <TinyGsmClient.h>
+#include <ArduinoHttpClient.h>
+
 
 #include "Autenticacion.h"
 #include "Pantalla.h"
@@ -58,6 +64,28 @@ byte sensorHabilitado[4] = {1,1,1,1};
 //UART
 HardwareSerial UART_GSM(1);
 HardwareSerial UART_RS(2);
+
+
+// Configura los datos de tu red GSM (APN, usuario y contraseña)
+const char apn[] = "internet";
+const char gsmUser[] = "";
+const char gsmPass[] = "";
+
+// Server details
+//const char server[]   = "vsh.pp.ua";
+//const char resource[] = "/TinyGSM/logo.txt";
+const char server[]   = "httpbin.org";
+const char resource[] = "/post";
+
+const int  port       = 80;
+//const int  port       = 443;
+
+// Crea un objeto TinyGsm para comunicarse con el módulo SIM800L
+TinyGsm modem(UART_GSM);
+TinyGsmClient client(modem);
+//TinyGsmClientSecure client(modem);
+HttpClient http(client, server, port);
+
 
 //MUX
 Adafruit_MCP23X17 mcp;
@@ -153,6 +181,11 @@ static byte tiempoFracccion;
  byte flagPuertaAbierta = 0;
 
  //FUNCIONES//
+ void testHttp(){
+
+ }
+
+
  void leerEntradaTeclado(){
 	 key = keypad.getKey();
 	 auth.comprobarEntrada();
@@ -386,7 +419,7 @@ static byte tiempoFracccion;
 		   flagPuertaAbierta = leerFlagEEInt("PUERTA_ABIERTA") == 1;
 
 
-		if (leerFlagEEInt("ESTADO_GUARDIA") == 1 && leerFlagEEInt("ERR_INTERRUPT") == 0) {
+		if (leerFlagEEInt("ESTADO_GUARDIA") == 1 || leerFlagEEInt("ERR_INTERRUPT") == 0) {
 			estadoAlarma = ESTADO_GUARDIA;
 			registro.registrarLogSistema("CARGADO ESTADO GUARDIA PREVIO");
 			//eventosJson.guardarLog(RESET_MANUAL_LOG); @PEND
@@ -694,6 +727,26 @@ static byte tiempoFracccion;
 		Serial.printf("ERR INTERRUPT = %d\n", leerFlagEE("ERR_INTERRUPT"));
 		Serial.printf("ERR HISTORICO INTERRUPCIONES = %d\n", leerFlagEE("INTERUP_HIST"));
 		Serial.printf("ERR SMS EMERGENCIA ENVIADO = %d\n", leerFlagEE("MENSAJE_EMERGEN"));
+	}
+
+	void escucharGSM(){
+		if (UART_GSM.available() > 0) { // Verificamos si hay datos disponibles para leer
+
+			char tramaRecibida[200] = "";
+			size_t byteCount = UART_GSM.readBytesUntil('\n', tramaRecibida, sizeof(tramaRecibida) - 1); //read in data to buffer
+			tramaRecibida[byteCount] = NULL;	//put an end character on the data
+
+			 // Si la respuesta comienza con "AT+", asumimos que es un comando y no la imprimimos
+			 /*
+			if (strncmp(tramaRecibida, "AT+", 3) != 0) {
+			      Serial.println(tramaRecibida);
+			    }
+			    UART_GSM.flush();
+			 */
+			Serial.println(tramaRecibida);
+			UART_GSM.flush();
+
+		}
 	}
 
 	//MANEJO DE MEMORIA NVS

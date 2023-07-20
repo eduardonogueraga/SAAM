@@ -212,8 +212,8 @@ void ComandoSerie::comprobarComando() {
 
 	if (compararCadena(data, "t -add")){
 		nombreComando(data);
-		 byte myArray[] = {1, 2, 3, 4, 5, 6, 7, 8};
-		 byte myArray2[] = {1, 2};
+		 byte myArray[] = {1, 0, 0, 0, 0, 0, 0, 0};
+		 byte myArray2[] = {0, 0};
 		T_COCHERA.guardarDatosTerminal(myArray, myArray2);
 	}
 
@@ -222,12 +222,12 @@ void ComandoSerie::comprobarComando() {
 		T_COCHERA.recorrerDatosTerminal();
 
 		Serial.println(T_COCHERA.getDatosFotosensor());
-		/*
+/*
 		for (int i = 0; i < 2; i++) {
 			Serial.print(T_COCHERA.datosControlLineas[i]);
 			Serial.print(" ");
 		}
-		*/
+*/
 	}
 
 
@@ -242,6 +242,18 @@ void ComandoSerie::comprobarComando() {
 		T_COCHERA.borrarUltimoElemento();
 	}
 
+	if(compararCadena(data, "at")){
+		nombreComando(data);
+		UART_GSM.println("AT");
+	}
+
+
+	if(compararCadena(data, "speed -c")){
+		nombreComando(data);
+		UART_GSM.println("AT+IPR=115200");
+		UART_GSM.println("AT&W");
+		UART_GSM.println("AT+CFUN=1,1");
+	}
 
 
 	if(compararCadena(data, "power")){

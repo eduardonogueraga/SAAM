@@ -5,6 +5,8 @@
  *
  * POR HACER:
  * -Enriquecer el log con dia de la semana o temperatura
+ * -Ajustar los requerimientos de SAAS
+ *
  */
 
 
@@ -117,6 +119,72 @@ void setup()
 	    // Iniciar el planificador de tareas
 	    //vTaskStartScheduler();
 
+	    // Intenta conectar al servicio de red GSM
+	    Serial.println("Conectando a la red GSM...");
+	    if (!modem.gprsConnect(apn, gsmUser, gsmPass)) {
+	      Serial.println(" Error al conectar a la red GSM.");
+	      while (true);
+	    }
+	    Serial.println(" Conexión a la red GSM establecida.");
+
+	    String json = "{\"sensor\":\"temperatura\",\"valor\":25.5}";
+
+	    Serial.print(F("Performing HTTP GET request... "));
+	    //http.connectionKeepAlive();  // Currently, this is needed for HTTPS
+	     //int err = http.get(resource);
+
+	    //http.sendHeader("Authorization", "Bearer TU_BEARER_TOKEN");
+	     http.sendHeader("Content-Type", "application/json");
+	     http.sendHeader("Content-Length", json.length());
+
+	     int err = http.post(resource, "application/json", json);
+
+	     if (err != 0) {
+	    	 Serial.println(F("failed to connect"));
+	       delay(10000);
+	       return;
+	     }
+
+	     //Gestionar respuesta HTTP
+	     int status = http.responseStatusCode();
+	     Serial.print(F("Response status code: "));
+	     Serial.println(status);
+	     if (!status) {
+	       delay(10000);
+	       return;
+	     }
+
+	     Serial.println(F("Response Headers:"));
+	     while (http.headerAvailable()) {
+	       String headerName  = http.readHeaderName();
+	       String headerValue = http.readHeaderValue();
+	       Serial.println("    " + headerName + " : " + headerValue);
+	     }
+
+	     int length = http.contentLength();
+	     if (length >= 0) {
+	    	 Serial.print(F("Content length is: "));
+	    	 Serial.println(length);
+	     }
+	     if (http.isResponseChunked()) {
+	    	 Serial.println(F("The response is chunked"));
+	     }
+
+	     String body = http.responseBody();
+	     Serial.println(F("Response:"));
+	     Serial.println(body);
+
+	     Serial.print(F("Body length is: "));
+	     Serial.println(body.length());
+
+	     // Shutdown
+	     http.stop();
+	     Serial.println(F("Server disconnected"));
+
+	     modem.gprsDisconnect();
+	     Serial.println(F("GPRS disconnected"));
+
+
 }
 
 
@@ -164,6 +232,7 @@ void procesosSistema(){
     checkearSms();
 	resetAutomatico();
 	checkearBateriaDeEmergencia();
+	escucharGSM();
 }
 
 void procesosPrincipales()
@@ -245,6 +314,19 @@ void procesoAlarma(){
 				setEstadoAlerta();
 			}
 
+			//Terminal check
+			InterpretacionTerminal interpretacion;
+
+			for (int i = 0; i < 1; i++) { //N_TERMINALES_LINEA
+				interpretacion = T_LIST[i]->evaluarDatosTerminal();
+
+				if(interpretacion != TERMINAL_OK){
+					zona = PIR_1; //@PEND ADAPTAR
+					setEstadoAlerta();
+				}
+			}
+
+
 		}
 
 		sonarBocina();
@@ -288,6 +370,12 @@ void procesoAlarma(){
 		pir1.compruebaPhantom(rcomp1.digitalRead(PIR_SENSOR_1),datosSensoresPhantom);
 		pir2.compruebaPhantom(rcomp1.digitalRead(PIR_SENSOR_2),datosSensoresPhantom);
 		pir3.compruebaPhantom(rcomp1.digitalRead(PIR_SENSOR_3),datosSensoresPhantom);
+
+
+		for (int i = 0; i < 1; i++) { //N_TERMINALES_LINEA
+			T_LIST[i]->evaluarPhantomTerminal();
+		}
+
 
 		realizarLlamadas();
 		sonarBocina();
@@ -344,6 +432,11 @@ void setEstadoGuardiaReactivacion()
 
 	mensaje.mensajeReactivacion(datosSensoresPhantom);
 	datosSensoresPhantom.borraDatos();
+
+	for (int i = 0; i < 1; i++) { //N_TERMINALES_LINEA
+		T_LIST[i]->limpiarResultadoPhantom();
+	}
+
 	registro.registrarLogSistema("ALARMA ACTIVADA AUTOMATICAMENTE");
 	//eventosJson.guardarLog(); @PEND
 	eventosJson.guardarEntrada();

@@ -21,9 +21,10 @@ Mensajes::Mensajes(){
 
 void Mensajes::inicioGSM(HardwareSerial &UART_GSM){
 	UART_GSM.begin(115200, SERIAL_8N1, GSM_RX, GSM_TX); 	//RX TX  (H2 = RX23 TX19)
-	UART_GSM.println("AT+CMGF=1"); 			//Vamos utilizar los SMS.
-	delay(100);
-	UART_GSM.println("AT+CNMI=1,2,0,0,0"); 	//Configurar el SIM800L p/ que muestre msm por com. serie.
+
+//	UART_GSM.println("AT+CMGF=1"); 			//Vamos utilizar los SMS.
+//	delay(100);
+//	UART_GSM.println("AT+CNMI=1,2,0,0,0"); 	//Configurar el SIM800L p/ que muestre msm por com. serie.
  }
 
 

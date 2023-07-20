@@ -280,6 +280,16 @@ typedef enum  {
 	FALLO_SENSOR_LOG = 134
 } SAAS_LITERAL_LOGS;
 
+
+typedef enum  {
+	P_MODO_NORMAL = 0,
+	P_MODO_PHANTOM = 1,
+	P_NO_RESTAURADO = 0,
+	P_RESTAURADO = 1,
+	P_ESTADO_ONLINE = 0,
+	P_ESTADO_OFFLINE = 1,
+}	SAAS_PARAMETROS_SALTO;
+
 //MENU
 
 typedef enum {
@@ -353,6 +363,7 @@ template <class T> uint8_t arrSum(byte arr[], byte tam){
 	}
 	return r;
 }
+
 
 template <class T> void arrCopy(byte origen[], byte destino[], byte tam) {
 	byte *p = origen;

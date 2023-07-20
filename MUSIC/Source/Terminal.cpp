@@ -99,6 +99,12 @@ void Terminal::guardarDatosTerminal(byte* arrSensorSamples, byte* arrControlLine
 
 	//Determino si el array contiene algo sino se descarta el nodo
 	if(arrSum<byte>(arrSensorSamples, MAX_DATOS_SUB_TRAMA)){
+
+		//Gestion nodos
+		controlNodosEnMemoria();
+		//Se eliminan los nodos mayores
+		purgarNodosViejos(&this->listaTerminal);
+
 		for (int i = 0; i < MAX_DATOS_SUB_TRAMA; i++) {
 			datosNodo.sampleSensores[i] = arrSensorSamples[i];
 		}
@@ -125,6 +131,13 @@ void Terminal::borrarUltimoElemento(){
 	this->EliminarUltimo(&this->listaTerminal);
 }
 
+void Terminal::controlNodosEnMemoria(){
+	//Se controla que no pueda haber un desbordamiento
+	if (listaLongitud(&this->listaTerminal) > MAX_NODOS_EN_EJECUCION) {
+		EliminarPrincipio(&this->listaTerminal);
+	}
+
+}
 
 InterpretacionTerminal Terminal::evaluarDatosTerminal(){
 
@@ -135,15 +148,19 @@ InterpretacionTerminal Terminal::evaluarDatosTerminal(){
 	//Evalua el estado del servicio si existen i o superan los umbrales de strike
 	if(getNoReplyStrike() >= UMBRAL_NO_REPLY_STRIKE){
 		interpretacion = NO_REPLY;
+
+		Serial.println("INTER: NO REPLY");
 		return interpretacion;
 	}
 	if(getBadCommStrike() >= UMBRAL_BAD_COMM_STRIKE){
 		interpretacion = BAD_COMM;
+		Serial.println("INTER: BAD COMM");
 		return interpretacion;
 	}
 
 	if(getBadReplyStrike() >= UMBRAL_BAD_REPLY_STRIKE){
 		interpretacion = BAD_REPLY;
+		Serial.println("INTER: BAD REPLY");
 		return interpretacion;
 	}
 
@@ -167,22 +184,20 @@ InterpretacionTerminal Terminal::evaluarDatosTerminal(){
 
 	//Evalua los datos en la lista
 	if(!listaVacia(&this->listaTerminal)){
-
-		//Se controla que no pueda haber un desbordamiento
-		if (listaLongitud(&this->listaTerminal) < MAX_NODOS_EN_EJECUCION) {
-			EliminarPrincipio(&this->listaTerminal);
-		}
-
 		//Se eliminan los nodos mayores
 		purgarNodosViejos(&this->listaTerminal);
 
 		//Revisamos si hay nuevos nodos
 		if(nodosRevisados < listaLongitud(&this->listaTerminal)){
 			//Se itera por cada sensor el contenido de la lista
-			double porcentajeDeteccion = 0.0;
+			 porcentajeDeteccion = 0.0;
 
 			for (int i = 0; i < getNumSensores(); i++) {
 				double sensorPorcentaje = EvaluarSensor(&listaTerminal, i);
+
+				Serial.print("INTER: %: ");
+				Serial.println(sensorPorcentaje);
+
 				if(sensorPorcentaje >= UMBRAL_SENSOR_INDIVIDUAL){
 					flagDeteccion =1;
 				}
@@ -198,13 +213,17 @@ InterpretacionTerminal Terminal::evaluarDatosTerminal(){
 
 	}
 
-	if(flagEstadoServicio && flagDeteccion){
+	if(flagEstadoServicio && porcentajeDeteccion > UMBRAL_SABOTAJE){
 		interpretacion = SABOTAJE;
+		Serial.println("INTER: SABOTAJE");
 	}else if(flagEstadoServicio){
 		interpretacion = AVERIA;
+		Serial.println("INTER: AVERIA");
 	}else if(flagDeteccion){
 		interpretacion = DETECCION;
+		Serial.println("INTER: DETECCION");
 	}else if(flagFotoSensor){
+		Serial.println("INTER: FOTO");
 		interpretacion = DETECCION_FOTOSENIBLE;
 	}
 	else {
@@ -212,10 +231,18 @@ InterpretacionTerminal Terminal::evaluarDatosTerminal(){
 	}
 
 	return interpretacion;
-
-
 }
 
+void Terminal::evaluarPhantomTerminal(){
+	EvaluarSensorPhantom(&listaTerminal);
+}
+
+
+void Terminal::limpiarResultadoPhantom(){
+	for (int i = 0; i < getNumLineasCtl(); i++) {
+		sampleSensoresPhantom[i] = 0;
+	}
+}
 
 double Terminal::calcularPorcentaje(int nSaltos, int nMatch, int maxMatchConsecutivo) {
     return ((nSaltos * PORCENTAJE_SALTO_UNITARIO) + ((nMatch * 100.0) / static_cast<double>(maxMatchConsecutivo)));
@@ -223,7 +250,7 @@ double Terminal::calcularPorcentaje(int nSaltos, int nMatch, int maxMatchConsecu
 
 double Terminal::EvaluarSensor(Lista* lista, int numSensor) {
 
-	if(lista->cabeza == NULL || lista->cabeza->siguente == NULL){
+	if(lista->cabeza == NULL /*|| lista->cabeza->siguente == NULL*/){
 		return NULL;
 	}
 
@@ -233,11 +260,19 @@ double Terminal::EvaluarSensor(Lista* lista, int numSensor) {
     unsigned long diferenciaTiempo = 0;
     unsigned long diferenciaTiempoAux = 0;
 
+    char registroConjunto[50];
+
     while (puntero) {
         if (puntero->data.sampleSensores[numSensor]) {
+
+        	snprintf(registroConjunto, sizeof(registroConjunto), "%s%d%s", "MOVIMIENTO EN TERMINAL X:",numSensor," ONLINE");
+        	registro.registrarLogSistema(registroConjunto);
+        	eventosJson.guardarDeteccion(1, FRACCION_SALTO, P_MODO_NORMAL,numSensor, P_ESTADO_ONLINE); //Regularizar el id del terminal
             contadorSalto++;
             if (diferenciaTiempoAux == 0) {
                 diferenciaTiempoAux = puntero->data.marcaTiempo;
+                contadorMatch++; //Un primer combo para aumentar el porcentaje al principio
+
             } else {
                 diferenciaTiempo = puntero->data.marcaTiempo - diferenciaTiempoAux;
                 diferenciaTiempoAux = puntero->data.marcaTiempo;
@@ -256,7 +291,35 @@ double Terminal::EvaluarSensor(Lista* lista, int numSensor) {
         puntero = puntero->siguente;
     }
 
-    return  calcularPorcentaje(contadorSalto, contadorMatch, 3);
+    return  calcularPorcentaje(contadorSalto, contadorMatch, FRACCION_SALTO);
+}
+
+
+void Terminal::EvaluarSensorPhantom(Lista* lista){
+
+    if (lista->cabeza == NULL) {
+        return;
+    }
+
+    Nodo* puntero = lista->cabeza;
+    char registroConjunto[50];
+
+    while (puntero) {
+        if(puntero->data.marcaTiempo > maxEjecucion){
+            for (int i = 0; i < getNumSensores(); i++) {
+                 if(puntero->data.sampleSensores[i]){
+
+                	 snprintf(registroConjunto, sizeof(registroConjunto), "%s%d%s", "MOVIMIENTO PHANTOM EN TERMINAL X:",i," ONLINE");
+                	 registro.registrarLogSistema(registroConjunto);
+                	 eventosJson.guardarDeteccion(1, FRACCION_SALTO, P_MODO_PHANTOM,i, P_ESTADO_ONLINE); //Regularizar el id del terminal
+                     sampleSensoresPhantom[i]++;
+                }
+            }
+           maxEjecucion = puntero->data.marcaTiempo;
+        }
+        puntero = puntero->siguente;
+    }
+
 }
 
 
@@ -295,6 +358,8 @@ void Terminal::purgarNodosViejos(Lista* lista){
 		DestruirNodo(eliminado);
 		lista->longitud--;
 		nodosRevisados--; //Los descarto para equilibrar la lista
+
+		Serial.println("INTER: NODO VIEJO BORRADO");
 
 	}
 }
