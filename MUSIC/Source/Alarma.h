@@ -8,7 +8,7 @@
 #ifndef SOURCE_ALARMA_H_
 #define SOURCE_ALARMA_H_
 
-#define TINY_GSM_MODEM_SIM800
+#define TINY_GSM_MODEM_SIM800 //Definimos el modem
 
 #include "Arduino.h"
 #include <LiquidCrystal_I2C.h>
@@ -16,10 +16,8 @@
 #include <Preferences.h>
 #include <Adafruit_MCP23X17.h>
 #include <HardwareSerial.h>
-
 #include <TinyGsmClient.h>
 #include <ArduinoHttpClient.h>
-
 
 #include "Autenticacion.h"
 #include "Pantalla.h"
@@ -65,26 +63,11 @@ byte sensorHabilitado[4] = {1,1,1,1};
 HardwareSerial UART_GSM(1);
 HardwareSerial UART_RS(2);
 
-
-// Configura los datos de tu red GSM (APN, usuario y contraseña)
-const char apn[] = "internet";
-const char gsmUser[] = "";
-const char gsmPass[] = "";
-
-// Server details
-//const char server[]   = "vsh.pp.ua";
-//const char resource[] = "/TinyGSM/logo.txt";
-const char server[]   = "httpbin.org";
-const char resource[] = "/post";
-
-const int  port       = 80;
-//const int  port       = 443;
-
 // Crea un objeto TinyGsm para comunicarse con el módulo SIM800L
 TinyGsm modem(UART_GSM);
 TinyGsmClient client(modem);
 //TinyGsmClientSecure client(modem);
-HttpClient http(client, server, port);
+HttpClient http(client, serverUrl, portHttp);
 
 
 //MUX
@@ -121,7 +104,7 @@ InterStrike mg = InterStrike(0, 1, datosSensores);
 InterStrike pir1 = InterStrike(1, 1, datosSensores, 5000, 60000);
 InterStrike pir2 = InterStrike(2, 2, datosSensores, 7000, 20000);
 InterStrike pir3 = InterStrike(3, 2, datosSensores, 5000, 21000);
-Mensajes mensaje;
+Mensajes mensaje(UART_GSM/*, &modem, &client*/);
 Menu menu;
 Fecha fecha;
 Registro registro;
@@ -181,10 +164,6 @@ static byte tiempoFracccion;
  byte flagPuertaAbierta = 0;
 
  //FUNCIONES//
- void testHttp(){
-
- }
-
 
  void leerEntradaTeclado(){
 	 key = keypad.getKey();
@@ -258,12 +237,13 @@ static byte tiempoFracccion;
 	 return mostrarLcdAlerts();
  }
 
- void pantallaDeErrorInicial(String mensaje){
+ void pantallaDeError(String mensaje){
 		String *errLcd = &pantalla.getErrorTexto();
 		*errLcd = mensaje;
 		pantalla.lcdLoadView(&pantalla, &Pantalla::lcdError);
 		delay(2000);
  }
+
 
 	void setMargenTiempo(unsigned long &tiempoMargen, const unsigned long tiempo, float porcentaje = 1.0F){
 
@@ -572,7 +552,7 @@ static byte tiempoFracccion;
 				arrCopy<int>(eeDatosSalto.DATOS_SENSOR,datos ,TOTAL_SENSORES);
 
 				estadoError = COMPROBAR_DATOS;
-				sleepModeGSM = GSM_TEMPORAL;
+				//sleepModeGSM = GSM_TEMPORAL;
 			}
 		}
 	}
@@ -611,7 +591,7 @@ static byte tiempoFracccion;
 		estadoError = ESPERAR_AYUDA;
 
 		setMargenTiempo(prorrogaGSM, TIEMPO_PRORROGA_GSM, TIEMPO_PRORROGA_GSM_TEST);
-		sleepModeGSM = GSM_TEMPORAL;
+		//sleepModeGSM = GSM_TEMPORAL;
 
 	}
 
@@ -730,24 +710,138 @@ static byte tiempoFracccion;
 	}
 
 	void escucharGSM(){
+
 		if (UART_GSM.available() > 0) { // Verificamos si hay datos disponibles para leer
 
 			char tramaRecibida[200] = "";
 			size_t byteCount = UART_GSM.readBytesUntil('\n', tramaRecibida, sizeof(tramaRecibida) - 1); //read in data to buffer
 			tramaRecibida[byteCount] = NULL;	//put an end character on the data
 
-			 // Si la respuesta comienza con "AT+", asumimos que es un comando y no la imprimimos
-			 /*
-			if (strncmp(tramaRecibida, "AT+", 3) != 0) {
-			      Serial.println(tramaRecibida);
-			    }
-			    UART_GSM.flush();
-			 */
+
+			Serial.print("UART@GSM-> ");
 			Serial.println(tramaRecibida);
 			UART_GSM.flush();
 
 		}
+
 	}
+	void comprobarConexionGSM(){
+		Serial.print("Waiting for network...");
+		pantalla.lcdLoadView(&pantalla, &Pantalla::sysConexionGSM);
+		if (!modem.waitForNetwork()) {
+			Serial.println(" fail");
+			pantallaDeError(F("  SYSTM ERROR!   SIN RED MOVIL  "));
+			return;
+		}
+		Serial.println(" success");
+		if (modem.isNetworkConnected()) { Serial.println("Network connected"); }
+
+
+		String operatorName = modem.getOperator();
+		Serial.print("Proveedor de servicios: ");
+		Serial.println(operatorName);
+
+		int csq = modem.getSignalQuality();
+		Serial.println("Signal quality: " + String(csq));
+
+		pantallaDeError(String(operatorName)+"Calidad red:"+(csq));
+
+	}
+
+	bool establecerConexionGPRS(){
+		// Intenta conectar al servicio de red GPRS
+		Serial.println("Conectando a la red GPRS...");
+		pantalla.lcdLoadView(&pantalla, &Pantalla::sysConexionGprs);
+
+		if (!modem.gprsConnect(apn, gsmUser, gsmPass)) {
+			Serial.println(" Error al conectar a la red GPRS.");
+			pantalla.lcdLoadView(&pantalla, &Pantalla::sysConexionGprsFail);
+			return false;
+		}
+		Serial.println(" Conexion a la red GPRS establecida.");
+		pantalla.lcdLoadView(&pantalla, &Pantalla::sysConexionGprsOk);
+
+		return true;
+	}
+
+	void cerrarConexionGPRS(){
+		modem.gprsDisconnect();
+		Serial.println(F("GPRS disconnected"));
+	}
+
+	void testHttpRequest(){
+		if(establecerConexionGPRS()){
+			String json = "{\"sensor\":\"temperatura\",\"valor\":25.5}";
+
+			 String* punteroSalidaJson = eventosJson.getSalidaJsonPointer();
+
+
+			 // Agrega la cabecera de autorización "Authorization" al objeto HttpClient
+			const char* bearerToken = "4|EX8MOXKfQwRXSAZtWhTV8Tv7QaqQ51oUc3SPTt2z";
+
+			Serial.print(F("Performing HTTP request... "));
+
+			//http.connectionKeepAlive();  // Currently, this is needed for HTTPS
+			http.beginRequest();
+
+				//int err = http.get(resource);
+				int err = http.post(resource, "application/json", *punteroSalidaJson);
+
+				http.sendHeader("Authorization", String("Bearer ") + bearerToken);
+				http.sendHeader("Content-Type", "application/json");
+				http.sendHeader("Content-Length", json.length());
+			http.endRequest();
+
+
+			if (err != 0) {
+				Serial.println(F("failed to connect"));
+				pantallaDeError(F("  SYSTM ERROR!  PETICION HTTP KO"));
+				cerrarConexionGPRS();
+				return;
+			}
+
+			//Gestionar respuesta HTTP
+			int status = http.responseStatusCode();
+			Serial.print(F("Response status code: "));
+			Serial.println(status);
+			if (!status) { //Gestionar el codigo devuelto
+				cerrarConexionGPRS();
+				return;
+			}
+
+			byte linesCount = 0;
+			Serial.println(F("Response Headers:"));
+			while (http.headerAvailable() && linesCount < 15) {
+				String headerName  = http.readHeaderName();
+				String headerValue = http.readHeaderValue();
+				Serial.println("    " + headerName + " : " + headerValue);
+			}
+
+			int length = http.contentLength();
+			if (length >= 0) {
+				Serial.print(F("Content length is: "));
+				Serial.println(length);
+			}
+			if (http.isResponseChunked()) {
+				Serial.println(F("The response is chunked"));
+			}
+
+			String body = http.responseBody();
+			Serial.println(F("Response:"));
+			Serial.println(body);
+
+			Serial.print(F("Body length is: "));
+			Serial.println(body.length());
+
+			// Shutdown
+			http.stop();
+			Serial.println(F("Server disconnected"));
+
+			cerrarConexionGPRS();
+		}
+
+	}
+
 
 	//MANEJO DE MEMORIA NVS
 	uint8_t leerFlagEE(const char* key) {

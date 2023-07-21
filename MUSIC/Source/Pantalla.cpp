@@ -442,6 +442,34 @@ void Pantalla::lcdGuardia(){
 		lcd.print(F("BLUETOOH PRIMERO"));
 	}
 
+	void Pantalla::sysConexionGprs(){
+		lcd.setCursor(0,0);
+		lcd.print(F(" CONEXION GPRS  "));
+		lcd.setCursor(0,1);
+		lcd.print(F(" EN CURSO . . . "));
+	}
+
+	void Pantalla::sysConexionGprsOk(){
+		lcd.setCursor(0,0);
+		lcd.print(F("  INTERNET OK!  "));
+		lcd.setCursor(0,1);
+		lcd.print(F("ENVIANDO INFORME"));
+	}
+
+	void Pantalla::sysConexionGprsFail(){
+		lcd.setCursor(0,0);
+		lcd.print(F(" SYS ERROR GPRS "));
+		lcd.setCursor(0,1);
+		lcd.print(F("NO PUDO CONECTAR"));
+	}
+
+	void Pantalla::sysConexionGSM(){
+		lcd.setCursor(0,0);
+		lcd.print(F("CONECTANDO A RED"));
+		lcd.setCursor(0,1);
+		lcd.print(F("TELEFONICA . . ."));
+	}
+
 
 	String& Pantalla::getErrorTexto() {
 		return errorTexto;

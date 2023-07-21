@@ -56,6 +56,15 @@ public:
 	void actualizarCabecera();
 
 	void enviarInformeSaas();
+
+	String* getSalidaJsonPointer() {
+
+		SALIDA_JSON.clear();
+		serializeJsonPretty(JSON_DOC, SALIDA_JSON);
+
+		return &SALIDA_JSON;
+	}
+
 };
 
 #endif /* SOURCE_EVENTOSJSON_H_ */

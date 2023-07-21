@@ -42,6 +42,7 @@ extern Registro registro;
 extern byte sensorHabilitado[];
 
 extern void interrupcionFalloAlimentacion();
+extern void testHttpRequest();
 
 class ComandoSerie {
 

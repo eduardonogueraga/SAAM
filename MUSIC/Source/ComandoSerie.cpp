@@ -245,6 +245,7 @@ void ComandoSerie::comprobarComando() {
 	if(compararCadena(data, "at")){
 		nombreComando(data);
 		UART_GSM.println("AT");
+		UART_GSM.println("AT+COPS?");
 	}
 
 
@@ -255,6 +256,11 @@ void ComandoSerie::comprobarComando() {
 		UART_GSM.println("AT+CFUN=1,1");
 	}
 
+
+	if(compararCadena(data, "http")){
+		nombreComando(data);
+		testHttpRequest();
+	}
 
 	if(compararCadena(data, "power")){
 		nombreComando(data);

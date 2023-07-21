@@ -7,28 +7,23 @@
  */
 
 #include "Mensajes.h"
-#include "Datos.h"
-#include <HardwareSerial.h>
-#include "Env.h"
-#include "Registro.h"
 
 extern Registro registro;
 
-Mensajes::Mensajes(){
+Mensajes::Mensajes(HardwareSerial& serialInstance) : UART_GSM(serialInstance){
 	this->tipoMensaje = SMS_TIPO_SALTO;
 }
 
 
-void Mensajes::inicioGSM(HardwareSerial &UART_GSM){
+void Mensajes::inicioGSM(){
 	UART_GSM.begin(115200, SERIAL_8N1, GSM_RX, GSM_TX); 	//RX TX  (H2 = RX23 TX19)
+	UART_GSM.println("AT+CMGF=1"); 			//Vamos utilizar los SMS.
+	delay(100);
+	UART_GSM.println("AT+CNMI=1,2,0,0,0"); 	//Configurar el SIM800L p/ que muestre msm por com. serie.
+}
 
-//	UART_GSM.println("AT+CMGF=1"); 			//Vamos utilizar los SMS.
-//	delay(100);
-//	UART_GSM.println("AT+CNMI=1,2,0,0,0"); 	//Configurar el SIM800L p/ que muestre msm por com. serie.
- }
 
-
-void Mensajes::mensajeAlerta(Datos &datos){
+void Mensajes::mensajeAlerta(Datos &datos)  {
 
 	this->tipoMensaje = SMS_TIPO_SALTO;
 	this->asuntoMensaje = this->asuntoAlerta(datos);

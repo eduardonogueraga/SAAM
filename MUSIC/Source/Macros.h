@@ -146,7 +146,7 @@ template <typename T> void NVS_SaveData(const char* key, T value);
 template <typename T> T NVS_RestoreData(const char* key);
 
 
-void pantallaDeErrorInicial(String mensaje);
+void pantallaDeError(String mensaje);
 //STRUCTS
 
 struct datos_saltos_t{

@@ -9,24 +9,23 @@
 #ifndef PROYECTO_MENSAJES_H_
 #define PROYECTO_MENSAJES_H_
 
+#define TINY_GSM_MODEM_SIM800
 
 #include "Arduino.h"
 #include "Datos.h"
 #include <HardwareSerial.h>
 #include "EventosJson.h"
-
+#include "Registro.h"
 
 #include "Macros.h"
 #include "Env.h"
 #include "Fecha.h"
 //#include <Adafruit_MCP23X17.h>
-
 #include "RecursosCompartidosRTOS.h"
-extern RecursosCompartidosRTOS rcomp1;
 
+extern RecursosCompartidosRTOS rcomp1;
 extern EventosJson eventosJson;
 //extern Adafruit_MCP23X17 mcp;
-extern HardwareSerial UART_GSM;
 extern byte INTENTOS_REACTIVACION;
 extern byte MODO_DEFAULT;
 extern String nombreZonas[4];
@@ -37,9 +36,12 @@ extern Fecha fecha;
 extern CODIGO_ERROR codigoError;
 extern byte flagPuertaAbierta;
 
+
 class Mensajes {
 
 private:
+
+	HardwareSerial& UART_GSM;
 
 	byte MAX_SALTO [4] = {1,1,2,2};
 	byte cont = 0;
@@ -65,12 +67,9 @@ private:
 	  AVISO_ALARMA_MOVIMIENTO_PORCHE
 	};
 
-
-
-
 public:
-	Mensajes();
-	void inicioGSM(HardwareSerial &UART_GSM);
+	Mensajes(HardwareSerial& serialInstance);
+	void inicioGSM();
 	void enviarSMS();
 	void enviarSMSEmergencia();
 	void mensajeAlerta(Datos &datos);

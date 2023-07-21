@@ -75,6 +75,10 @@ public:
 	void menuInfoBluetoohAviso();
 	void menuCheck();
 	void errorEmergencia();
+	void sysConexionGprs();
+    void sysConexionGprsOk();
+    void sysConexionGprsFail();
+    void sysConexionGSM();
 	String& getErrorTexto();
 };
 

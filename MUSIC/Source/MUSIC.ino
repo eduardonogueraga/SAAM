@@ -40,7 +40,7 @@ void EstadoInicio(){
 void setup()
 {
 	  Serial.begin(115200);
-	  mensaje.inicioGSM(UART_GSM);
+	  mensaje.inicioGSM();
 	  UART_RS.begin(115200, SERIAL_8N1, RS_RX, RS_TX);    //RX TX  (H1 = RX5 TX 18) PUERTO RS
 	  UART_RS.setTimeout(10);
 
@@ -66,7 +66,7 @@ void setup()
 
 	  if(registro.iniciar() == 0){
 		  Serial.println(F("ERROR AL INICIAR SD"));
-		  pantallaDeErrorInicial(F("  SYSTM ERROR!  ERROR INICIAR SD"));
+		  pantallaDeError(F("  SYSTM ERROR!  ERROR INICIAR SD"));
 	  }
 
 
@@ -101,6 +101,8 @@ void setup()
 	    rcomp1.digitalWrite(LED_COCHERA, LOW);
 	    rcomp1.digitalWrite(RS_CTL,LOW);
 
+	    //Activamos el modulo GSM
+	    rcomp1.digitalWrite(GSM_PIN, HIGH);
 
 	    EstadoInicio();
 	    cargarEstadoPrevio();
@@ -114,76 +116,13 @@ void setup()
 	    //Hilo 0
 	    xTaskCreatePinnedToCore(loop2,"loop_2",5000,NULL,1,&tareaLoopDos,0);
 
-
-
 	    // Iniciar el planificador de tareas
 	    //vTaskStartScheduler();
 
-	    // Intenta conectar al servicio de red GSM
-	    Serial.println("Conectando a la red GSM...");
-	    if (!modem.gprsConnect(apn, gsmUser, gsmPass)) {
-	      Serial.println(" Error al conectar a la red GSM.");
-	      while (true);
-	    }
-	    Serial.println(" Conexión a la red GSM establecida.");
 
-	    String json = "{\"sensor\":\"temperatura\",\"valor\":25.5}";
-
-	    Serial.print(F("Performing HTTP GET request... "));
-	    //http.connectionKeepAlive();  // Currently, this is needed for HTTPS
-	     //int err = http.get(resource);
-
-	    //http.sendHeader("Authorization", "Bearer TU_BEARER_TOKEN");
-	     http.sendHeader("Content-Type", "application/json");
-	     http.sendHeader("Content-Length", json.length());
-
-	     int err = http.post(resource, "application/json", json);
-
-	     if (err != 0) {
-	    	 Serial.println(F("failed to connect"));
-	       delay(10000);
-	       return;
-	     }
-
-	     //Gestionar respuesta HTTP
-	     int status = http.responseStatusCode();
-	     Serial.print(F("Response status code: "));
-	     Serial.println(status);
-	     if (!status) {
-	       delay(10000);
-	       return;
-	     }
-
-	     Serial.println(F("Response Headers:"));
-	     while (http.headerAvailable()) {
-	       String headerName  = http.readHeaderName();
-	       String headerValue = http.readHeaderValue();
-	       Serial.println("    " + headerName + " : " + headerValue);
-	     }
-
-	     int length = http.contentLength();
-	     if (length >= 0) {
-	    	 Serial.print(F("Content length is: "));
-	    	 Serial.println(length);
-	     }
-	     if (http.isResponseChunked()) {
-	    	 Serial.println(F("The response is chunked"));
-	     }
-
-	     String body = http.responseBody();
-	     Serial.println(F("Response:"));
-	     Serial.println(body);
-
-	     Serial.print(F("Body length is: "));
-	     Serial.println(body.length());
-
-	     // Shutdown
-	     http.stop();
-	     Serial.println(F("Server disconnected"));
-
-	     modem.gprsDisconnect();
-	     Serial.println(F("GPRS disconnected"));
-
+	    //SIM800L
+	    if(MODO_DEFAULT)
+	    comprobarConexionGSM();
 
 }
 
@@ -392,7 +331,7 @@ void setEstadoGuardia()
 	estadoAlarma = ESTADO_GUARDIA;
 	guardarFlagEE("ESTADO_GUARDIA", 1);
 
-	sleepModeGSM = GSM_OFF;
+	//sleepModeGSM = GSM_OFF;
 	limpiarSensores();
 	lcd_clave_tiempo = millis();
 	lcd_info_tiempo = millis() + TIEMPO_ALERT_LCD;
@@ -417,7 +356,7 @@ void setEstadoGuardiaReactivacion()
 	setMargenTiempo(tiempoBocina, (TIEMPO_BOCINA*0.5), TIEMPO_BOCINA_REACTIVACION_TEST);
 	setMargenTiempo(tiempoMargen,(TIEMPO_ON*0.01));
 	setMargenTiempo(prorrogaGSM, TIEMPO_PRORROGA_GSM, TIEMPO_PRORROGA_GSM_TEST);
-	sleepModeGSM = GSM_TEMPORAL;
+	//sleepModeGSM = GSM_TEMPORAL;
 
 
 	//Desabilitar puerta tras la reactivacion
@@ -484,7 +423,7 @@ void setEstadoReposo()
 	limpiarSensores();
 	pararBocina();
 	tiempoSensible = millis();
-	sleepModeGSM = GSM_OFF;
+	//sleepModeGSM = GSM_OFF;
 	estadoLlamada = TLF_1;
 	desactivaciones ++;
 	guardarFlagEE("ESTADO_GUARDIA", 0);
