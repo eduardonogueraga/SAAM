@@ -119,8 +119,8 @@ void EventosJson::guardarEvento(char eventName[],char reg[]) {
  StaticJsonDocument<MAX_SIZE_JSON> EventosJson::crearNuevoModeloJson(){
 
 	 JSON_DOC["version"] = "VE21R0";
-	 JSON_DOC["retry"] = String(leerFlagEEInt("JSON_RETRY"));
-	 JSON_DOC["id"] = String(leerFlagEEInt("JSON_SEQ"));
+	 JSON_DOC["retry"] = "0";	//String(leerFlagEEInt("JSON_RETRY"));
+	 JSON_DOC["id"] = "0";		//String(leerFlagEEInt("JSON_SEQ"));
 	 JSON_DOC["date"] = fecha.imprimeFechaJSON();
 
 	 JSON_DOC.createNestedArray("System");
@@ -321,8 +321,8 @@ byte EventosJson::cargarJsonNVS(StaticJsonDocument<MAX_SIZE_JSON>& jsonDoc) {
 
 void EventosJson::actualizarCabecera(){
 
-	JSON_DOC["retry"] = String(leerFlagEEInt("JSON_RETRY"));
-	JSON_DOC["id"] = String(leerFlagEEInt("JSON_SEQ"));
+	JSON_DOC["retry"] =  "0"; 					//String(leerFlagEEInt("JSON_RETRY"));
+	JSON_DOC["id"] = "0";		//String(leerFlagEEInt("JSON_SEQ"));
 	JSON_DOC["date"] = fecha.imprimeFechaJSON();
 
 	//Recuperamos los datos del sistema
@@ -348,28 +348,104 @@ void EventosJson::actualizarCabecera(){
 
 }
 
+String EventosJson::asignarIdPaquete(){
+
+	int ultimoIdInstalado = leerFlagEEInt("PACKAGE_ID");
+	ultimoIdInstalado++;
+	guardarFlagEE("PACKAGE_ID", ultimoIdInstalado);
+
+	return String(ultimoIdInstalado);
+}
+
 void EventosJson::enviarInformeSaas(){
 
 	Serial.println(F("Enviando informe a SAAS"));
 	String modelo;
+	RespuestaHttp respuesta;
 
 	//Comprobar si existen paquetes exportados
-	while(true){
+	if(!configSystem.MODULO_SD || SD_STATUS == 0){
+		Serial.println(F("Comprobamos si existen modelos pendientes"));
 
-		modelo = registro.extraerPrimerElemento();
+		Estado estadoActual = OBTENER_PRIMERA_DEL_FICHERO;
 
-		if(modelo.isEmpty() || modelo.c_str() == nullptr){
-			Serial.println(F("No hay paquetes pendientes"));
-			break;
-		}
+		while(true){
+			switch (estadoActual) {
+			case OBTENER_PRIMERA_DEL_FICHERO:
 
-		Serial.println(modelo);
-		//Enviar
+				modelo = registro.extraerPrimerElemento();
 
+				if(modelo.isEmpty() || modelo.c_str() == nullptr){
+					Serial.println(F("No hay paquetes pendientes"));
+					break;
+				}
+
+				Serial.println(modelo);
+
+				//Deserializar y actualizar id
+
+				estadoActual = ENVIAR_POR_POST;
+				break;
+
+			case ENVIAR_POR_POST:
+
+				respuesta = postPaqueteSaas(&modelo);
+				switch (respuesta.codigo) {
+				case 200:
+					estadoActual = PROCESAR_RESPUESTA_OK;
+					break;
+
+				case 401:
+					estadoActual = ACTUALIZAR_TOKEN;
+					break;
+
+				case 500:
+					estadoActual = PROCESAR_RESPUESTA_ERROR;
+					break;
+
+				default:
+					estadoActual = ABORTAR_ENVIO;
+					break;
+				}
+				break;
+
+				case PROCESAR_RESPUESTA_OK:
+					//Incrementamos el id del paquete?
+					estadoActual = OBTENER_PRIMERA_DEL_FICHERO;
+					break;
+
+				case ACTUALIZAR_TOKEN:
+
+					if (generarTokenSaas() == 200) {
+						estadoActual = ENVIAR_POR_POST;
+					} else {
+						estadoActual = ABORTAR_ENVIO;
+					}
+					break;
+
+				case PROCESAR_RESPUESTA_ERROR:
+					if (respuesta.respuesta == "ID_YA_INSTALADO") {
+						//Si el error es por el id volvemos a consultarlo
+						getIdPaqueteSaas();
+						estadoActual = ENVIAR_POR_POST;
+					} else {
+						estadoActual = ABORTAR_ENVIO;
+					}
+					break;
+
+				case ABORTAR_ENVIO:
+					Serial.println("Abortando el envío...");
+					//Guardamos el modelo tratado nuevamente en fichero
+					return;
+			}
+
+		} //FIN WHILE
 	}
+
 
 	//Se envia el modelo actual
 	actualizarCabecera();
+		JSON_DOC["id"] = asignarIdPaquete();
 	serializeJson(JSON_DOC, SALIDA_JSON);
 	Serial.println(SALIDA_JSON);
 	SALIDA_JSON.clear();

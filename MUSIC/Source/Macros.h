@@ -141,10 +141,13 @@ void guardarFlagEE(const char* key, int value);
 void guardarFlagEE(const char* key, uint8_t value);
 uint8_t leerFlagEE(const char* key);
 int leerFlagEEInt(const char* key);
+const char* leerCadenaEE(const char* key);
+void guardarCadenaEE(const char* key, String* value);
 
 template <typename T> void NVS_SaveData(const char* key, T value);
 template <typename T> T NVS_RestoreData(const char* key);
 
+String fixedLengthString(String& original, size_t fixedLength);
 
 void pantallaDeError(String mensaje);
 //STRUCTS
@@ -169,6 +172,12 @@ struct configuracion_sistema_t {
 };
 
  typedef struct configuracion_sistema_t ConfigSystem;
+
+ typedef struct  {
+     int codigo = 0;
+     String respuesta = "";
+ } RespuestaHttp;
+
 
 //ENUM Y TYPEDEFS
 enum aliasConfigSistema{MD_SENS, MDL_SD, MDL_RTC};
@@ -289,6 +298,7 @@ typedef enum  {
 	P_ESTADO_ONLINE = 0,
 	P_ESTADO_OFFLINE = 1,
 }	SAAS_PARAMETROS_SALTO;
+
 
 //MENU
 

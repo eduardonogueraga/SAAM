@@ -12,7 +12,7 @@
 #define mosi 15
 #define ss 13
 
-File root; // @suppress("Type cannot be resolved")
+File root;  // @suppress("Abstract class cannot be instantiated")
 SPIClass SDSPI(HSPI);
 
 Registro::Registro() {
@@ -90,6 +90,35 @@ void Registro::registrarLogSistema(char descripcion[190]){
 	     root.print(fecha.imprimeFecha());
 	     root.print("\n");
 	     root.close();
+
+}
+
+void Registro::registrarLogHttpRequest(String* respuestaHttp){
+	if(!configSystem.MODULO_SD || SD_STATUS == 0)
+		return;
+
+	//Nos movemos al diretorio de logs
+	root = SD.open(directories[DIR_HTTP_LOG]);
+	if (!root) {
+		Serial.println("No se pudo abrir la carpeta http logs");
+		return;
+	}
+
+ //Definimos el nombre del nuevo fichero http request
+	snprintf(nombreFicheroHttpLog, sizeof(nombreFicheroHttpLog), "%s_%08d_%s%s", "httpLog", leerFlagEEInt("PACKAGE_ID"), fecha.imprimeFechaFichero(),".txt");
+	snprintf(rutaAbosuluta, sizeof(rutaAbosuluta), "%s/%s", directories[DIR_HTTP_LOG], nombreFicheroHttpLog);
+
+	root = SD.open(rutaAbosuluta, FILE_APPEND);
+	if (!root) {
+		Serial.println("Fallo al abrir el fichero de http logs");
+		return;
+	}
+	root.print("Respuesta del servidor SAAS");
+	root.print("\t");
+	root.print(fecha.imprimeFecha());
+	root.print("\n");
+	root.print(*respuestaHttp);
+	root.close();
 
 }
 

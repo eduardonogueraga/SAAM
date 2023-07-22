@@ -37,11 +37,13 @@ private:
 	char rutaAbosulutaTemporal[60];
 	char nombreFicheroLog[40];
 	char nombreFicheroJsonRequest[25] = "TEMP_JSON_RESQUEST.txt";
+	char nombreFicheroHttpLog[40];
 	RegistroDirectorios registroDirectorios;
 public:
 	Registro();
 	byte iniciar();
 	void registrarLogSistema(char descripcion[190]);
+	void registrarLogHttpRequest(String* respuestaHttp);
 	void mostrarRegistro(RegistroDirectorios dir = DIR_LOGS);
 	void listarRegistros(RegistroDirectorios dir = DIR_LOGS);
 	void borrarRegistros(RegistroDirectorios dir = DIR_LOGS);

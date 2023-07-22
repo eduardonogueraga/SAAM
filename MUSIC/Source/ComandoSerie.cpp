@@ -203,6 +203,45 @@ void ComandoSerie::comprobarComando() {
 		eventosJson.enviarInformeSaas();
 	}
 
+	if(compararCadena(data, "http")){
+			nombreComando(data);
+			//testHttpRequest();
+			getIdPaqueteSaas();
+		}
+
+	if (compararCadena(data, "ls http")){
+		nombreComando(data);
+		registro.listarRegistros(DIR_HTTP_LOG);
+	}
+
+	if (compararCadena(data, "cat http")){
+		nombreComando(data);
+		registro.mostrarRegistro(DIR_HTTP_LOG);
+	}
+
+	if (compararCadena(data, "purge http")){
+		nombreComando(data);
+		registro.borrarRegistros(DIR_HTTP_LOG);
+	}
+
+	if (compararCadena(data, "make http")){
+			nombreComando(data);
+
+
+			String httpResponse = "HTTP/1.1 200 OK\r\n"
+			                          "Content-Type: application/json\r\n"
+			                          "\r\n"
+			                          "{\r\n"
+			                          "    \"id\": 123,\r\n"
+			                          "    \"nombre\": \"Juan Pérez\",\r\n"
+			                          "    \"correo\": \"juan@example.com\",\r\n"
+			                          "    \"edad\": 30\r\n"
+			                          "}\r\n";
+
+			registro.registrarLogHttpRequest(&httpResponse);
+		}
+
+
 	if (compararCadena(data, "rs -t")){
 		nombreComando(data);
 		linea.testUart();
@@ -256,11 +295,6 @@ void ComandoSerie::comprobarComando() {
 		UART_GSM.println("AT+CFUN=1,1");
 	}
 
-
-	if(compararCadena(data, "http")){
-		nombreComando(data);
-		testHttpRequest();
-	}
 
 	if(compararCadena(data, "power")){
 		nombreComando(data);

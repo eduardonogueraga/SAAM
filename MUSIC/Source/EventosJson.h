@@ -13,6 +13,7 @@
 #include <ArduinoJson.h>
 #include <Preferences.h>
 #include "Fecha.h"
+#include "Macros.h"
 
 
 
@@ -27,13 +28,29 @@ extern EstadosAlarma estadoAlarma;
 
 extern ConfigSystem configSystem;
 
+extern RespuestaHttp postPaqueteSaas(String* modeloJson);
+extern int getIdPaqueteSaas();
+extern int generarTokenSaas();
+
 class EventosJson {
 private:
 	StaticJsonDocument<MAX_SIZE_JSON> JSON_DOC;
 	String SALIDA_JSON;
 
+	// Enumeración para los diferentes estados de la máquina de estados
+	enum Estado {
+	    OBTENER_PRIMERA_DEL_FICHERO,
+	    ENVIAR_POR_POST,
+	    PROCESAR_RESPUESTA_OK,
+	    PROCESAR_RESPUESTA_ERROR,
+	    ACTUALIZAR_TOKEN,
+	    ABORTAR_ENVIO
+	};
+
+
 	void guardarJsonNVS(StaticJsonDocument<MAX_SIZE_JSON>& jsonDoc);
 	byte cargarJsonNVS(StaticJsonDocument<MAX_SIZE_JSON>& jsonDoc);
+	String asignarIdPaquete();
 public:
 	EventosJson();
 	void iniciarModeloJSON();
@@ -57,7 +74,7 @@ public:
 
 	void enviarInformeSaas();
 
-	String* getSalidaJsonPointer() {
+	String* getSalidaJsonPointer() { //@TEST ONLY
 
 		SALIDA_JSON.clear();
 		serializeJsonPretty(JSON_DOC, SALIDA_JSON);

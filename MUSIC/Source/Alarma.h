@@ -65,9 +65,9 @@ HardwareSerial UART_RS(2);
 
 // Crea un objeto TinyGsm para comunicarse con el módulo SIM800L
 TinyGsm modem(UART_GSM);
-TinyGsmClient client(modem);
+TinyGsmClient client(modem); // @suppress("Abstract class cannot be instantiated")
 //TinyGsmClientSecure client(modem);
-HttpClient http(client, serverUrl, portHttp);
+HttpClient http(client, serverUrl, portHttp); // @suppress("Abstract class cannot be instantiated")
 
 
 //MUX
@@ -91,6 +91,7 @@ SLEEPMODE_GSM sleepModeGSM;
 LLAMADAS_GSM estadoLlamada;
 CODIGO_ERROR codigoError;
 SAAS_LITERAL_LOGS saaLiteralLogs;
+
 
 //CLASES
 Autenticacion auth;
@@ -744,7 +745,7 @@ static byte tiempoFracccion;
 		int csq = modem.getSignalQuality();
 		Serial.println("Signal quality: " + String(csq));
 
-		pantallaDeError(String(operatorName)+"Calidad red:"+(csq));
+		pantallaDeError(fixedLengthString(operatorName, 16)+"Calidad red:"+(csq));
 
 	}
 
@@ -769,77 +770,239 @@ static byte tiempoFracccion;
 		Serial.println(F("GPRS disconnected"));
 	}
 
-	void testHttpRequest(){
+	int testHttpRequest(){
+
+		int codigoRespuesta = 0;
+
 		if(establecerConexionGPRS()){
-			String json = "{\"sensor\":\"temperatura\",\"valor\":25.5}";
 
+			int estadoHttp = 0;
+			String respuestaHttp;
+
+			 String json = "{\"sensor\":\"temperatura\",\"valor\":25.5}";
 			 String* punteroSalidaJson = eventosJson.getSalidaJsonPointer();
-
+			 const char* bearerToken = "4|EX8MOXKfQwRXSAZtWhTV8Tv7QaqQ51oUc3SPTt2z";
 
 			 // Agrega la cabecera de autorización "Authorization" al objeto HttpClient
-			const char* bearerToken = "4|EX8MOXKfQwRXSAZtWhTV8Tv7QaqQ51oUc3SPTt2z";
 
 			Serial.print(F("Performing HTTP request... "));
+
+			//Formular peticion HTTP
 
 			//http.connectionKeepAlive();  // Currently, this is needed for HTTPS
 			http.beginRequest();
 
-				//int err = http.get(resource);
-				int err = http.post(resource, "application/json", *punteroSalidaJson);
+			//estadoHttp = http.get(resource);
+				estadoHttp= http.post(resource, "application/json", json);
 
-				http.sendHeader("Authorization", String("Bearer ") + bearerToken);
-				http.sendHeader("Content-Type", "application/json");
-				http.sendHeader("Content-Length", json.length());
+				//http.sendHeader("Authorization", String("Bearer ") + leerCadenaEE("SAAS_TOKEN"));
+				//http.sendHeader("Content-Type", "application/json");
+				//http.sendHeader("Content-Length", json.length());
 			http.endRequest();
 
+			//Gestionar respuesta HTTP
+			 codigoRespuesta = http.responseStatusCode();
+			Serial.print(F("Response status code: "));
+			Serial.println(codigoRespuesta);
 
-			if (err != 0) {
+
+			if (estadoHttp != 0 || codigoRespuesta <= 0) {
 				Serial.println(F("failed to connect"));
 				pantallaDeError(F("  SYSTM ERROR!  PETICION HTTP KO"));
-				cerrarConexionGPRS();
-				return;
+				respuestaHttp += "Fallo en la peticion HTTP error API: "
+						+ String(estadoHttp)
+						+ " error HTTP:"
+						+ String(codigoRespuesta) +"\n";
+			}else {
+				respuestaHttp += "Codigo respuesta servidor: " + String(codigoRespuesta) + "\n";
+
+				byte linesCount = 0;
+				Serial.println(F("Response Headers:"));
+				while (http.headerAvailable() && linesCount < 15) {
+					String headerName  = http.readHeaderName();
+					String headerValue = http.readHeaderValue();
+					Serial.println("    " + headerName + " : " + headerValue);
+					respuestaHttp += "    " + headerName + " : " + headerValue + "\n";
+
+				}
+
+				int length = http.contentLength();
+
+				if (length >= 0) {
+					Serial.print(F("Content length is: "));
+					Serial.println(length);
+					respuestaHttp += "Content length :"+ (String)length + "\n";
+				}
+
+				if (http.isResponseChunked()) {
+					Serial.println(F("The response is chunked"));
+					respuestaHttp += "The response is chunked\n";
+				}
+
+				String body = http.responseBody();
+				Serial.println(F("Response:"));
+				Serial.println(body);
+				respuestaHttp += body + "\r\n";
+
+				Serial.print(F("Body length is: "));
+				Serial.println(body.length());
+				respuestaHttp += "Body length is: " + String(body.length()) + "\n";
+
+				http.stop(); // Shutdown
+				Serial.println(F("Server disconnected"));
 			}
 
-			//Gestionar respuesta HTTP
-			int status = http.responseStatusCode();
-			Serial.print(F("Response status code: "));
-			Serial.println(status);
-			if (!status) { //Gestionar el codigo devuelto
-				cerrarConexionGPRS();
-				return;
-			}
-
-			byte linesCount = 0;
-			Serial.println(F("Response Headers:"));
-			while (http.headerAvailable() && linesCount < 15) {
-				String headerName  = http.readHeaderName();
-				String headerValue = http.readHeaderValue();
-				Serial.println("    " + headerName + " : " + headerValue);
-			}
-
-			int length = http.contentLength();
-			if (length >= 0) {
-				Serial.print(F("Content length is: "));
-				Serial.println(length);
-			}
-			if (http.isResponseChunked()) {
-				Serial.println(F("The response is chunked"));
-			}
-
-			String body = http.responseBody();
-			Serial.println(F("Response:"));
-			Serial.println(body);
-
-			Serial.print(F("Body length is: "));
-			Serial.println(body.length());
-
-			// Shutdown
-			http.stop();
-			Serial.println(F("Server disconnected"));
-
+			registro.registrarLogHttpRequest(&respuestaHttp);
 			cerrarConexionGPRS();
 		}
 
+		return codigoRespuesta;
+	}
+
+
+	RespuestaHttp realizarPeticionHttp(const char* metodo, const char* resource, byte auth = 1, const char* jsonData = nullptr){
+
+		RespuestaHttp respuesta;
+
+		if(establecerConexionGPRS()){
+			int estadoHttp = 0;
+			String respuestaHttp;
+
+			//Formular peticion HTTP
+			//http.connectionKeepAlive();  // Currently, this is needed for HTTPS
+			http.beginRequest();
+
+			if (strcmp(metodo, "GET") == 0) {
+				estadoHttp = http.get(resource);
+			} else if (strcmp(metodo, "POST") == 0) {
+				if (jsonData) {
+					estadoHttp= http.post(resource, "application/json", jsonData);
+					http.sendHeader("Content-Type", "application/json");
+					http.sendHeader("Content-Length", strlen(jsonData));
+				} else {
+					estadoHttp = http.post(resource);
+				}
+			}
+			if(auth){
+				http.sendHeader("Authorization", String("Bearer ") + leerCadenaEE("SAAS_TOKEN"));
+			}
+
+			http.endRequest();
+
+			//Gestionar respuesta HTTP
+			respuesta.codigo = http.responseStatusCode();
+			Serial.print(F("Response status code: "));
+			Serial.println(respuesta.codigo);
+
+			if (estadoHttp != 0 || respuesta.codigo <= 0) {
+				Serial.println(F("failed to connect"));
+				pantallaDeError(F("  SYSTM ERROR!  PETICION HTTP KO"));
+				respuestaHttp += "Fallo en la peticion HTTP error API: "
+						+ String(estadoHttp)
+						+ " error HTTP:"
+						+ String(respuesta.codigo) +"\n";
+			}else {
+				respuestaHttp += "Codigo respuesta servidor: " + String(respuesta.codigo) + "\n";
+
+				byte linesCount = 0;
+				Serial.println(F("Response Headers:"));
+				while (http.headerAvailable() && linesCount < 15) {
+					String headerName  = http.readHeaderName();
+					String headerValue = http.readHeaderValue();
+					Serial.println("    " + headerName + " : " + headerValue);
+					respuestaHttp += "    " + headerName + " : " + headerValue + "\n";
+
+				}
+
+				int length = http.contentLength();
+
+				if (length >= 0) {
+					Serial.print(F("Content length is: "));
+					Serial.println(length);
+					respuestaHttp += "Content length :"+ (String)length + "\n";
+				}
+
+				if (http.isResponseChunked()) {
+					Serial.println(F("The response is chunked"));
+					respuestaHttp += "The response is chunked\n";
+				}
+
+				String body = http.responseBody();
+				Serial.println(F("Response:"));
+				respuesta.respuesta = body;
+
+				Serial.println(body);
+
+
+				Serial.print(F("Body length is: "));
+				Serial.println(body.length());
+				respuestaHttp += "Body length is: " + String(body.length()) + "\n";
+
+				http.stop(); // Shutdown
+				Serial.println(F("Server disconnected"));
+			}
+
+			registro.registrarLogHttpRequest(&respuestaHttp);
+			cerrarConexionGPRS();
+		}
+		return respuesta;
+	}
+
+
+	int getIdPaqueteSaas(){
+		RespuestaHttp respuesta;
+	    respuesta = realizarPeticionHttp("GET", getUltimoPaquete, 0);
+
+	    Serial.println(respuesta.codigo);
+	    Serial.println(respuesta.respuesta);
+
+	    if(respuesta.codigo == 200){
+	    	int id = respuesta.respuesta.toInt();
+	    	guardarFlagEE("PACKAGE_ID", id);
+	    }
+
+	    return respuesta.codigo;
+	}
+
+	int generarTokenSaas(){
+		RespuestaHttp respuesta;
+		respuesta = realizarPeticionHttp("POST", postTokenSanctum, 0);
+
+		Serial.println(respuesta.codigo);
+		Serial.println(respuesta.respuesta);
+
+		if(respuesta.codigo == 200){
+			guardarCadenaEE("SAAS_TOKEN", &respuesta.respuesta);
+		}
+
+		return respuesta.codigo;
+	}
+
+
+
+	RespuestaHttp postPaqueteSaas(String* modeloJson){
+		RespuestaHttp respuesta;
+
+		const char* jsonData = modeloJson->c_str();
+		respuesta = realizarPeticionHttp("POST", postEventosJson, 0, jsonData);
+
+		Serial.println(respuesta.codigo);
+		Serial.println(respuesta.respuesta);
+
+		return respuesta;
+	}
+
+	String fixedLengthString(String& original, size_t fixedLength) {
+		if (original.length() < fixedLength) {
+			byte espacios = fixedLength - original.length();
+			for (int i = 0;   i < espacios; ++  i) {
+				original += " ";
+			}
+			return original;
+		}
+		else {
+			return original.substring(0, fixedLength);
+		}
 	}
 
 
@@ -883,6 +1046,28 @@ static byte tiempoFracccion;
 
 			if(previo != value || value == NULL){
 				NVSMemory.putInt(key, value);
+			}
+
+			NVSMemory.end();
+		}
+
+
+	const char* leerCadenaEE(const char* key) {
+		NVSMemory.begin("SAA_DATA", false);
+		String value = NVSMemory.getString(key);
+		NVSMemory.end();
+
+		return value.c_str();
+	}
+
+
+	void guardarCadenaEE(const char* key, String* value) {
+
+			NVSMemory.begin("SAA_DATA", false);
+			String previo = NVSMemory.getString(key);
+
+			if(previo.isEmpty() || previo != *value){
+				NVSMemory.putString(key, *value);
 			}
 
 			NVSMemory.end();

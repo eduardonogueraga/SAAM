@@ -24,9 +24,14 @@ void EstadoInicio(){
 	guardarFlagEE("LOG_SEQ", (leerFlagEEInt("LOG_SEQ")+1));
 
 
+	//String tokenSaas = "4|EX8MOXKfQwRXSAZtWhTV8Tv7QaqQ51oUc3SPTt2z";
+	//guardarCadenaEE("SAAS_TOKEN", &tokenSaas);
+
+	Serial.println(leerCadenaEE("SAAS_TOKEN"));
+
 	//Actualizamos los intentos
 	//guardarFlagEE("JSON_RETRY", 0);
-	//guardarFlagEE("JSON_SEQ", 1);
+	//guardarFlagEE("PACKAGE_ID", 1);
 
 	//if(!MODO_DEFAULT)
 	//printSystemInfo();
