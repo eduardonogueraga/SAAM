@@ -108,19 +108,15 @@ void EventosJson::guardarEvento(char eventName[],char reg[]) {
 
  void EventosJson::componerJSON(){
 	 Serial.println("Componiendo Modelo");
-
-	 //Actualizar el ID
-	 guardarFlagEE("JSON_SEQ", (leerFlagEEInt("JSON_SEQ")+1));
 	 crearNuevoModeloJson();
-
 	 guardarJsonNVS(JSON_DOC);
  }
 
  StaticJsonDocument<MAX_SIZE_JSON> EventosJson::crearNuevoModeloJson(){
 
 	 JSON_DOC["version"] = "VE21R0";
-	 JSON_DOC["retry"] = "0";	//String(leerFlagEEInt("JSON_RETRY"));
-	 JSON_DOC["id"] = "0";		//String(leerFlagEEInt("JSON_SEQ"));
+	 JSON_DOC["retry"] = "0";
+	 JSON_DOC["id"] = "0";
 	 JSON_DOC["date"] = fecha.imprimeFechaJSON();
 
 	 JSON_DOC.createNestedArray("System");
@@ -258,7 +254,14 @@ void EventosJson::exportarFichero(){
 	actualizarCabecera();
 	//Añadir ID a cadena para tratar
 	if(!registro.exportarEventosJson(&JSON_DOC)){
+		Serial.println(F("Si acceso a SD el modelo se purga"));
+		/*
 		//TODO Si no se puede guardar se envia directamente
+		serializeJson(JSON_DOC, SALIDA_JSON);
+		Serial.println(SALIDA_JSON);
+		gestionarEnvioPaquete(&SALIDA_JSON);
+		SALIDA_JSON.clear();
+		*/
 	}
 
 	//Vaciar memoria JSON
@@ -321,8 +324,8 @@ byte EventosJson::cargarJsonNVS(StaticJsonDocument<MAX_SIZE_JSON>& jsonDoc) {
 
 void EventosJson::actualizarCabecera(){
 
-	JSON_DOC["retry"] =  "0"; 					//String(leerFlagEEInt("JSON_RETRY"));
-	JSON_DOC["id"] = "0";		//String(leerFlagEEInt("JSON_SEQ"));
+	JSON_DOC["retry"] =  "0";
+	JSON_DOC["id"]  = asignarIdPaquete();
 	JSON_DOC["date"] = fecha.imprimeFechaJSON();
 
 	//Recuperamos los datos del sistema
@@ -357,103 +360,160 @@ String EventosJson::asignarIdPaquete(){
 	return String(ultimoIdInstalado);
 }
 
-void EventosJson::enviarInformeSaas(){
+SAAS_GESTION_ENVIO_R EventosJson::gestionarEnvioPaquete(String* modeloJson){
 
-	Serial.println(F("Enviando informe a SAAS"));
-	String modelo;
+	SAAS_GESTION_ENVIO_R resultado = ERROR_ENVIO;
+	byte flagSalida = 0;
+	byte reintentosPost = 0;
+
+	String modelo = *modeloJson;
 	RespuestaHttp respuesta;
 
-	//Comprobar si existen paquetes exportados
-	if(!configSystem.MODULO_SD || SD_STATUS == 0){
-		Serial.println(F("Comprobamos si existen modelos pendientes"));
+	gestionPaquete = ENVIAR_POR_POST;
 
-		Estado estadoActual = OBTENER_PRIMERA_DEL_FICHERO;
+	while(flagSalida == 0){
+		switch (gestionPaquete) {
+		case ENVIAR_POR_POST:
 
-		while(true){
-			switch (estadoActual) {
-			case OBTENER_PRIMERA_DEL_FICHERO:
-
-				modelo = registro.extraerPrimerElemento();
-
-				if(modelo.isEmpty() || modelo.c_str() == nullptr){
-					Serial.println(F("No hay paquetes pendientes"));
-					break;
-				}
-
-				Serial.println(modelo);
-
-				//Deserializar y actualizar id
-
-				estadoActual = ENVIAR_POR_POST;
+			respuesta = postPaqueteSaas(&modelo);
+			switch (respuesta.codigo) {
+			case 200:
+				//Salir del bucle si todo ok
+				Serial.println(F("200 Paquete enviado OK"));
+				resultado = ENVIO_OK;
+				flagSalida++;
 				break;
-
-			case ENVIAR_POR_POST:
-
-				respuesta = postPaqueteSaas(&modelo);
-				switch (respuesta.codigo) {
-				case 200:
-					estadoActual = PROCESAR_RESPUESTA_OK;
-					break;
-
-				case 401:
-					estadoActual = ACTUALIZAR_TOKEN;
-					break;
-
-				case 500:
-					estadoActual = PROCESAR_RESPUESTA_ERROR;
-					break;
-
-				default:
-					estadoActual = ABORTAR_ENVIO;
-					break;
-				}
+			case 400:
+				Serial.println(F("Error 400"));
+				gestionPaquete = PROCESAR_RESPUESTA_ERROR;
 				break;
-
-				case PROCESAR_RESPUESTA_OK:
-					//Incrementamos el id del paquete?
-					estadoActual = OBTENER_PRIMERA_DEL_FICHERO;
-					break;
-
-				case ACTUALIZAR_TOKEN:
-
-					if (generarTokenSaas() == 200) {
-						estadoActual = ENVIAR_POR_POST;
-					} else {
-						estadoActual = ABORTAR_ENVIO;
-					}
-					break;
-
-				case PROCESAR_RESPUESTA_ERROR:
-					if (respuesta.respuesta == "ID_YA_INSTALADO") {
-						//Si el error es por el id volvemos a consultarlo
-						getIdPaqueteSaas();
-						estadoActual = ENVIAR_POR_POST;
-					} else {
-						estadoActual = ABORTAR_ENVIO;
-					}
-					break;
-
-				case ABORTAR_ENVIO:
-					Serial.println("Abortando el envío...");
-					//Guardamos el modelo tratado nuevamente en fichero
-					return;
+			case 401:
+				Serial.println(F("Error 401"));
+				gestionPaquete = ACTUALIZAR_TOKEN;
+				break;
+			default:
+				Serial.println(F("Err 500 aborto"));
+				gestionPaquete = ABORTAR_ENVIO;
+				break;
 			}
+			break;
 
-		} //FIN WHILE
+			case PROCESAR_RESPUESTA_ERROR:
+				if (respuesta.respuesta.equals("Id de paquete duplicado")) {
+					//Si el error es por el id volvemos a consultarlo
+					if (getIdPaqueteSaas() != 200) {
+						gestionPaquete = ABORTAR_ENVIO;
+						break;
+					}
+					resultado = ERROR_ID;
+					flagSalida++;
+					break;
+
+				} else {
+					gestionPaquete = ABORTAR_ENVIO;
+				}
+
+				break;
+
+			case ACTUALIZAR_TOKEN:
+
+				if (generarTokenSaas() == 200) {
+					reintentosPost++;
+					if(reintentosPost > 1){
+						gestionPaquete = ABORTAR_ENVIO;
+						break;
+					}
+					Serial.println(F("Token generado ok"));
+
+					gestionPaquete = ENVIAR_POR_POST;
+				} else {
+					gestionPaquete = ABORTAR_ENVIO;
+				}
+
+				break;
+
+			case ABORTAR_ENVIO:
+				Serial.println("Abortando el envio...");
+				//Salir
+				flagSalida++;
+				break;
+		}
+
 	}
 
+	return resultado;
+}
 
-	//Se envia el modelo actual
+byte EventosJson::enviarInformeSaas(){
+
+	Serial.println(F("Enviando informe a SAAS"));
+	SAAS_GESTION_ENVIO_R resultado;
+
+
+	//Comprobar si existen paquetes exportados
+	if(configSystem.MODULO_SD || SD_STATUS == 1){
+
+		//Se procesa el modelo almacenado
+		Serial.println(F("Comprobamos si existen modelos pendientes"));
+		String modelo;
+		//Comprobar si existen paquetes exportados
+		while(true){
+			modelo = registro.leerPrimerElemento();
+
+			if(modelo.isEmpty() || modelo.c_str() == nullptr){
+				Serial.println(F("No quedan paquetes pendientes"));
+				break;
+			}
+
+			Serial.println(F("Procesando modelo pendiente"));
+			Serial.println(modelo);
+
+			resultado = gestionarEnvioPaquete(&modelo);
+
+			if(resultado == ENVIO_OK){
+				Serial.println(F("Modelo sd enviado"));
+				registro.extraerPrimerElemento(); //Saco el registro
+			}else if(resultado == ERROR_ID){
+				registro.actualizarUltimoElemento("id", asignarIdPaquete().toInt());
+			}
+			else {
+				//Error abortar informe
+				registro.actualizarUltimoElemento("retry");
+				return 0;
+			}
+
+		}
+	}
+
+	//Se procesa el modelo en memoria
+	Serial.println(F("Procesando modelo en memoria"));
+
 	actualizarCabecera();
-		JSON_DOC["id"] = asignarIdPaquete();
 	serializeJson(JSON_DOC, SALIDA_JSON);
+	Serial.print("MODELO ACTUAL -> ");
 	Serial.println(SALIDA_JSON);
-	SALIDA_JSON.clear();
-	//Enviar
 
+
+	resultado = gestionarEnvioPaquete(&SALIDA_JSON);
+
+	if(resultado == ERROR_ID){
+		JSON_DOC["id"]  = asignarIdPaquete(); //Asigno el nuevo id
+		JSON_DOC["retry"] =  "1";
+		registro.exportarEventosJson(&JSON_DOC);
+	}
+	else if(resultado == ERROR_ENVIO) {
+		//Error el modelo actual a fallado por lo que es enviado a fichero para su posterior reenvio
+		JSON_DOC["retry"] =  "1";
+		registro.exportarEventosJson(&JSON_DOC);
+		return 0;
+	}
+
+	SALIDA_JSON.clear();
 	//Vaciar memoria JSON
 	purgarModeloJSON();
 	//Preparamos el nuevo modelo vacio
 	componerJSON();
+
+	return 1;
 
 }

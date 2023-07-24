@@ -142,6 +142,14 @@ void ComandoSerie::comprobarComando() {
 		Serial.println(registro.extraerPrimerElemento());
 	}
 
+	if (compararCadena(data, "json -hl")){
+		nombreComando(data);
+
+		Serial.println(registro.leerPrimerElemento());
+	}
+
+
+
 	if (compararCadena(data, "clear json")){
 		nombreComando(data);
 		registro.borrarRegistros(DIR_JSON_REQUEST);
@@ -203,6 +211,14 @@ void ComandoSerie::comprobarComando() {
 		eventosJson.enviarInformeSaas();
 	}
 
+	if (compararCadena(data, "json -ch")){
+		nombreComando(data);
+
+		registro.actualizarUltimoElemento("retry");
+		registro.actualizarUltimoElemento("id", 455);
+	}
+
+
 	if(compararCadena(data, "http")){
 			nombreComando(data);
 			//testHttpRequest();
@@ -241,6 +257,11 @@ void ComandoSerie::comprobarComando() {
 			registro.registrarLogHttpRequest(&httpResponse);
 		}
 
+
+	if (compararCadena(data, "saas")){
+		nombreComando(data);
+		eventosJson.enviarInformeSaas();
+	}
 
 	if (compararCadena(data, "rs -t")){
 		nombreComando(data);

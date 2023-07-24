@@ -39,6 +39,8 @@ private:
 	char nombreFicheroJsonRequest[25] = "TEMP_JSON_RESQUEST.txt";
 	char nombreFicheroHttpLog[40];
 	RegistroDirectorios registroDirectorios;
+	String modificarCampo(String cadena, const String& nombre_campo, const String& nuevo_valor);
+	String obtenerValorCampo(const String& cadena, const String& nombre_campo);
 public:
 	Registro();
 	byte iniciar();
@@ -49,6 +51,8 @@ public:
 	void borrarRegistros(RegistroDirectorios dir = DIR_LOGS);
 	byte exportarEventosJson(StaticJsonDocument<MAX_SIZE_JSON>* json);
 	String extraerPrimerElemento(RegistroDirectorios dir = DIR_JSON_REQUEST);
+	String leerPrimerElemento(RegistroDirectorios dir = DIR_JSON_REQUEST);
+	void actualizarUltimoElemento(const char* campoJson,int nuevoValor= -1, RegistroDirectorios dir = DIR_JSON_REQUEST);
 };
 
 #endif /* SOURCE_REGISTRO_H_ */

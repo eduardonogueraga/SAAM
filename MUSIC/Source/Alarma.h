@@ -929,10 +929,19 @@ static byte tiempoFracccion;
 
 				String body = http.responseBody();
 				Serial.println(F("Response:"));
-				respuesta.respuesta = body;
-
 				Serial.println(body);
 
+
+				DynamicJsonDocument respuetaJson(100);
+
+				if (deserializeJson(respuetaJson, body)) {
+					Serial.println("Error al analizar JSON");
+					respuesta.respuesta = body;
+				} else {
+					Serial.println("JSON valido");
+					String errorJson  = respuetaJson["error"];
+					respuesta.respuesta = errorJson;
+				}
 
 				Serial.print(F("Body length is: "));
 				Serial.println(body.length());
@@ -951,7 +960,14 @@ static byte tiempoFracccion;
 
 	int getIdPaqueteSaas(){
 		RespuestaHttp respuesta;
-	    respuesta = realizarPeticionHttp("GET", getUltimoPaquete, 0);
+
+
+		/*TEST*/
+		return 200;
+
+		/*TEST*/
+
+	    respuesta = realizarPeticionHttp("GET", getUltimoPaquete);
 
 	    Serial.println(respuesta.codigo);
 	    Serial.println(respuesta.respuesta);
@@ -983,8 +999,15 @@ static byte tiempoFracccion;
 	RespuestaHttp postPaqueteSaas(String* modeloJson){
 		RespuestaHttp respuesta;
 
+		/*TEST*/
+		respuesta.codigo= 400;
+		respuesta.respuesta = "Id de paquete duplicado";
+		return respuesta;
+
+		/*TEST*/
+
 		const char* jsonData = modeloJson->c_str();
-		respuesta = realizarPeticionHttp("POST", postEventosJson, 0, jsonData);
+		respuesta = realizarPeticionHttp("POST", postEventosJson, 1, jsonData);
 
 		Serial.println(respuesta.codigo);
 		Serial.println(respuesta.respuesta);

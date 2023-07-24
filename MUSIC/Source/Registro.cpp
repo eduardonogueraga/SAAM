@@ -307,3 +307,140 @@ String Registro::extraerPrimerElemento(RegistroDirectorios dir){
 	return line;
 }
 
+String Registro::leerPrimerElemento(RegistroDirectorios dir){
+
+	String line = "";
+
+	if(!configSystem.MODULO_SD || SD_STATUS == 0)
+		return line;
+
+	snprintf(rutaAbosuluta, sizeof(rutaAbosuluta), "%s/%s", directories[dir], nombreFicheroJsonRequest);
+
+	const char* nombreDir = directories[dir];
+
+	File file;
+
+	//Nos movemos al diretorio de logs
+	root = SD.open(directories[dir]);
+	if (!root) {
+		Serial.print("No se pudo abrir la carpeta ");
+		Serial.println(nombreDir);
+
+		return line;
+	}
+
+	file = root.openNextFile();
+
+	if (file) {
+
+		byte flag_primera_linea = 1;
+
+		while (file.available() && flag_primera_linea == 1) {
+			if(flag_primera_linea == 1){
+				line = file.readStringUntil('\n');
+				flag_primera_linea = 0;
+			}
+		}
+
+		file.close();
+
+
+	} else {
+		Serial.println("Error al abrir el archivo.");
+	}
+
+	root.close();
+
+	return line;
+}
+
+void Registro::actualizarUltimoElemento(const char* campoJson, int nuevoValor, RegistroDirectorios dir){
+	/*Si no se expecifica el valor este unicamente se incrementara*/
+	String line = "";
+
+	if(!configSystem.MODULO_SD || SD_STATUS == 0)
+		return;
+
+	snprintf(rutaAbosuluta, sizeof(rutaAbosuluta), "%s/%s", directories[dir], nombreFicheroJsonRequest);
+	snprintf(rutaAbosulutaTemporal, sizeof(rutaAbosulutaTemporal), "%s/%s", directories[dir], "temp.txt");
+
+	const char* nombreDir = directories[dir];
+
+	File file;
+	File tempFile = SD.open(rutaAbosulutaTemporal, FILE_APPEND);
+
+	//Nos movemos al diretorio de logs
+	root = SD.open(directories[dir]);
+	if (!root) {
+		Serial.print("No se pudo abrir la carpeta ");
+		Serial.println(nombreDir);
+	}
+
+	file = root.openNextFile();
+
+	if (file) {
+
+		byte flag_primera_linea = 1;
+
+		while (file.available()) {
+			if(flag_primera_linea == 1){
+				line = file.readStringUntil('\n');
+
+				if(nuevoValor == -1){
+					nuevoValor = this->obtenerValorCampo(line, campoJson).toInt();
+					nuevoValor++;
+				}
+
+				line = this->modificarCampo(line, campoJson, String(nuevoValor));
+
+				tempFile.print(line);
+				tempFile.print("\n");
+
+				flag_primera_linea = 0;
+			}else {
+				tempFile.print(file.readStringUntil('\n'));
+				tempFile.print("\n");
+			}
+		}
+
+		file.close();
+		tempFile.close();
+
+		//Borrar original
+		SD.remove(rutaAbosuluta);
+		//Renombrar fichero
+		SD.rename(rutaAbosulutaTemporal, rutaAbosuluta);
+
+	} else {
+		Serial.println("Error al abrir el archivo.");
+	}
+
+	root.close();
+}
+
+
+String Registro::modificarCampo(String cadena, const String& nombre_campo, const String& nuevo_valor) {
+    String campo_a_buscar = "\"" + nombre_campo + "\":\"";
+    int inicio = cadena.indexOf(campo_a_buscar);
+    if (inicio != -1) {
+        int fin = cadena.indexOf("\"", inicio + campo_a_buscar.length());
+        if (fin != -1) {
+            cadena = cadena.substring(0, inicio + campo_a_buscar.length()) + nuevo_valor + cadena.substring(fin);
+        }
+    }
+    return cadena;
+}
+
+
+// Función para obtener el valor actual de un campo en la cadena
+String Registro::obtenerValorCampo(const String& cadena, const String& nombre_campo) {
+    String campo_a_buscar = "\"" + nombre_campo + "\":\"";
+    int inicio = cadena.indexOf(campo_a_buscar);
+    if (inicio != -1) {
+        int fin = cadena.indexOf("\"", inicio + campo_a_buscar.length());
+        if (fin != -1) {
+            return cadena.substring(inicio + campo_a_buscar.length(), fin);
+        }
+    }
+    return ""; // Si no se encuentra el campo, devolvemos una cadena vacía
+}

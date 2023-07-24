@@ -36,21 +36,14 @@ class EventosJson {
 private:
 	StaticJsonDocument<MAX_SIZE_JSON> JSON_DOC;
 	String SALIDA_JSON;
-
-	// Enumeración para los diferentes estados de la máquina de estados
-	enum Estado {
-	    OBTENER_PRIMERA_DEL_FICHERO,
-	    ENVIAR_POR_POST,
-	    PROCESAR_RESPUESTA_OK,
-	    PROCESAR_RESPUESTA_ERROR,
-	    ACTUALIZAR_TOKEN,
-	    ABORTAR_ENVIO
-	};
-
-
 	void guardarJsonNVS(StaticJsonDocument<MAX_SIZE_JSON>& jsonDoc);
 	byte cargarJsonNVS(StaticJsonDocument<MAX_SIZE_JSON>& jsonDoc);
 	String asignarIdPaquete();
+	SAAS_GESTION_ENVIO_R gestionarEnvioPaquete(String* modeloJson);
+
+	SAAS_GESTION_ENVIO gestionPaquete;
+
+
 public:
 	EventosJson();
 	void iniciarModeloJSON();
@@ -71,9 +64,7 @@ public:
 	void guardarJsonNVS();
 	void cargarJsonNVS();
 	void actualizarCabecera();
-
-	void enviarInformeSaas();
-
+	byte enviarInformeSaas();
 	String* getSalidaJsonPointer() { //@TEST ONLY
 
 		SALIDA_JSON.clear();
