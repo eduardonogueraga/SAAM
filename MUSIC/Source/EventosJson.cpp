@@ -108,7 +108,7 @@ void EventosJson::guardarEvento(char eventName[],char reg[]) {
 
  void EventosJson::componerJSON(){
 	 Serial.println("Componiendo Modelo");
-	 crearNuevoModeloJson();
+	 this->JSON_DOC = crearNuevoModeloJson();
 	 guardarJsonNVS(JSON_DOC);
  }
 
@@ -448,6 +448,7 @@ byte EventosJson::enviarInformeSaas(){
 
 	Serial.println(F("Enviando informe a SAAS"));
 	SAAS_GESTION_ENVIO_R resultado;
+	byte estadoEnvio  = 0;
 
 
 	//Comprobar si existen paquetes exportados
@@ -472,14 +473,21 @@ byte EventosJson::enviarInformeSaas(){
 
 			if(resultado == ENVIO_OK){
 				Serial.println(F("Modelo sd enviado"));
+				registro.registrarLogSistema("Modelo enviado desde SD");
 				registro.extraerPrimerElemento(); //Saco el registro
+				estadoEnvio = 1;
 			}else if(resultado == ERROR_ID){
 				registro.actualizarUltimoElemento("id", asignarIdPaquete().toInt());
+				registro.registrarLogSistema("Error en el id del modelo");
+				estadoEnvio = 0;
+				return estadoEnvio; //Salgo
 			}
 			else {
 				//Error abortar informe
 				registro.actualizarUltimoElemento("retry");
-				return 0;
+				registro.registrarLogSistema("Error enviando modelo");
+				estadoEnvio = 0;
+				return estadoEnvio; //Salgo
 			}
 
 		}
@@ -496,17 +504,31 @@ byte EventosJson::enviarInformeSaas(){
 
 	resultado = gestionarEnvioPaquete(&SALIDA_JSON);
 
-	if(resultado == ERROR_ID){
-		JSON_DOC["id"]  = asignarIdPaquete(); //Asigno el nuevo id
-		JSON_DOC["retry"] =  "1";
-		registro.exportarEventosJson(&JSON_DOC);
+	if(resultado != ENVIO_OK){
+		estadoEnvio = 0;
+		//Si tengo acceso a SD guardo la informacion
+		if(configSystem.MODULO_SD || SD_STATUS == 1){
+			JSON_DOC["retry"] = "1";
+
+			if (resultado == ERROR_ID) {
+				JSON_DOC["id"] = asignarIdPaquete(); // Asigno el nuevo id
+				registro.registrarLogSistema("Error en el id del modelo");
+			}
+
+			if (resultado == ERROR_ENVIO) {
+				//Error el modelo actual a fallado por lo que es enviado a fichero para su posterior reenvio
+				registro.registrarLogSistema("Error enviando modelo");
+			}
+
+			registro.exportarEventosJson(&JSON_DOC);
+		}
+
+	}else {
+		Serial.println(F("Modelo memoria enviado"));
+		registro.registrarLogSistema("Modelo enviado");
+		estadoEnvio = 1;
 	}
-	else if(resultado == ERROR_ENVIO) {
-		//Error el modelo actual a fallado por lo que es enviado a fichero para su posterior reenvio
-		JSON_DOC["retry"] =  "1";
-		registro.exportarEventosJson(&JSON_DOC);
-		return 0;
-	}
+
 
 	SALIDA_JSON.clear();
 	//Vaciar memoria JSON
@@ -514,6 +536,6 @@ byte EventosJson::enviarInformeSaas(){
 	//Preparamos el nuevo modelo vacio
 	componerJSON();
 
-	return 1;
+	return estadoEnvio;
 
 }

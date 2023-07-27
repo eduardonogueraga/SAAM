@@ -41,7 +41,7 @@
 
 
 //VERSION (VE -> Version Estable VD -> Version Desarrollo)
-const char* version[] = {"MUSIC VE21R0", "08/07/23"};
+const char* version[] = {"MUSIC VE21R0", "27/07/23"};
 
 //RTOS
 TaskHandle_t tareaLoopDos;
@@ -726,6 +726,11 @@ static byte tiempoFracccion;
 		}
 
 	}
+
+	int coberturaRed(){
+		return modem.getSignalQuality();
+	}
+
 	void comprobarConexionGSM(){
 		Serial.print("Waiting for network...");
 		pantalla.lcdLoadView(&pantalla, &Pantalla::sysConexionGSM);
@@ -770,96 +775,6 @@ static byte tiempoFracccion;
 		Serial.println(F("GPRS disconnected"));
 	}
 
-	int testHttpRequest(){
-
-		int codigoRespuesta = 0;
-
-		if(establecerConexionGPRS()){
-
-			int estadoHttp = 0;
-			String respuestaHttp;
-
-			 String json = "{\"sensor\":\"temperatura\",\"valor\":25.5}";
-			 String* punteroSalidaJson = eventosJson.getSalidaJsonPointer();
-			 const char* bearerToken = "4|EX8MOXKfQwRXSAZtWhTV8Tv7QaqQ51oUc3SPTt2z";
-
-			 // Agrega la cabecera de autorización "Authorization" al objeto HttpClient
-
-			Serial.print(F("Performing HTTP request... "));
-
-			//Formular peticion HTTP
-
-			//http.connectionKeepAlive();  // Currently, this is needed for HTTPS
-			http.beginRequest();
-
-			//estadoHttp = http.get(resource);
-				estadoHttp= http.post(resource, "application/json", json);
-
-				//http.sendHeader("Authorization", String("Bearer ") + leerCadenaEE("SAAS_TOKEN"));
-				//http.sendHeader("Content-Type", "application/json");
-				//http.sendHeader("Content-Length", json.length());
-			http.endRequest();
-
-			//Gestionar respuesta HTTP
-			 codigoRespuesta = http.responseStatusCode();
-			Serial.print(F("Response status code: "));
-			Serial.println(codigoRespuesta);
-
-
-			if (estadoHttp != 0 || codigoRespuesta <= 0) {
-				Serial.println(F("failed to connect"));
-				pantallaDeError(F("  SYSTM ERROR!  PETICION HTTP KO"));
-				respuestaHttp += "Fallo en la peticion HTTP error API: "
-						+ String(estadoHttp)
-						+ " error HTTP:"
-						+ String(codigoRespuesta) +"\n";
-			}else {
-				respuestaHttp += "Codigo respuesta servidor: " + String(codigoRespuesta) + "\n";
-
-				byte linesCount = 0;
-				Serial.println(F("Response Headers:"));
-				while (http.headerAvailable() && linesCount < 15) {
-					String headerName  = http.readHeaderName();
-					String headerValue = http.readHeaderValue();
-					Serial.println("    " + headerName + " : " + headerValue);
-					respuestaHttp += "    " + headerName + " : " + headerValue + "\n";
-
-				}
-
-				int length = http.contentLength();
-
-				if (length >= 0) {
-					Serial.print(F("Content length is: "));
-					Serial.println(length);
-					respuestaHttp += "Content length :"+ (String)length + "\n";
-				}
-
-				if (http.isResponseChunked()) {
-					Serial.println(F("The response is chunked"));
-					respuestaHttp += "The response is chunked\n";
-				}
-
-				String body = http.responseBody();
-				Serial.println(F("Response:"));
-				Serial.println(body);
-				respuestaHttp += body + "\r\n";
-
-				Serial.print(F("Body length is: "));
-				Serial.println(body.length());
-				respuestaHttp += "Body length is: " + String(body.length()) + "\n";
-
-				http.stop(); // Shutdown
-				Serial.println(F("Server disconnected"));
-			}
-
-			registro.registrarLogHttpRequest(&respuestaHttp);
-			cerrarConexionGPRS();
-		}
-
-		return codigoRespuesta;
-	}
-
-
 	RespuestaHttp realizarPeticionHttp(const char* metodo, const char* resource, byte auth = 1, const char* jsonData = nullptr){
 
 		RespuestaHttp respuesta;
@@ -884,7 +799,10 @@ static byte tiempoFracccion;
 				}
 			}
 			if(auth){
-				http.sendHeader("Authorization", String("Bearer ") + leerCadenaEE("SAAS_TOKEN"));
+				Serial.println("Autorizando peticion...");
+				String SAAS_TOKEN = leerCadenaEE("SAAS_TOKEN");
+				Serial.println(SAAS_TOKEN);
+				http.sendHeader("Authorization", String("Bearer ") + SAAS_TOKEN);
 			}
 
 			http.endRequest();
@@ -931,16 +849,31 @@ static byte tiempoFracccion;
 				Serial.println(F("Response:"));
 				Serial.println(body);
 
-
+				//Comprobamos si la respuesta es plana o json
 				DynamicJsonDocument respuetaJson(100);
 
-				if (deserializeJson(respuetaJson, body)) {
-					Serial.println("Error al analizar JSON");
-					respuesta.respuesta = body;
+				if (body.charAt(0) == '{' && body.charAt(body.length() - 1) == '}') {
+
+					Serial.println("Respuesta JSON");
+					DeserializationError error = deserializeJson(respuetaJson, body);
+
+					if(!error){
+						String msgJson = respuetaJson["msg"];
+						String errorJson  = respuetaJson["error"];
+
+						respuesta.respuesta = (respuesta.codigo == 200) ? msgJson : errorJson;
+						respuestaHttp += "Respuesta servidor: " + String(respuesta.respuesta) + "\n";
+
+					}else {
+						Serial.println("Error deserializando JSON");
+						respuestaHttp += "Respuesta servidor: Error saa durante la extraccion JSON\n";
+					}
+
 				} else {
-					Serial.println("JSON valido");
-					String errorJson  = respuetaJson["error"];
-					respuesta.respuesta = errorJson;
+					Serial.println("Respuesta NO JSON");
+					respuesta.respuesta = body;
+					respuestaHttp += "Respuesta servidor: " + String(respuesta.respuesta) + "\n";
+
 				}
 
 				Serial.print(F("Body length is: "));
@@ -963,13 +896,14 @@ static byte tiempoFracccion;
 
 
 		/*TEST*/
-		return 200;
-
+		//return 200;
 		/*TEST*/
 
 	    respuesta = realizarPeticionHttp("GET", getUltimoPaquete);
 
+	    Serial.print("Codigo: ");
 	    Serial.println(respuesta.codigo);
+	    Serial.print("Contenido: ");
 	    Serial.println(respuesta.respuesta);
 
 	    if(respuesta.codigo == 200){
@@ -981,11 +915,18 @@ static byte tiempoFracccion;
 	}
 
 	int generarTokenSaas(){
+
+		/*TEST*/
+		//return 200;
+		/*TEST*/
+
 		RespuestaHttp respuesta;
 		respuesta = realizarPeticionHttp("POST", postTokenSanctum, 0);
 
-		Serial.println(respuesta.codigo);
-		Serial.println(respuesta.respuesta);
+	    Serial.print("Codigo: ");
+	    Serial.println(respuesta.codigo);
+	    Serial.print("Contenido: ");
+	    Serial.println(respuesta.respuesta);
 
 		if(respuesta.codigo == 200){
 			guardarCadenaEE("SAAS_TOKEN", &respuesta.respuesta);
@@ -1000,17 +941,19 @@ static byte tiempoFracccion;
 		RespuestaHttp respuesta;
 
 		/*TEST*/
-		respuesta.codigo= 400;
-		respuesta.respuesta = "Id de paquete duplicado";
-		return respuesta;
+		//respuesta.codigo= 500;
+		//respuesta.respuesta = "Id de paquete duplicado";
+		//return respuesta;
 
 		/*TEST*/
 
 		const char* jsonData = modeloJson->c_str();
 		respuesta = realizarPeticionHttp("POST", postEventosJson, 1, jsonData);
 
-		Serial.println(respuesta.codigo);
-		Serial.println(respuesta.respuesta);
+	    Serial.print("Codigo: ");
+	    Serial.println(respuesta.codigo);
+	    Serial.print("Contenido: ");
+	    Serial.println(respuesta.respuesta);
 
 		return respuesta;
 	}
@@ -1075,12 +1018,12 @@ static byte tiempoFracccion;
 		}
 
 
-	const char* leerCadenaEE(const char* key) {
+	String leerCadenaEE(const char* key) {
 		NVSMemory.begin("SAA_DATA", false);
 		String value = NVSMemory.getString(key);
 		NVSMemory.end();
 
-		return value.c_str();
+		return value;
 	}
 
 

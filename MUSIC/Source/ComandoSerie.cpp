@@ -218,12 +218,71 @@ void ComandoSerie::comprobarComando() {
 		registro.actualizarUltimoElemento("id", 455);
 	}
 
+	if(compararCadena(data, "http -id")){
+		nombreComando(data);
 
-	if(compararCadena(data, "http")){
-			nombreComando(data);
-			//testHttpRequest();
-			getIdPaqueteSaas();
+		Serial.println( leerFlagEEInt("PACKAGE_ID"));
+		getIdPaqueteSaas();
+		Serial.print("SALIDA->");
+		Serial.println( leerFlagEEInt("PACKAGE_ID"));
+
+	}
+
+
+	if(compararCadena(data, "http -token")){
+		nombreComando(data);
+
+		Serial.println(leerCadenaEE("SAAS_TOKEN"));
+		generarTokenSaas();
+		Serial.println(leerCadenaEE("SAAS_TOKEN"));
+
+	}
+
+	if(compararCadena(data, "http -pack")){
+		nombreComando(data);
+
+		String json = R"(
+		{
+		  "version": "VE21R0",
+		  "retry": "0",
+		  "id": "58", 
+		  "date": "2023-07-27T16:23:08",
+		  "System": [
+		    {
+		      "action": "0",
+		      "msen": "1",
+		      "alive": "568962",
+		      "numsms": "0",
+		      "modules": "1|1|0", 
+		      "sensors": "102;1|103;1|104;1|105;1",
+		      "reset": "2023-08-06T16:13:45"
+		    }
+		  ],
+		  "Entry": [
+		    {
+		      "isnew": true,
+		      "reg": "1|0|0|0",
+		      "date": "2023-07-27T16:23:15"
+		    }, 
+		    {
+		      "isnew": true,
+		      "reg": "0|0|0|0",
+		      "date": "2023-07-27T16:23:18"
+		    }
+		  ]
 		}
+		)";
+
+
+		 postPaqueteSaas(&json);
+
+	}
+
+	if(compararCadena(data, "token")){
+		nombreComando(data);
+		Serial.println(leerCadenaEE("SAAS_TOKEN"));
+	}
+
 
 	if (compararCadena(data, "ls http")){
 		nombreComando(data);

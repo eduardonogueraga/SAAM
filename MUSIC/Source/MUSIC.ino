@@ -23,12 +23,6 @@ void EstadoInicio(){
 	//Acutalizamos el secuencial de los logs para esta ejecucion
 	guardarFlagEE("LOG_SEQ", (leerFlagEEInt("LOG_SEQ")+1));
 
-
-	//String tokenSaas = "4|EX8MOXKfQwRXSAZtWhTV8Tv7QaqQ51oUc3SPTt2z";
-	//guardarCadenaEE("SAAS_TOKEN", &tokenSaas);
-
-	Serial.println(leerCadenaEE("SAAS_TOKEN"));
-
 	//Actualizamos los intentos
 	//guardarFlagEE("JSON_RETRY", 0);
 	//guardarFlagEE("PACKAGE_ID", 1);
@@ -126,7 +120,7 @@ void setup()
 
 
 	    //SIM800L
-	    if(MODO_DEFAULT)
+	    if(!MODO_DEFAULT)
 	    comprobarConexionGSM();
 
 }

@@ -28,6 +28,7 @@ extern String nombreZonas[];
 extern byte zona;
 extern byte desactivaciones, mensajesEnviados;
 extern ConfigSystem configSystem;
+extern int coberturaRed();
 
 
 

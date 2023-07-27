@@ -141,7 +141,7 @@ void guardarFlagEE(const char* key, int value);
 void guardarFlagEE(const char* key, uint8_t value);
 uint8_t leerFlagEE(const char* key);
 int leerFlagEEInt(const char* key);
-const char* leerCadenaEE(const char* key);
+String leerCadenaEE(const char* key);
 void guardarCadenaEE(const char* key, String* value);
 
 template <typename T> void NVS_SaveData(const char* key, T value);
