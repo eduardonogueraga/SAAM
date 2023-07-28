@@ -31,6 +31,7 @@ extern ConfigSystem configSystem;
 extern RespuestaHttp postPaqueteSaas(String* modeloJson);
 extern int getIdPaqueteSaas();
 extern int generarTokenSaas();
+extern const char* version[];
 
 class EventosJson {
 private:
@@ -38,7 +39,8 @@ private:
 	String SALIDA_JSON;
 	void guardarJsonNVS(StaticJsonDocument<MAX_SIZE_JSON>& jsonDoc);
 	byte cargarJsonNVS(StaticJsonDocument<MAX_SIZE_JSON>& jsonDoc);
-	String asignarIdPaquete();
+	String asignarIdPaquete(String* modelo);
+	void confirmarIdPaquete();
 	SAAS_GESTION_ENVIO_R gestionarEnvioPaquete(String* modeloJson);
 
 	SAAS_GESTION_ENVIO gestionPaquete;

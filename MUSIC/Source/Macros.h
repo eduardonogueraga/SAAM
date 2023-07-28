@@ -107,6 +107,9 @@ enum infoMapeoSensores {
 	C02_LINEA,
 };
 
+//SAAS MODELO JSON
+#define MAX_REINTENTOS_ENVIO_MODELO 5
+
 typedef enum {
 	SILENCIO,
 	TRAMA_KO,
@@ -311,6 +314,13 @@ typedef enum  {
 	ERROR_ENVIO,
 	ERROR_ID
 } SAAS_GESTION_ENVIO_R;
+
+typedef enum  {
+    ESPERA_ENVIO,
+	ENVIO,
+	ESPERA_REINTENTO
+} SAAS_CRON_ENVIOS;
+
 
 
 //MENU

@@ -108,30 +108,23 @@ void Pantalla::lcdClave()
 
 void Pantalla::lcdReposo()
 {
+	int status = coberturaRed();
 	lcd.setCursor(0,0);
-	lcd.print(F("APAGADA  |RED:"));
-	lcd.setCursor(14,0);
-	lcd.print(String(coberturaRed()));
-	lcd.setCursor(0,1);
-	lcd.print(F("MENU>B"));
-	lcd.setCursor(6,1);
-	/*
-	lcd.setCursor(0,0);
-	lcd.print(F("RED:"));
-	lcd.setCursor(4,0);
-	lcd.print(String(coberturaRed()));
-	lcd.setCursor(6,0);
-	lcd.print(F(" <> MENU>B"));
-	lcd.setCursor(0,1);
-	lcd.print(F("APAGADA"));
-	lcd.setCursor(7,1);
-*/
+	lcd.print(F("|ALARMA"));
+	lcd.setCursor(7,0);
 	if(configSystem.MODULO_RTC){
 		if(fecha.comprobarFecha(fecha.getFechaReset()))
-			lcd.print(F(" R>"));
+			lcd.print(F("|R"));
 	}else{
-		lcd.print(F("   "));
+		lcd.print(F("  "));
 	}
+	lcd.setCursor(9,0);
+	lcd.print(F("|RED:"));
+	lcd.setCursor(14,0);
+	if(status > 0)
+		lcd.print(String(status));
+	lcd.setCursor(0,1);
+	lcd.print(F("|APAGADA "));
 	lcd.setCursor(9,1);
 	lcd.print(F("|"));
 	lcd.setCursor(10,1);
@@ -148,7 +141,6 @@ void Pantalla::lcdReposo()
 		lcd.print(F("!"));
 
 	}
-
 }
 
 void Pantalla::lcdGuardia(){

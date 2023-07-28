@@ -354,6 +354,9 @@ String Registro::leerPrimerElemento(RegistroDirectorios dir){
 	return line;
 }
 
+
+
+
 void Registro::actualizarUltimoElemento(const char* campoJson, int nuevoValor, RegistroDirectorios dir){
 	/*Si no se expecifica el valor este unicamente se incrementara*/
 	String line = "";
@@ -418,6 +421,15 @@ void Registro::actualizarUltimoElemento(const char* campoJson, int nuevoValor, R
 	root.close();
 }
 
+int Registro::leerReintentosModelo(const String* modelo){
+	const String m = *modelo;
+	return this->obtenerValorCampo(m, "retry").toInt();
+}
+
+String Registro::actualizarIdModelo(String* modelo, int id){
+	 String m = *modelo;
+	 return this->modificarCampo(m, "id", String(id));
+}
 
 String Registro::modificarCampo(String cadena, const String& nombre_campo, const String& nuevo_valor) {
     String campo_a_buscar = "\"" + nombre_campo + "\":\"";
@@ -430,7 +442,6 @@ String Registro::modificarCampo(String cadena, const String& nombre_campo, const
     }
     return cadena;
 }
-
 
 // Función para obtener el valor actual de un campo en la cadena
 String Registro::obtenerValorCampo(const String& cadena, const String& nombre_campo) {

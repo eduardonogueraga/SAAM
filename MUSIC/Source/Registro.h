@@ -53,6 +53,9 @@ public:
 	String extraerPrimerElemento(RegistroDirectorios dir = DIR_JSON_REQUEST);
 	String leerPrimerElemento(RegistroDirectorios dir = DIR_JSON_REQUEST);
 	void actualizarUltimoElemento(const char* campoJson,int nuevoValor= -1, RegistroDirectorios dir = DIR_JSON_REQUEST);
+	int leerReintentosModelo(const String* modelo);
+	String actualizarIdModelo(String* modelo, int id);
+
 };
 
 #endif /* SOURCE_REGISTRO_H_ */

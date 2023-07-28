@@ -91,6 +91,7 @@ SLEEPMODE_GSM sleepModeGSM;
 LLAMADAS_GSM estadoLlamada;
 CODIGO_ERROR codigoError;
 SAAS_LITERAL_LOGS saaLiteralLogs;
+SAAS_CRON_ENVIOS  saasCronEstado;
 
 
 //CLASES
@@ -727,8 +728,19 @@ static byte tiempoFracccion;
 
 	}
 
-	int coberturaRed(){
-		return modem.getSignalQuality();
+	int coberturaRed() {
+	  static unsigned long tiempoAnterior = 0; // Variable estática para almacenar el tiempo de la última ejecución
+
+	  unsigned long tiempoActual = millis(); // Obtener el tiempo actual desde que se encendió Arduino
+
+	  // Verificar si han pasado al menos 10 segundos desde la última ejecución
+	  if (tiempoActual - tiempoAnterior >= 10000) { // 10000 milisegundos = 10 segundos
+	    tiempoAnterior = tiempoActual; // Actualizar el tiempo de la última ejecución
+	    return modem.getSignalQuality();
+	  }
+
+	  // Si no han pasado 10 segundos, no ejecutar la función y devolver un valor inválido (por ejemplo, -1)
+	  return -1;
 	}
 
 	void comprobarConexionGSM(){
@@ -775,9 +787,59 @@ static byte tiempoFracccion;
 		Serial.println(F("GPRS disconnected"));
 	}
 
+	void checkearEnvioSaas(){
+
+		static unsigned long lastExecutionTime = 0;
+		static int retryCount = 0;
+		byte executionResult;
+
+
+		switch (saasCronEstado) {
+		case ESPERA_ENVIO:
+			if (millis() - lastExecutionTime >= 15000) { //600000
+				saasCronEstado = ENVIO;
+				retryCount = 0; // Reset retry count when starting a new execution
+			}
+			break;
+
+		case ENVIO:
+			Serial.println(F("Enviando datos al servidor"));
+			executionResult = eventosJson.enviarInformeSaas();
+			if (executionResult == 1) {
+				saasCronEstado = ESPERA_ENVIO;
+				lastExecutionTime = millis();
+			} else {
+				Serial.println("Reintento");
+				lastExecutionTime = millis();
+				saasCronEstado = ESPERA_REINTENTO;
+			}
+			break;
+
+		case ESPERA_REINTENTO:
+			if (retryCount < 2) {
+				if (millis() - lastExecutionTime >= 6000) { //120000
+					saasCronEstado = ENVIO;
+					retryCount++;
+				}
+			} else {
+				Serial.println("Demasiados reintentos se espera al siguente ciclo");
+				lastExecutionTime = millis();
+				saasCronEstado = ESPERA_ENVIO;
+			}
+			break;
+
+		}
+	}
+
 	RespuestaHttp realizarPeticionHttp(const char* metodo, const char* resource, byte auth = 1, const char* jsonData = nullptr){
 
 		RespuestaHttp respuesta;
+
+		/*TEST*/
+		respuesta.codigo= 200;
+		respuesta.respuesta = "OK";// "Id de paquete duplicado";
+		return respuesta;
+		/*TEST*/
 
 		if(establecerConexionGPRS()){
 			int estadoHttp = 0;
@@ -893,12 +955,6 @@ static byte tiempoFracccion;
 
 	int getIdPaqueteSaas(){
 		RespuestaHttp respuesta;
-
-
-		/*TEST*/
-		//return 200;
-		/*TEST*/
-
 	    respuesta = realizarPeticionHttp("GET", getUltimoPaquete);
 
 	    Serial.print("Codigo: ");
@@ -915,11 +971,6 @@ static byte tiempoFracccion;
 	}
 
 	int generarTokenSaas(){
-
-		/*TEST*/
-		//return 200;
-		/*TEST*/
-
 		RespuestaHttp respuesta;
 		respuesta = realizarPeticionHttp("POST", postTokenSanctum, 0);
 
@@ -939,14 +990,6 @@ static byte tiempoFracccion;
 
 	RespuestaHttp postPaqueteSaas(String* modeloJson){
 		RespuestaHttp respuesta;
-
-		/*TEST*/
-		//respuesta.codigo= 500;
-		//respuesta.respuesta = "Id de paquete duplicado";
-		//return respuesta;
-
-		/*TEST*/
-
 		const char* jsonData = modeloJson->c_str();
 		respuesta = realizarPeticionHttp("POST", postEventosJson, 1, jsonData);
 

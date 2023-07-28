@@ -20,6 +20,8 @@ void EstadoInicio(){
 	estadoAlarma = ESTADO_REPOSO;
 	sleepModeGSM = GSM_ON;
 
+	saasCronEstado = ESPERA_ENVIO;
+
 	//Acutalizamos el secuencial de los logs para esta ejecucion
 	guardarFlagEE("LOG_SEQ", (leerFlagEEInt("LOG_SEQ")+1));
 
@@ -120,7 +122,7 @@ void setup()
 
 
 	    //SIM800L
-	    if(!MODO_DEFAULT)
+	    if(MODO_DEFAULT)
 	    comprobarConexionGSM();
 
 }
@@ -171,6 +173,7 @@ void procesosSistema(){
 	resetAutomatico();
 	checkearBateriaDeEmergencia();
 	escucharGSM();
+	//checkearEnvioSaas();
 }
 
 void procesosPrincipales()

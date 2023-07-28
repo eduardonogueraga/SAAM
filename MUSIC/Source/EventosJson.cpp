@@ -114,7 +114,7 @@ void EventosJson::guardarEvento(char eventName[],char reg[]) {
 
  StaticJsonDocument<MAX_SIZE_JSON> EventosJson::crearNuevoModeloJson(){
 
-	 JSON_DOC["version"] = "VE21R0";
+	 JSON_DOC["version"] = version[0];
 	 JSON_DOC["retry"] = "0";
 	 JSON_DOC["id"] = "0";
 	 JSON_DOC["date"] = fecha.imprimeFechaJSON();
@@ -254,14 +254,7 @@ void EventosJson::exportarFichero(){
 	actualizarCabecera();
 	//Añadir ID a cadena para tratar
 	if(!registro.exportarEventosJson(&JSON_DOC)){
-		Serial.println(F("Si acceso a SD el modelo se purga"));
-		/*
-		//TODO Si no se puede guardar se envia directamente
-		serializeJson(JSON_DOC, SALIDA_JSON);
-		Serial.println(SALIDA_JSON);
-		gestionarEnvioPaquete(&SALIDA_JSON);
-		SALIDA_JSON.clear();
-		*/
+		Serial.println(F("Sin acceso a SD el modelo se purga"));
 	}
 
 	//Vaciar memoria JSON
@@ -324,8 +317,6 @@ byte EventosJson::cargarJsonNVS(StaticJsonDocument<MAX_SIZE_JSON>& jsonDoc) {
 
 void EventosJson::actualizarCabecera(){
 
-	JSON_DOC["retry"] =  "0";
-	JSON_DOC["id"]  = asignarIdPaquete();
 	JSON_DOC["date"] = fecha.imprimeFechaJSON();
 
 	//Recuperamos los datos del sistema
@@ -351,13 +342,23 @@ void EventosJson::actualizarCabecera(){
 
 }
 
-String EventosJson::asignarIdPaquete(){
+String EventosJson::asignarIdPaquete(String* modelo){
 
 	int ultimoIdInstalado = leerFlagEEInt("PACKAGE_ID");
 	ultimoIdInstalado++;
-	guardarFlagEE("PACKAGE_ID", ultimoIdInstalado);
+	Serial.print(F("Vinculando modelo a Id:"));
+	Serial.println(ultimoIdInstalado);
+	return registro.actualizarIdModelo(modelo, ultimoIdInstalado);
+}
 
-	return String(ultimoIdInstalado);
+
+void EventosJson::confirmarIdPaquete(){
+	/*Envio OK avanzamos ID*/
+	int ultimoIdInstalado = leerFlagEEInt("PACKAGE_ID");
+	ultimoIdInstalado++;
+	Serial.print(F("Id instalado en servidor, ultimo Id:"));
+	Serial.println(ultimoIdInstalado);
+	guardarFlagEE("PACKAGE_ID", ultimoIdInstalado);
 }
 
 SAAS_GESTION_ENVIO_R EventosJson::gestionarEnvioPaquete(String* modeloJson){
@@ -467,17 +468,27 @@ byte EventosJson::enviarInformeSaas(){
 			}
 
 			Serial.println(F("Procesando modelo pendiente"));
+
+			//Comprobamos si el modelo tiene demasiados reintentos en cuyo caso se eliminara
+			if(registro.leerReintentosModelo(&modelo) == MAX_REINTENTOS_ENVIO_MODELO){
+				Serial.println(F("Modelo eliminado por exceso de reintentos"));
+				registro.registrarLogSistema("Modelo eliminado por exceso de reintentos");
+				registro.extraerPrimerElemento();
+			}
+
+			modelo = asignarIdPaquete(&modelo);
+
 			Serial.println(modelo);
 
 			resultado = gestionarEnvioPaquete(&modelo);
 
 			if(resultado == ENVIO_OK){
 				Serial.println(F("Modelo sd enviado"));
+				confirmarIdPaquete();
 				registro.registrarLogSistema("Modelo enviado desde SD");
 				registro.extraerPrimerElemento(); //Saco el registro
 				estadoEnvio = 1;
 			}else if(resultado == ERROR_ID){
-				registro.actualizarUltimoElemento("id", asignarIdPaquete().toInt());
 				registro.registrarLogSistema("Error en el id del modelo");
 				estadoEnvio = 0;
 				return estadoEnvio; //Salgo
@@ -499,8 +510,9 @@ byte EventosJson::enviarInformeSaas(){
 	actualizarCabecera();
 	serializeJson(JSON_DOC, SALIDA_JSON);
 	Serial.print("MODELO ACTUAL -> ");
-	Serial.println(SALIDA_JSON);
 
+	SALIDA_JSON = asignarIdPaquete(&SALIDA_JSON);
+	Serial.println(SALIDA_JSON);
 
 	resultado = gestionarEnvioPaquete(&SALIDA_JSON);
 
@@ -511,7 +523,6 @@ byte EventosJson::enviarInformeSaas(){
 			JSON_DOC["retry"] = "1";
 
 			if (resultado == ERROR_ID) {
-				JSON_DOC["id"] = asignarIdPaquete(); // Asigno el nuevo id
 				registro.registrarLogSistema("Error en el id del modelo");
 			}
 
@@ -525,6 +536,7 @@ byte EventosJson::enviarInformeSaas(){
 
 	}else {
 		Serial.println(F("Modelo memoria enviado"));
+		confirmarIdPaquete();
 		registro.registrarLogSistema("Modelo enviado");
 		estadoEnvio = 1;
 	}
