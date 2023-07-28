@@ -168,6 +168,8 @@ struct configuracion_sistema_t {
 	byte MODO_SENSIBLE = 1;
 	byte MODULO_SD = 1;
 	byte MODULO_RTC = 1;
+	byte ENVIO_SAAS = 1;
+	byte ESPERA_SAAS_MULTIPLICADOR = 0;
 	byte SENSORES_HABLITADOS[4] = {1,1,1,1};
 	byte SMS_HISTORICO;
 	char FECHA_SMS_HITORICO[30];
@@ -180,6 +182,11 @@ struct configuracion_sistema_t {
      int codigo = 0;
      String respuesta = "";
  } RespuestaHttp;
+
+ typedef struct  {
+     int intensidadSignal = 0;
+     String proveedor = "";
+ } ProveedorEstado;
 
 
 //ENUM Y TYPEDEFS
@@ -336,7 +343,9 @@ typedef enum {
 	CONFIG_SELECT,
 	CONFIG_MODOS,
 	CONFIG_MODULOS,
-	CONFIG_SENSORES
+	CONFIG_SENSORES,
+	CONFIG_SUBMENU,
+	CONFIG_SAAS,
 } MENU_CONFIG;
 
 
@@ -360,6 +369,20 @@ typedef enum {
 } MENU_CONFIG_SENSORES;
 
 typedef enum {
+	SAAS_SELECT,
+	CH_ACTIVACION,
+	SAAS_CONF
+} MENU_CONFIG_SAAS;
+
+typedef enum {
+	SAAS_SELECT_CONF,
+	SYNC_ID_PAQUETE,
+	SYNC_TOKEN_API,
+	CH_CONF_TIEMPO
+} MENU_CONFIG_SAAS_CONF;
+
+
+typedef enum {
 	INFO_SELECT,
 	INFO_TIEMPO,
 	INFO_DATOS,
@@ -379,6 +402,7 @@ typedef enum {
 	DATOS_ERR_HISTORICO,
 	DATOS_FECHA_RESET,
 	DATOS_SMS_DIARIO,
+	DATOS_PROVEEDOR_RED,
 	DATOS_VERSION,
 } MENU_INFO_DATOS;
 

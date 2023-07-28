@@ -108,39 +108,31 @@ void Pantalla::lcdClave()
 
 void Pantalla::lcdReposo()
 {
-	int status = coberturaRed();
 	lcd.setCursor(0,0);
-	lcd.print(F("|ALARMA"));
-	lcd.setCursor(7,0);
-	if(configSystem.MODULO_RTC){
-		if(fecha.comprobarFecha(fecha.getFechaReset()))
-			lcd.print(F("|R"));
-	}else{
-		lcd.print(F("  "));
-	}
-	lcd.setCursor(9,0);
-	lcd.print(F("|RED:"));
-	lcd.setCursor(14,0);
-	if(status > 0)
-		lcd.print(String(status));
-	lcd.setCursor(0,1);
-	lcd.print(F("|APAGADA "));
-	lcd.setCursor(9,1);
-	lcd.print(F("|"));
-	lcd.setCursor(10,1);
-	if(configSystem.MODULO_RTC){
-		lcd.print(fecha.imprimeHora());
-	}else{
-		lcd.print(F("__-__ "));
-	}
-	lcd.setCursor(15,1);
+		lcd.print(F("ALARMA || MENU>B"));
+		lcd.setCursor(0,1);
+		lcd.print(F("APAGADA"));
+		lcd.setCursor(7,1);
+		if(configSystem.MODULO_RTC){
+			if(fecha.comprobarFecha(fecha.getFechaReset()))
+				lcd.print(F(" R>"));
+		}else{
+			lcd.print(F("   "));
+		}
+		lcd.setCursor(10,1);
+		if(configSystem.MODULO_RTC){
+			lcd.print(fecha.imprimeHora());
+		}else{
+			lcd.print(F("__-__ "));
+		}
+		lcd.setCursor(15,1);
 
-	if(rcomp1.digitalRead(SENSOR_BATERIA_RESPALDO) == LOW){
-		lcd.print(F(" "));
-	}else{
-		lcd.print(F("!"));
+		if(rcomp1.digitalRead(SENSOR_BATERIA_RESPALDO) == LOW){
+			lcd.print(F(" "));
+		}else{
+			lcd.print(F("!"));
 
-	}
+		}
 }
 
 void Pantalla::lcdGuardia(){
@@ -227,7 +219,15 @@ void Pantalla::lcdGuardia(){
 		lcd.setCursor(0,0);
 		lcd.print(F("MODO>1  SENSOR>2"));
 		lcd.setCursor(0,1);
-		lcd.print(F("HARDWR>3 ATRAS>#"));
+		lcd.print(F("MAS>*    ATRAS>#"));
+	}
+
+	void Pantalla::menuConfigSubMenu(){
+
+		lcd.setCursor(0,0);
+		lcd.print(F("SAAS>1 HARDWRE>2"));
+		lcd.setCursor(0,1);
+		lcd.print(F("<Config  ATRAS>#"));
 	}
 
 	void Pantalla::menuConfigModulos(){
@@ -386,6 +386,15 @@ void Pantalla::lcdGuardia(){
 		lcd.print(F("LIMITE -> 15 A>#"));
 	}
 
+	void Pantalla::menuInfoProveedorRed(){
+		lcd.setCursor(0,0);
+		lcd.print(coberturaRed().proveedor);
+		lcd.setCursor(0,1);
+		lcd.print(F("Calidad red: "));
+		lcd.setCursor(13,1);
+		lcd.print(coberturaRed().intensidadSignal);
+	}
+
 	void Pantalla::menuInfoRegistros(){
 		lcd.setCursor(0,0);
 		lcd.print(F("DESCARGA DATOS>1"));
@@ -447,6 +456,51 @@ void Pantalla::lcdGuardia(){
 		lcd.print(F(" ERROR ACTIVE EL"));
 		lcd.setCursor(0,1);
 		lcd.print(F("BLUETOOH PRIMERO"));
+	}
+
+	void Pantalla::menuConfigSaas(){
+		lcd.setCursor(0,0);
+		lcd.print(F("ACTIVAR>1 CONF>2"));
+		lcd.setCursor(0,1);
+		lcd.print(F("<Server  ATRAS>#"));
+	}
+
+	void Pantalla::menuConfigSaasConf(){
+		lcd.setCursor(0,0);
+		lcd.print(F("T-ESPERA>1  ID>2"));
+		lcd.setCursor(0,1);
+		lcd.print(F("TOKEN>3  ATRAS>#"));
+	}
+
+
+	void Pantalla::menuConfigSaasConfTiempo(){
+		int tiempo = 10 + (configSystem.ESPERA_SAAS_MULTIPLICADOR*5);
+		lcd.setCursor(0,0);
+		lcd.print(F("MINUTOS:   "));
+		lcd.setCursor(8,0);
+		lcd.print(tiempo);
+		lcd.setCursor(0,1);
+		lcd.print(F("CAMB>1   ATRAS>#"));
+	}
+
+	void Pantalla::menuConfigSaasConfSyncId(){
+		int ultimoIdInstalado = leerFlagEEInt("PACKAGE_ID");
+		lcd.setCursor(0,0);
+		lcd.print(F("ID PAQUETE:"));
+		lcd.setCursor(11,0);
+		lcd.print(ultimoIdInstalado);
+		lcd.setCursor(0,1);
+		lcd.print(F("SYNC>1   ATRAS>#"));
+	}
+
+	void Pantalla::menuConfigSaasConfSyncToken(){
+		lcd.setCursor(0,0);
+		lcd.print(F("TOKEN: "));
+		lcd.setCursor(7,0);
+		lcd.print(leerCadenaEE("SAAS_TOKEN").substring(0, 6));
+		lcd.print(F("..."));
+		lcd.setCursor(0,1);
+		lcd.print(F("SYNC>1   ATRAS>#"));
 	}
 
 	void Pantalla::sysConexionGprs(){

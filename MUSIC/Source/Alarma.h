@@ -728,19 +728,28 @@ static byte tiempoFracccion;
 
 	}
 
-	int coberturaRed() {
-	  static unsigned long tiempoAnterior = 0; // Variable estática para almacenar el tiempo de la última ejecución
+	ProveedorEstado coberturaRed() {
 
-	  unsigned long tiempoActual = millis(); // Obtener el tiempo actual desde que se encendió Arduino
+		 ProveedorEstado respuesta;
+		static unsigned long tiempoAnterior = 0; // Variable estática para almacenar el tiempo de la última ejecución
 
-	  // Verificar si han pasado al menos 10 segundos desde la última ejecución
-	  if (tiempoActual - tiempoAnterior >= 10000) { // 10000 milisegundos = 10 segundos
-	    tiempoAnterior = tiempoActual; // Actualizar el tiempo de la última ejecución
-	    return modem.getSignalQuality();
-	  }
+		unsigned long tiempoActual = millis(); // Obtener el tiempo actual desde que se encendió Arduino
 
-	  // Si no han pasado 10 segundos, no ejecutar la función y devolver un valor inválido (por ejemplo, -1)
-	  return -1;
+		// Verificar si han pasado al menos 10 segundos desde la última ejecución
+		if (tiempoActual - tiempoAnterior >= 4000) { // 10000 milisegundos = 10 segundos
+			tiempoAnterior = tiempoActual; // Actualizar el tiempo de la última ejecución
+
+			respuesta.intensidadSignal = modem.getSignalQuality();
+			respuesta.proveedor = modem.getOperator();
+
+			if(respuesta.proveedor.isEmpty())
+				respuesta.proveedor = "Sin servicio";
+
+			return respuesta;
+		}
+
+		// Si no han pasado 10 segundos, no ejecutar la función y devolver un valor inválido (por ejemplo, -1)
+		return respuesta;
 	}
 
 	void comprobarConexionGSM(){
@@ -789,6 +798,9 @@ static byte tiempoFracccion;
 
 	void checkearEnvioSaas(){
 
+		if(!configSystem.ENVIO_SAAS)
+			return;
+
 		static unsigned long lastExecutionTime = 0;
 		static int retryCount = 0;
 		byte executionResult;
@@ -796,7 +808,7 @@ static byte tiempoFracccion;
 
 		switch (saasCronEstado) {
 		case ESPERA_ENVIO:
-			if (millis() - lastExecutionTime >= 15000) { //600000
+			if (millis() - lastExecutionTime >= (((configSystem.ESPERA_SAAS_MULTIPLICADOR*5)+10)*60000)) { //600000
 				saasCronEstado = ENVIO;
 				retryCount = 0; // Reset retry count when starting a new execution
 			}

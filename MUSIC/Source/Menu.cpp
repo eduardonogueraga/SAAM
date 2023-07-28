@@ -22,6 +22,8 @@ Menu::Menu() {
 	 menuInfoTime = TIME_MINUTOS;
 	 menuInfoDatos = DATOS_ENTRADAS;
 	 menuInfoRegistros = REGISTROS_DESCARGAR;
+	 menuSaas = SAAS_SELECT;
+	 menuSaasConf = SAAS_SELECT_CONF;
 
 	 timeSelector = 0;
 }
@@ -73,11 +75,11 @@ void Menu::configMenu(){
 		if(key == '1')
 			menuConfig = CONFIG_MODOS;
 
-		if(key == '3')
-			menuConfig = CONFIG_MODULOS;
-
 		if(key == '2')
 			menuConfig = CONFIG_SENSORES;
+
+		if(key == '*')
+			menuConfig = CONFIG_SUBMENU;
 
 		if(key == '#')
 			estadoMenu = SELECT;
@@ -99,6 +101,25 @@ void Menu::configMenu(){
 		//configComunicaciones();
 		configModulos();
 		break;
+
+	case CONFIG_SAAS:
+
+		configSaas();
+		break;
+
+	case CONFIG_SUBMENU:
+
+		pantalla.lcdLoadView(&pantalla, &Pantalla::menuConfigSubMenu);
+			if(key == '1')
+				menuConfig = CONFIG_SAAS;
+
+			if(key == '2')
+				menuConfig = CONFIG_MODULOS;
+
+			if(key == '#')
+				menuConfig = CONFIG_SELECT;
+	break;
+
 	}
 }
 
@@ -246,7 +267,7 @@ void Menu::configModulos(){
 			menuModulos = MOD_SD;
 
 		if(key == '#')
-			menuConfig = CONFIG_SELECT;
+			menuConfig = CONFIG_SUBMENU;
 		break;
 
 	case MOD_BT:
@@ -279,6 +300,113 @@ void Menu::configModulos(){
 		break;
 	}
 }
+
+void Menu::configSaas(){
+
+	switch(menuSaas){
+
+	case SAAS_SELECT:
+		pantalla.lcdLoadView(&pantalla, &Pantalla::menuConfigSaas);
+
+		if(key == '1')
+			menuSaas = CH_ACTIVACION;
+
+		if(key == '2')
+			menuSaas = SAAS_CONF;
+
+
+		if(key == '#')
+			menuConfig = CONFIG_SUBMENU;
+
+		break;
+
+	case CH_ACTIVACION:
+
+		pantalla.lcdLoadView(&pantalla, &Pantalla::menuConfigChangeMode, &configSystem.ENVIO_SAAS, (char*)"SAAS");
+
+		if(key == '1'){
+			configSystem.ENVIO_SAAS = !configSystem.ENVIO_SAAS;
+			NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
+		}
+		if(key == '#')
+			menuSaas = SAAS_SELECT;
+
+		break;
+
+	case SAAS_CONF:
+		configSaasConf();
+		break;
+
+	}
+}
+
+
+void Menu::configSaasConf(){
+
+	switch(menuSaasConf){
+
+	case SAAS_SELECT_CONF:
+		pantalla.lcdLoadView(&pantalla, &Pantalla::menuConfigSaasConf);
+
+		if(key == '1')
+			menuSaasConf = CH_CONF_TIEMPO;
+
+		if(key == '2')
+			menuSaasConf = SYNC_ID_PAQUETE;
+
+		if(key == '3')
+			menuSaasConf = SYNC_TOKEN_API;
+
+		if(key == '#')
+			menuSaas = SAAS_SELECT;
+
+		break;
+
+
+	case CH_CONF_TIEMPO:
+		pantalla.lcdLoadView(&pantalla, &Pantalla::menuConfigSaasConfTiempo);
+
+		if(key == '1'){
+			configSystem.ESPERA_SAAS_MULTIPLICADOR++;
+			if(configSystem.ESPERA_SAAS_MULTIPLICADOR>3){
+				configSystem.ESPERA_SAAS_MULTIPLICADOR = 0;
+			}
+
+			NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
+		}
+		if(key == '#')
+			menuSaasConf = SAAS_SELECT_CONF;
+
+		break;
+
+	case SYNC_ID_PAQUETE:
+		pantalla.lcdLoadView(&pantalla, &Pantalla::menuConfigSaasConfSyncId);
+
+		if(key == '1'){
+			getIdPaqueteSaas();
+			pantalla.limpiarPantalla();
+		}
+		if(key == '#')
+			menuSaasConf = SAAS_SELECT_CONF;
+
+		break;
+
+	case SYNC_TOKEN_API:
+
+		pantalla.lcdLoadView(&pantalla, &Pantalla::menuConfigSaasConfSyncToken);
+
+		if(key == '1'){
+			generarTokenSaas();
+			pantalla.limpiarPantalla();
+		}
+		if(key == '#')
+			menuSaasConf = SAAS_SELECT_CONF;
+
+		break;
+
+	}
+}
+
 
 void Menu::configComunicaciones(){
 
@@ -452,13 +580,16 @@ void Menu::infoDatos(){
 		}
 		break;
 
+	case DATOS_PROVEEDOR_RED:
+		pantalla.lcdLoadView(&pantalla, &Pantalla::menuInfoProveedorRed);
+		break;
 	case DATOS_VERSION:
 		pantalla.lcdLoadView(&pantalla, &Pantalla::menuInfoVersion);
 		break;
 
 	}
 
-	if(menuInfoDatos >5){
+	if(menuInfoDatos >6){
 		menuInfoDatos = DATOS_ENTRADAS;
 	}
 

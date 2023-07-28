@@ -41,6 +41,8 @@ private:
 	MENU_CONFIG_MODULOS menuModulos;
 	MENU_CONFIG_MODOS menuModos;
 	MENU_CONFIG_SENSORES menuSensores;
+	MENU_CONFIG_SAAS menuSaas;
+	MENU_CONFIG_SAAS_CONF menuSaasConf;
 	MENU_INFO_TIME menuInfoTime;
 	MENU_INFO_DATOS menuInfoDatos;
 	MENU_INFO_REGISTROS menuInfoRegistros;
@@ -57,6 +59,8 @@ public:
 	void configModos();
 	void configSensores();
 	void configModulos();
+	void configSaas();
+	void configSaasConf();
 	void configComunicaciones();
 	void modficarSensorPir(byte num);
 	void infoTiempo();

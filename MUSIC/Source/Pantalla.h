@@ -28,7 +28,7 @@ extern String nombreZonas[];
 extern byte zona;
 extern byte desactivaciones, mensajesEnviados;
 extern ConfigSystem configSystem;
-extern int coberturaRed();
+extern ProveedorEstado coberturaRed();
 
 
 
@@ -54,6 +54,7 @@ public:
 	void lcdAvisoEnviado();
 	void lcdMenu();
 	void menuConfig();
+	void menuConfigSubMenu();
 	void menuConfigModulos();
 	void menuConfigModos();
 	void menuConfigSensores();
@@ -67,6 +68,7 @@ public:
 	void menuInfoVersion();
 	void menuInfoResetAuto();
 	void menuInfoSMSDiario();
+	void menuInfoProveedorRed();
 	void menuInfoRegistros();
 	void menuInfoRegistrosBorrar();
 	void menuInfoRegBorrado();
@@ -74,6 +76,11 @@ public:
 	void menuInfoRegDescargando();
 	void menuInfoRegDescargandoError();
 	void menuInfoBluetoohAviso();
+	void menuConfigSaas();
+	void menuConfigSaasConf();
+	void menuConfigSaasConfTiempo();
+	void menuConfigSaasConfSyncId();
+	void menuConfigSaasConfSyncToken();
 	void menuCheck();
 	void errorEmergencia();
 	void sysConexionGprs();

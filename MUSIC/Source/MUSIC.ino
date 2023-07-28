@@ -173,7 +173,7 @@ void procesosSistema(){
 	resetAutomatico();
 	checkearBateriaDeEmergencia();
 	escucharGSM();
-	//checkearEnvioSaas();
+	checkearEnvioSaas();
 }
 
 void procesosPrincipales()
