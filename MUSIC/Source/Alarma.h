@@ -753,10 +753,10 @@ static byte tiempoFracccion;
 		return respuesta;
 	}
 
-	void comprobarConexionGSM(){
+	void comprobarConexionGSM(unsigned long timeOut){
 		Serial.print("Waiting for network...");
 		pantalla.lcdLoadView(&pantalla, &Pantalla::sysConexionGSM);
-		if (!modem.waitForNetwork()) {
+		if (!modem.waitForNetwork(timeOut, true)) {
 			Serial.println(" fail");
 			pantallaDeError(F("  SYSTM ERROR!   SIN RED MOVIL  "));
 			return;
@@ -803,7 +803,7 @@ static byte tiempoFracccion;
 	}
 
 	void checkearEnvioSaas(){
-
+		//Queda pendiente controlar el envio cuando el sistema este en fase de alarma
 		if(!configSystem.ENVIO_SAAS)
 			return;
 
@@ -820,12 +820,22 @@ static byte tiempoFracccion;
 				saasCronEstado = ENVIO;
 				retryCount = 0; // Reset retry count when starting a new execution
 			}
+
+			//XX tiempo antes vuelvo a encender
 			break;
 
 		case ENVIO:
-			Serial.println(F("Enviando datos al servidor"));
+			Serial.print(F("Enviando datos al servidor por el nucleo:"));
 			Serial.println(xPortGetCoreID());
-			executionResult = eventosJson.enviarInformeSaas();
+
+			if(modem.waitForNetwork(2000, true)){
+				Serial.println(F("Hay cobertura se procede al envio"));
+				executionResult = eventosJson.enviarInformeSaas();
+			}else {
+				Serial.println(F("No hay cobertura se aborta el envio"));
+				executionResult = 0;
+			}
+
 
 			if (executionResult == 1) {
 				saasCronEstado = ESPERA_ENVIO;
@@ -835,6 +845,8 @@ static byte tiempoFracccion;
 				lastExecutionTime = millis();
 				saasCronEstado = ESPERA_REINTENTO;
 			}
+
+			//Apagar
 			break;
 
 		case ESPERA_REINTENTO:
@@ -901,7 +913,10 @@ static byte tiempoFracccion;
 
 			if (estadoHttp != 0 || respuesta.codigo <= 0) {
 				Serial.println(F("failed to connect"));
+
+				if(xPortGetCoreID() == 1)
 				pantallaDeError(F("  SYSTM ERROR!  PETICION HTTP KO"));
+
 				respuestaHttp += "Fallo en la peticion HTTP error API: "
 						+ String(estadoHttp)
 						+ " error HTTP:"

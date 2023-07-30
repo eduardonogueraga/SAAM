@@ -44,9 +44,6 @@ if(flagTest){
 		return;
 	}
 
-
-
-/*
 	//Se interrogan a los terminales conectados
 
 	if(this->flagSalidaComposer == 0){ //@TEST
@@ -58,7 +55,7 @@ if(flagTest){
 	for (int i = 0; i < 1; i++) { //N_TERMINALES_LINEA
 
 		while (!this->flagSalidaComposer) {
-			this->interrogarTerminal(T_LIST[i]);
+			this->interrogarTerminal(*T_LIST[i]);
 		}
 
 		this->flagSalidaComposer = 0;
@@ -66,7 +63,7 @@ if(flagTest){
 
 	//this->flagSalidaComposer = 1; //@TEST
 	//delay(500);
-*/
+
 }
 
 

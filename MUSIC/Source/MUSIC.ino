@@ -6,6 +6,7 @@
  * POR HACER:
  * -Enriquecer el log con dia de la semana o temperatura
  * -Ajustar los requerimientos de SAAS
+ * -Añadir un envio SAAS adicional y posterior a mensaje y las llamadas
  *
  */
 
@@ -128,13 +129,14 @@ void setup()
 				&envioServidorSaas, //Task
 				0);
 
+	    disableCore0WDT(); //Quito el watchdog en 0 que Dios me perdone
+
 	    // Iniciar el planificador de tareas
 	    //vTaskStartScheduler();
 
 
 	    //SIM800L
-	    if(MODO_DEFAULT)
-	    comprobarConexionGSM();
+	    comprobarConexionGSM(5000L);
 
 }
 
@@ -144,13 +146,8 @@ void loop()
 
 	leerEntradaTeclado();
 	demonio.demonioSerie();
-
-	 //xSemaphoreTake(semaphore, portMAX_DELAY);
-
 	procesosSistema();
 	procesosPrincipales();
-
-	 //xSemaphoreGive(semaphore);
 	linea.mantenerComunicacion();
 	//rcomp1.test();
 
@@ -178,8 +175,6 @@ void loop2(void *parameter){
 		//delay(100);
 
 		//linea.mantenerComunicacion();
-		//rcomp0.test();
-		//checkearEnvioSaas();
 		vTaskDelay(300);
 
 	}
@@ -404,6 +399,7 @@ void setEstadoGuardiaReactivacion()
 	registro.registrarLogSistema("ALARMA ACTIVADA AUTOMATICAMENTE");
 	//eventosJson.guardarLog(); @PEND
 	eventosJson.guardarEntrada();
+	vTaskResume(envioServidorSaas); //Continua la ejecucion SAAS
 }
 
 void setEstadoAlerta()
@@ -422,6 +418,7 @@ void setEstadoAlerta()
 	}
 
 	sleepModeGSM = GSM_ON;
+	vTaskSuspend(envioServidorSaas); //Pausa la ejecucion SAAS
 }
 
 void setEstadoEnvio()
