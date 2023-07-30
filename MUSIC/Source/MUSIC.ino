@@ -38,6 +38,7 @@ void EstadoInicio(){
 	}
 }
 
+
 void setup()
 {
 	  Serial.begin(115200);
@@ -99,11 +100,11 @@ void setup()
 
 	    //Configuracion de los puertos
 
-	    rcomp1.digitalWrite(LED_COCHERA, LOW);
-	    rcomp1.digitalWrite(RS_CTL,LOW);
+	    mcp.digitalWrite(LED_COCHERA, LOW);
+	    mcp.digitalWrite(RS_CTL,LOW);
 
 	    //Activamos el modulo GSM
-	    rcomp1.digitalWrite(GSM_PIN, HIGH);
+	    mcp.digitalWrite(GSM_PIN, HIGH);
 
 	    EstadoInicio();
 	    cargarEstadoPrevio();
@@ -114,8 +115,18 @@ void setup()
 	    registro.registrarLogSistema("ALARMA INICIADA");
 	    eventosJson.guardarLog(ALARMA_INICIADA_LOG);
 
+	    //Serial.println(xPortGetCoreID());
 	    //Hilo 0
-	    xTaskCreatePinnedToCore(loop2,"loop_2",5000,NULL,1,&tareaLoopDos,0);
+	    //xTaskCreatePinnedToCore(loop2,"loop_2",10000,NULL,1,&tareaLoopDos,0);
+	    //xTaskCreate(tarea2, "Tarea 2", (1024*7), NULL, 1, NULL);
+	    xTaskCreatePinnedToCore(
+	    		tareaSaas,
+				"tareaSaas",
+				(1024*10), //Buffer
+				NULL, //Param
+				1, //Prioridad
+				&envioServidorSaas, //Task
+				0);
 
 	    // Iniciar el planificador de tareas
 	    //vTaskStartScheduler();
@@ -134,13 +145,24 @@ void loop()
 	leerEntradaTeclado();
 	demonio.demonioSerie();
 
+	 //xSemaphoreTake(semaphore, portMAX_DELAY);
+
 	procesosSistema();
 	procesosPrincipales();
+
+	 //xSemaphoreGive(semaphore);
 	linea.mantenerComunicacion();
 	//rcomp1.test();
 
 }
 
+
+void tareaSaas(void *pvParameters) {
+  while (1) {
+	  checkearEnvioSaas();
+    vTaskDelay(1000);
+  }
+}
 
 void loop2(void *parameter){
 	for(;;){
@@ -157,7 +179,8 @@ void loop2(void *parameter){
 
 		//linea.mantenerComunicacion();
 		//rcomp0.test();
-		vTaskDelay(10);
+		//checkearEnvioSaas();
+		vTaskDelay(300);
 
 	}
 }
@@ -173,7 +196,7 @@ void procesosSistema(){
 	resetAutomatico();
 	checkearBateriaDeEmergencia();
 	escucharGSM();
-	checkearEnvioSaas();
+	//checkearEnvioSaas();
 }
 
 void procesosPrincipales()
@@ -225,10 +248,10 @@ void procesoAlarma(){
 
 		if(checkearMargenTiempo(tiempoMargen)){
 
-			mg.compruebaEstadoMG(rcomp1.digitalRead(MG_SENSOR));
-			pir1.compruebaEstado(rcomp1.digitalRead(PIR_SENSOR_1));
-			pir2.compruebaEstado(rcomp1.digitalRead(PIR_SENSOR_2));
-			pir3.compruebaEstado(rcomp1.digitalRead(PIR_SENSOR_3));
+			mg.compruebaEstadoMG(mcp.digitalRead(MG_SENSOR));
+			pir1.compruebaEstado(mcp.digitalRead(PIR_SENSOR_1));
+			pir2.compruebaEstado(mcp.digitalRead(PIR_SENSOR_2));
+			pir3.compruebaEstado(mcp.digitalRead(PIR_SENSOR_3));
 
 
 			if(mg.disparador()){
@@ -307,10 +330,10 @@ void procesoAlarma(){
 
 		}
 
-		mg.compruebaPhantom(rcomp1.digitalRead(MG_SENSOR),datosSensoresPhantom);
-		pir1.compruebaPhantom(rcomp1.digitalRead(PIR_SENSOR_1),datosSensoresPhantom);
-		pir2.compruebaPhantom(rcomp1.digitalRead(PIR_SENSOR_2),datosSensoresPhantom);
-		pir3.compruebaPhantom(rcomp1.digitalRead(PIR_SENSOR_3),datosSensoresPhantom);
+		mg.compruebaPhantom(mcp.digitalRead(MG_SENSOR),datosSensoresPhantom);
+		pir1.compruebaPhantom(mcp.digitalRead(PIR_SENSOR_1),datosSensoresPhantom);
+		pir2.compruebaPhantom(mcp.digitalRead(PIR_SENSOR_2),datosSensoresPhantom);
+		pir3.compruebaPhantom(mcp.digitalRead(PIR_SENSOR_3),datosSensoresPhantom);
 
 
 		for (int i = 0; i < 1; i++) { //N_TERMINALES_LINEA

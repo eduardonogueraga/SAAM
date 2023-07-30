@@ -226,7 +226,7 @@ void Mensajes::pieFechaBateria(){
 	if(configSystem.MODULO_RTC)
 		this->pieMensaje = fecha.imprimeFecha();
 
-	if(rcomp1.digitalRead(SENSOR_BATERIA_RESPALDO) == LOW){
+	if(mcp.digitalRead(SENSOR_BATERIA_RESPALDO) == LOW){
 		this->pieMensaje += " Bateria de emergencia desactivada";
 	}
 }

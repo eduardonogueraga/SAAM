@@ -29,6 +29,7 @@ extern byte zona;
 extern byte desactivaciones, mensajesEnviados;
 extern ConfigSystem configSystem;
 extern ProveedorEstado coberturaRed();
+extern String fixedLengthString(String& original, size_t fixedLength);
 
 
 

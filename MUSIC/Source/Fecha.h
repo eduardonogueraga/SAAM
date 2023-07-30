@@ -10,23 +10,28 @@
 #include "Arduino.h"
 #include <RTClib.h>
 #include "Macros.h"
+#include <ESP32Time.h>
+
 extern ConfigSystem configSystem;
+
 
 class Fecha {
 private:
 	RTC_DS3231 rtc;
+	ESP32Time rtcLocal;
 	DateTime fecha;
 	DateTime fechaReset;
 
+	DateTime obtenerTiempoActual();
 public:
 
 	Fecha();
 	void iniciarRTC();
-	String imprimeFecha(DateTime paramFecha = 0);
+	String imprimeFecha(byte local= 0, DateTime paramFecha = 0);
 	String imprimeFechaSimple(DateTime paramFecha = 0);
 	String imprimeFechaSQL();
-	String imprimeFechaJSON(DateTime paramFecha = 0);
-	const char* imprimeFechaFichero();
+	String imprimeFechaJSON(byte local = 0, DateTime paramFecha = 0);
+	const char* imprimeFechaFichero(byte local= 0);
 	String imprimeHora();
 	void establecerFechaReset(byte dia, byte hora = 0, byte minuto = 0, byte segundo = 0);
 	DateTime getFechaReset();

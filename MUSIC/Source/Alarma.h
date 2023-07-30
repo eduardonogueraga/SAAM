@@ -41,10 +41,11 @@
 
 
 //VERSION (VE -> Version Estable VD -> Version Desarrollo)
-const char* version[] = {"MUSIC VE21R0", "27/07/23"};
+const char* version[] = {"MUSIC VE21R0", "30/07/23"};
 
 //RTOS
 TaskHandle_t tareaLoopDos;
+TaskHandle_t envioServidorSaas;
 
 //VARIABLES GLOBALES
 ConfigSystem configSystem;
@@ -77,7 +78,7 @@ SemaphoreHandle_t semaphore;
 //MUXMCP23X17 mcp(&semaphore);
 
 RecursosCompartidosRTOS rcomp0(&semaphore,&mcp);
-RecursosCompartidosRTOS rcomp1(&semaphore,&mcp);
+RecursosCompartidosRTOS rcomp1(&semaphore,&mcp); //mcp
 
 
 //NVS
@@ -309,7 +310,7 @@ static byte tiempoFracccion;
 	}
 
 	void watchDog(){
-		rcomp1.digitalWrite(WATCHDOG, !rcomp1.digitalRead(WATCHDOG));
+		mcp.digitalWrite(WATCHDOG, !mcp.digitalRead(WATCHDOG));
 	}
 
 	void sleepMode(){
@@ -317,19 +318,19 @@ static byte tiempoFracccion;
 		switch(sleepModeGSM){
 
 		case GSM_ON:
-			rcomp1.digitalWrite(GSM_PIN, HIGH);
+			mcp.digitalWrite(GSM_PIN, HIGH);
 			break;
 
 		case GSM_OFF:
-			rcomp1.digitalWrite(GSM_PIN, LOW);
+			mcp.digitalWrite(GSM_PIN, LOW);
 			break;
 
 		case GSM_TEMPORAL:
 
 			if(checkearMargenTiempo(prorrogaGSM)){
-				rcomp1.digitalWrite(GSM_PIN, LOW);
+				mcp.digitalWrite(GSM_PIN, LOW);
 			}else {
-				rcomp1.digitalWrite(GSM_PIN, HIGH);
+				mcp.digitalWrite(GSM_PIN, HIGH);
 			}
 			break;
 		}
@@ -364,7 +365,7 @@ static byte tiempoFracccion;
 			}
 
 			delay(200);
-			rcomp1.digitalWrite(RESETEAR, HIGH);
+			mcp.digitalWrite(RESETEAR, HIGH);
 		}
 
 	void resetAutomatico(){
@@ -456,11 +457,11 @@ static byte tiempoFracccion;
 	}
 
 	void checkearBateriaDeEmergencia(){
-		alertsInfoLcd[INFO_FALLO_BATERIA] = !rcomp1.digitalRead(SENSOR_BATERIA_RESPALDO);
+		alertsInfoLcd[INFO_FALLO_BATERIA] = !mcp.digitalRead(SENSOR_BATERIA_RESPALDO);
 
-	    if(rcomp1.digitalRead(SENSOR_BATERIA_RESPALDO) != sensorBateriaAnterior){
+	    if(mcp.digitalRead(SENSOR_BATERIA_RESPALDO) != sensorBateriaAnterior){
 
-			if(rcomp1.digitalRead(SENSOR_BATERIA_RESPALDO) == LOW){
+			if(mcp.digitalRead(SENSOR_BATERIA_RESPALDO) == LOW){
 				registro.registrarLogSistema("BATERIA DE EMERGENCIA ACTIVADA");
 				eventosJson.guardarLog(BATERIA_EMERGENCIA_ACTIVADA_LOG);
 			} else{
@@ -469,7 +470,7 @@ static byte tiempoFracccion;
 			}
 		}
 
-	    sensorBateriaAnterior = rcomp1.digitalRead(SENSOR_BATERIA_RESPALDO);
+	    sensorBateriaAnterior = mcp.digitalRead(SENSOR_BATERIA_RESPALDO);
 	}
 
 	void realizarLlamadas(){
@@ -658,18 +659,18 @@ static byte tiempoFracccion;
 	void avisoLedPuertaCochera(){
 
 		if(estadoAlarma != ESTADO_GUARDIA){
-			rcomp1.digitalWrite(LED_COCHERA, LOW);
+			mcp.digitalWrite(LED_COCHERA, LOW);
 		}else{
 
 			if(!checkearMargenTiempo(tiempoMargen)){
-				if(!rcomp1.digitalRead(MG_SENSOR)){
-					rcomp1.digitalWrite(LED_COCHERA, HIGH);
+				if(!mcp.digitalRead(MG_SENSOR)){
+					mcp.digitalWrite(LED_COCHERA, HIGH);
 				}else{
-					rcomp1.digitalWrite(LED_COCHERA, LOW);
+					mcp.digitalWrite(LED_COCHERA, LOW);
 				}
 
 			}else{
-				rcomp1.digitalWrite(LED_COCHERA, LOW);
+				mcp.digitalWrite(LED_COCHERA, LOW);
 			}
 
 		}
@@ -730,7 +731,7 @@ static byte tiempoFracccion;
 
 	ProveedorEstado coberturaRed() {
 
-		 ProveedorEstado respuesta;
+		static ProveedorEstado respuesta;
 		static unsigned long tiempoAnterior = 0; // Variable estática para almacenar el tiempo de la última ejecución
 
 		unsigned long tiempoActual = millis(); // Obtener el tiempo actual desde que se encendió Arduino
@@ -778,14 +779,19 @@ static byte tiempoFracccion;
 	bool establecerConexionGPRS(){
 		// Intenta conectar al servicio de red GPRS
 		Serial.println("Conectando a la red GPRS...");
+
+		if(xPortGetCoreID() == 1)
 		pantalla.lcdLoadView(&pantalla, &Pantalla::sysConexionGprs);
 
 		if (!modem.gprsConnect(apn, gsmUser, gsmPass)) {
 			Serial.println(" Error al conectar a la red GPRS.");
+			if(xPortGetCoreID() == 1)
 			pantalla.lcdLoadView(&pantalla, &Pantalla::sysConexionGprsFail);
+
 			return false;
 		}
 		Serial.println(" Conexion a la red GPRS establecida.");
+		if(xPortGetCoreID() == 1)
 		pantalla.lcdLoadView(&pantalla, &Pantalla::sysConexionGprsOk);
 
 		return true;
@@ -808,7 +814,9 @@ static byte tiempoFracccion;
 
 		switch (saasCronEstado) {
 		case ESPERA_ENVIO:
-			if (millis() - lastExecutionTime >= (((configSystem.ESPERA_SAAS_MULTIPLICADOR*5)+10)*60000)) { //600000
+			//if (millis() - lastExecutionTime >= (((configSystem.ESPERA_SAAS_MULTIPLICADOR*5)+10)*60000)) { //600000
+			if (millis() - lastExecutionTime >= 30000) { //600000
+
 				saasCronEstado = ENVIO;
 				retryCount = 0; // Reset retry count when starting a new execution
 			}
@@ -816,7 +824,9 @@ static byte tiempoFracccion;
 
 		case ENVIO:
 			Serial.println(F("Enviando datos al servidor"));
+			Serial.println(xPortGetCoreID());
 			executionResult = eventosJson.enviarInformeSaas();
+
 			if (executionResult == 1) {
 				saasCronEstado = ESPERA_ENVIO;
 				lastExecutionTime = millis();
@@ -829,7 +839,7 @@ static byte tiempoFracccion;
 
 		case ESPERA_REINTENTO:
 			if (retryCount < 2) {
-				if (millis() - lastExecutionTime >= 6000) { //120000
+				if (millis() - lastExecutionTime >= 10000) { //120000
 					saasCronEstado = ENVIO;
 					retryCount++;
 				}
@@ -848,14 +858,16 @@ static byte tiempoFracccion;
 		RespuestaHttp respuesta;
 
 		/*TEST*/
-		respuesta.codigo= 200;
-		respuesta.respuesta = "OK";// "Id de paquete duplicado";
-		return respuesta;
+		//respuesta.codigo= 200;
+		//respuesta.respuesta = "OK";// "Id de paquete duplicado";
+		//return respuesta;
 		/*TEST*/
 
 		if(establecerConexionGPRS()){
 			int estadoHttp = 0;
 			String respuestaHttp;
+
+			vTaskDelay(1000);
 
 			//Formular peticion HTTP
 			//http.connectionKeepAlive();  // Currently, this is needed for HTTPS
@@ -880,6 +892,7 @@ static byte tiempoFracccion;
 			}
 
 			http.endRequest();
+
 
 			//Gestionar respuesta HTTP
 			respuesta.codigo = http.responseStatusCode();
@@ -960,6 +973,8 @@ static byte tiempoFracccion;
 
 			registro.registrarLogHttpRequest(&respuestaHttp);
 			cerrarConexionGPRS();
+
+			vTaskDelay(1000);
 		}
 		return respuesta;
 	}

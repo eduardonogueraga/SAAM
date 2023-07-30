@@ -322,6 +322,16 @@ void ComandoSerie::comprobarComando() {
 		eventosJson.enviarInformeSaas();
 	}
 
+	if (compararCadena(data, "go saas")){
+		nombreComando(data);
+
+		configSystem.ENVIO_SAAS = !configSystem.ENVIO_SAAS;
+		Serial.print("Envio SAAS:");
+		Serial.println(configSystem.ENVIO_SAAS);
+		NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
+	}
+
+
 	if (compararCadena(data, "rs -t")){
 		nombreComando(data);
 		linea.testUart();

@@ -127,7 +127,7 @@ void Pantalla::lcdReposo()
 		}
 		lcd.setCursor(15,1);
 
-		if(rcomp1.digitalRead(SENSOR_BATERIA_RESPALDO) == LOW){
+		if(mcp.digitalRead(SENSOR_BATERIA_RESPALDO) == LOW){
 			lcd.print(F(" "));
 		}else{
 			lcd.print(F("!"));
@@ -387,12 +387,16 @@ void Pantalla::lcdGuardia(){
 	}
 
 	void Pantalla::menuInfoProveedorRed(){
+
+		String operatorName = coberturaRed().proveedor;
+		String calidad = String(coberturaRed().intensidadSignal);
+
 		lcd.setCursor(0,0);
-		lcd.print(coberturaRed().proveedor);
+		lcd.print(fixedLengthString(operatorName, 16));
 		lcd.setCursor(0,1);
 		lcd.print(F("Calidad red: "));
 		lcd.setCursor(13,1);
-		lcd.print(coberturaRed().intensidadSignal);
+		lcd.print(fixedLengthString(calidad, 3));
 	}
 
 	void Pantalla::menuInfoRegistros(){

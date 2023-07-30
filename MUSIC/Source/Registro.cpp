@@ -87,7 +87,7 @@ void Registro::registrarLogSistema(char descripcion[190]){
 			 }
 	     root.print(descripcion);
 	     root.print("\t");
-	     root.print(fecha.imprimeFecha());
+	     root.print(fecha.imprimeFecha(1));
 	     root.print("\n");
 	     root.close();
 
@@ -105,7 +105,7 @@ void Registro::registrarLogHttpRequest(String* respuestaHttp){
 	}
 
  //Definimos el nombre del nuevo fichero http request
-	snprintf(nombreFicheroHttpLog, sizeof(nombreFicheroHttpLog), "%s_%08d_%s%s", "httpLog", leerFlagEEInt("PACKAGE_ID"), fecha.imprimeFechaFichero(),".txt");
+	snprintf(nombreFicheroHttpLog, sizeof(nombreFicheroHttpLog), "%s_%08d_%s%s", "httpLog", leerFlagEEInt("PACKAGE_ID"), fecha.imprimeFechaFichero(1),".txt");
 	snprintf(rutaAbosuluta, sizeof(rutaAbosuluta), "%s/%s", directories[DIR_HTTP_LOG], nombreFicheroHttpLog);
 
 	root = SD.open(rutaAbosuluta, FILE_APPEND);
@@ -115,7 +115,7 @@ void Registro::registrarLogHttpRequest(String* respuestaHttp){
 	}
 	root.print("Respuesta del servidor SAAS");
 	root.print("\t");
-	root.print(fecha.imprimeFecha());
+	root.print(fecha.imprimeFecha(1));
 	root.print("\n");
 	root.print(*respuestaHttp);
 	root.close();

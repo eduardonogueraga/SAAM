@@ -117,7 +117,8 @@ void EventosJson::guardarEvento(char eventName[],char reg[]) {
 	 JSON_DOC["version"] = version[0];
 	 JSON_DOC["retry"] = "0";
 	 JSON_DOC["id"] = "0";
-	 JSON_DOC["date"] = fecha.imprimeFechaJSON();
+	 JSON_DOC["date"] = fecha.imprimeFechaJSON(1);
+
 
 	 JSON_DOC.createNestedArray("System");
 	 JSON_DOC.createNestedArray("Entry");
@@ -138,7 +139,7 @@ void EventosJson::guardarEvento(char eventName[],char reg[]) {
 			 "|103;"+String(configSystem.SENSORES_HABLITADOS[1])+
 			 "|104;"+String(configSystem.SENSORES_HABLITADOS[2])+
 			 "|105;"+String(configSystem.SENSORES_HABLITADOS[3]);
-	 E_ARR_SYSTEM["reset"] = fecha.imprimeFechaJSON(fecha.getFechaReset());
+	 E_ARR_SYSTEM["reset"] = fecha.imprimeFechaJSON(0, fecha.getFechaReset());
 
 	 return JSON_DOC;
  }
@@ -317,7 +318,7 @@ byte EventosJson::cargarJsonNVS(StaticJsonDocument<MAX_SIZE_JSON>& jsonDoc) {
 
 void EventosJson::actualizarCabecera(){
 
-	JSON_DOC["date"] = fecha.imprimeFechaJSON();
+	JSON_DOC["date"] = fecha.imprimeFechaJSON(1);
 
 	//Recuperamos los datos del sistema
 	JsonArray system = JSON_DOC["System"];
@@ -338,7 +339,7 @@ void EventosJson::actualizarCabecera(){
 			"|103;"+String(configSystem.SENSORES_HABLITADOS[1])+
 			"|104;"+String(configSystem.SENSORES_HABLITADOS[2])+
 			"|105;"+String(configSystem.SENSORES_HABLITADOS[3]);
-	lastSystem["reset"] = fecha.imprimeFechaJSON(fecha.getFechaReset());
+	lastSystem["reset"] = fecha.imprimeFechaJSON(0,fecha.getFechaReset());
 
 }
 
