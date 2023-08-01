@@ -332,6 +332,14 @@ void ComandoSerie::comprobarComando() {
 	}
 
 
+	if (compararCadena(data, "go ter")){
+		nombreComando(data);
+		configSystem.ESCUCHAR_LINEA = !configSystem.ESCUCHAR_LINEA;
+		Serial.print("Conexion linea on");
+		Serial.println(configSystem.ESCUCHAR_LINEA);
+		NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
+	}
+
 	if (compararCadena(data, "rs -t")){
 		nombreComando(data);
 		linea.testUart();

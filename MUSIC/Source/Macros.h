@@ -170,6 +170,7 @@ struct configuracion_sistema_t {
 	byte MODULO_RTC = 1;
 	byte ENVIO_SAAS = 1;
 	byte ESPERA_SAAS_MULTIPLICADOR = 0;
+	byte ESCUCHAR_LINEA = 1;
 	byte SENSORES_HABLITADOS[4] = {1,1,1,1};
 	byte SMS_HISTORICO;
 	char FECHA_SMS_HITORICO[30];

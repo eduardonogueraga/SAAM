@@ -44,7 +44,7 @@
 const char* version[] = {"MUSIC VE21R0", "30/07/23"};
 
 //RTOS
-TaskHandle_t tareaLoopDos;
+TaskHandle_t gestionLinea;
 TaskHandle_t envioServidorSaas;
 
 //VARIABLES GLOBALES
@@ -311,6 +311,15 @@ static byte tiempoFracccion;
 
 	void watchDog(){
 		mcp.digitalWrite(WATCHDOG, !mcp.digitalRead(WATCHDOG));
+	}
+
+	void chekearPeticionRs()
+	{
+		if(linea.getEscucharRed()){
+			mcp.digitalWrite(RS_CTL, LOW);
+		}else {
+			mcp.digitalWrite(RS_CTL, HIGH);
+		}
 	}
 
 	void sleepMode(){
@@ -821,14 +830,14 @@ static byte tiempoFracccion;
 				retryCount = 0; // Reset retry count when starting a new execution
 			}
 
-			//XX tiempo antes vuelvo a encender
+			// TODO XX tiempo antes vuelvo a encender
 			break;
 
 		case ENVIO:
 			Serial.print(F("Enviando datos al servidor por el nucleo:"));
 			Serial.println(xPortGetCoreID());
 
-			if(modem.waitForNetwork(2000, true)){
+			if(!modem.waitForNetwork(2000, true)){ //@TEST NO NEGAR EN PROD
 				Serial.println(F("Hay cobertura se procede al envio"));
 				executionResult = eventosJson.enviarInformeSaas();
 			}else {
@@ -870,9 +879,10 @@ static byte tiempoFracccion;
 		RespuestaHttp respuesta;
 
 		/*TEST*/
-		//respuesta.codigo= 200;
-		//respuesta.respuesta = "OK";// "Id de paquete duplicado";
-		//return respuesta;
+		respuesta.codigo= 200;
+		respuesta.respuesta = "OK";// "Id de paquete duplicado";
+		return respuesta;
+		vTaskDelay(1000);
 		/*TEST*/
 
 		if(establecerConexionGPRS()){

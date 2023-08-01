@@ -12,13 +12,13 @@
 #include "Macros.h"
 #include <HardwareSerial.h>
 #include "Terminal.h"
-//#include <Adafruit_MCP23X17.h>
+#include <Adafruit_MCP23X17.h>
 
 #define TIEMPO_ESPERA_MASTER 5000
 
 extern HardwareSerial UART_RS;
 extern Terminal* T_LIST[];
-//extern Adafruit_MCP23X17 mcp;
+extern Adafruit_MCP23X17 mcp;
 
 
 #include "RecursosCompartidosRTOS.h"
@@ -29,6 +29,8 @@ class ComunicacionLinea {
 
 
 private:
+
+	byte escucharRed;
 
 	char metodo[10];
 	char metodoDatos[10] = "DATA";
@@ -73,10 +75,14 @@ private:
 	void writeChar(char *TEXTO_ENVIO);
 	void interrogarTerminal(Terminal &terminal);
 
+	void setEscucharRed(byte escucharRed);
+
 public:
 	ComunicacionLinea();
 	void mantenerComunicacion();
 	void testUart();
+
+	byte getEscucharRed() const;
 
 };
 

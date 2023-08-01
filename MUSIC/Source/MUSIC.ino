@@ -7,6 +7,7 @@
  * -Enriquecer el log con dia de la semana o temperatura
  * -Ajustar los requerimientos de SAAS
  * -Añadir un envio SAAS adicional y posterior a mensaje y las llamadas
+ * -Permitir una opcion que mantenga el modulo SIM800 reseteado
  *
  */
 
@@ -118,8 +119,17 @@ void setup()
 
 	    //Serial.println(xPortGetCoreID());
 	    //Hilo 0
-	    //xTaskCreatePinnedToCore(loop2,"loop_2",10000,NULL,1,&tareaLoopDos,0);
-	    //xTaskCreate(tarea2, "Tarea 2", (1024*7), NULL, 1, NULL);
+
+/*
+	    xTaskCreatePinnedToCore(
+	    		tareaLinea,
+				"tareaLinea",
+				(1024*5),
+				NULL,
+				2,
+				&gestionLinea,
+				1);
+*/
 	    xTaskCreatePinnedToCore(
 	    		tareaSaas,
 				"tareaSaas",
@@ -136,7 +146,7 @@ void setup()
 
 
 	    //SIM800L
-	    comprobarConexionGSM(5000L);
+	    //comprobarConexionGSM(5000L);
 
 }
 
@@ -161,28 +171,19 @@ void tareaSaas(void *pvParameters) {
   }
 }
 
-void loop2(void *parameter){
-	for(;;){
 
-		/*
-		Serial.print("hola: ");
-		Serial.println(xPortGetCoreID());
-		Serial.println(rcomp0.digitalRead(SENSOR_BATERIA_RESPALDO));
-		delay(1000);
-		 */
-		//rcomp0.digitalRead(SENSOR_BATERIA_RESPALDO);
-		//rcomp0.digitalWrite(RS_CTL, HIGH);
-		//delay(100);
-
-		//linea.mantenerComunicacion();
-		vTaskDelay(300);
-
+void tareaLinea(void *pvParameters){
+	  while (1) {
+		linea.mantenerComunicacion();
+		vTaskDelay(1000);
 	}
 }
 
 void procesosSistema(){
 
+
 	watchDog();
+	//chekearPeticionRs();
 	sleepMode();
 	checkearSensorPuertaCochera();
 	avisoLedPuertaCochera();

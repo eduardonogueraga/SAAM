@@ -26,11 +26,24 @@ ComunicacionLinea::ComunicacionLinea() { // @suppress("Class members should be p
 	terminalComposer = LLAMAR_TERMINAL;
 	lecturaLinea = SILENCIO;
 
+
+	this->escucharRed = 1;
 	this->numeroReintentosTerminal = 0;
 	this->numeroReintentosMaster = 0;
 }
 
+
+byte ComunicacionLinea::getEscucharRed() const {
+	return escucharRed;
+}
+
+void ComunicacionLinea::setEscucharRed(byte escucharRed) {
+	this->escucharRed = escucharRed;
+}
+
 void ComunicacionLinea::mantenerComunicacion(){
+	if(!configSystem.ESCUCHAR_LINEA)
+		return;
 
 /*
 if(flagTest){
@@ -40,22 +53,25 @@ if(flagTest){
 }
 */
 
+	/*
 	if(!escucharLinea(*T_LIST[0])){
 		return;
 	}
+	 */
 
 	//Se interrogan a los terminales conectados
-
+/*
 	if(this->flagSalidaComposer == 0){ //@TEST
 		Serial.println("TEST RS");
 	}else {
 		return;
 	}
-
+*/
 	for (int i = 0; i < 1; i++) { //N_TERMINALES_LINEA
 
 		while (!this->flagSalidaComposer) {
 			this->interrogarTerminal(*T_LIST[i]);
+			//vTaskDelay(100);
 		}
 
 		this->flagSalidaComposer = 0;
@@ -73,7 +89,7 @@ LecturasLinea ComunicacionLinea::escucharLinea(Terminal &terminal) {
 
 	if(gotoUart==1){ //Control serie
 		gotoUart=0;
-		const char datosFake[] = "###INIT#MASTER#COCHERA#REPLY#N#0;1#280#1;0;1;1;1;0;1;0#END###";
+		const char datosFake[] = "###INIT#MASTER#COCHERA#REPLY#N#0;0#80#0;0;0;0;0;0;0;0#END###";
 		//const char datosFake[] = "###INIT##MASTER#PORCHE#RETRY#N#N#N#N#END###";
 		strncpy(tramaRecibida, datosFake, sizeof(tramaRecibida) - 1);
 		tramaRecibida[sizeof(tramaRecibida) - 1] = '\0';
@@ -252,10 +268,14 @@ void ComunicacionLinea::limpiarBuffer(char *str){
 
 
 void ComunicacionLinea::enviarTrazaDatos(){
-   rcomp0.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission
+	mcp.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission @FAIL
+	//setEscucharRed(1);
+	//vTaskDelay(50);
    Serial.println(tramaEnviada);
    this->writeChar(tramaEnviada);
-   rcomp0.digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode
+   mcp.digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode @FAIL
+   //setEscucharRed(0);
+   //vTaskDelay(50);
 }
 
 
@@ -317,7 +337,7 @@ void ComunicacionLinea::procesarMetodo(byte metodo){
 void ComunicacionLinea::writeChar(char *TEXTO_ENVIO) {
 	for (int i = 0; i < strlen(TEXTO_ENVIO); i++){
 		UART_RS.write(TEXTO_ENVIO[i]);
-		//delay(5);
+		delay(5);
 	}
 }
 
@@ -328,9 +348,13 @@ void ComunicacionLinea::testUart(){
 
 void ComunicacionLinea::interrogarTerminal(Terminal &terminal){
 
+	LecturasLinea lectura;
+
 	switch (terminalComposer) {
 	case LLAMAR_TERMINAL:
-		rcomp0.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission
+		mcp.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission @FAIL
+		//setEscucharRed(1);
+		//vTaskDelay(50);
 
 		this->constructorTramaDatos(terminal, MTH_DATA);
 		//this->enviarTrazaDatos();
@@ -348,10 +372,17 @@ void ComunicacionLinea::interrogarTerminal(Terminal &terminal){
 
 	case ESCUCHAR_LINEA:
 
-		rcomp0.digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode
+		mcp.digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode @FAIL
+		//setEscucharRed(0);
+		//vTaskDelay(50);
+
+		//vTaskDelay(500);
+		//this->testUart(); //@TEST
 
 		if (millis() < tiempoEspera) {
-			LecturasLinea lectura = escucharLinea(terminal);
+		//vTaskDelay(2000);
+
+		    lectura = escucharLinea(terminal);
 
 			if(lectura != SILENCIO){
 
@@ -425,7 +456,9 @@ void ComunicacionLinea::interrogarTerminal(Terminal &terminal){
 			Serial.println(numeroReintentosTerminal); //@TEST
 
 		if(numeroReintentosTerminal < 2){
-			rcomp0.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission
+			mcp.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission @FAIL
+			//setEscucharRed(1);
+			//vTaskDelay(50);
 
 			this->constructorTramaDatos(terminal, MTH_RETRY);
 			//this->enviarTrazaDatos();
