@@ -18,6 +18,7 @@
 #include <HardwareSerial.h>
 #include <TinyGsmClient.h>
 #include <ArduinoHttpClient.h>
+#include <Ticker.h>
 
 #include "Autenticacion.h"
 #include "Pantalla.h"
@@ -37,7 +38,6 @@
 #include "Terminal.h"
 
 //#include "MUXMCP23X17.h"
-#include "RecursosCompartidosRTOS.h"
 
 
 //VERSION (VE -> Version Estable VD -> Version Desarrollo)
@@ -77,9 +77,6 @@ Adafruit_MCP23X17 mcp;
 SemaphoreHandle_t semaphore;
 //MUXMCP23X17 mcp(&semaphore);
 
-RecursosCompartidosRTOS rcomp0(&semaphore,&mcp);
-RecursosCompartidosRTOS rcomp1(&semaphore,&mcp); //mcp
-
 
 //NVS
 Preferences NVSMemory; //Memoria
@@ -115,11 +112,14 @@ EventosJson eventosJson;
 ComunicacionLinea linea;
 
 //Terminales en linea
-Terminal T_COCHERA = Terminal("COCHERA");
+Terminal T_COCHERA = Terminal(1,"COCHERA");
 //Terminal T_PORCHE = Terminal("PORCHE");
 //Terminal T_ALMACEN = Terminal("ALMACEN");
 
 Terminal* T_LIST[] = { &T_COCHERA };
+
+//Terminal check
+RespuestaTerminal respuestaTerminal;
 
 int flagTest = 1; //@TEST ONLY
 
@@ -138,7 +138,7 @@ unsigned long tiempoMargen;
 //TIEMPO MODO SENSIBLE
 unsigned long tiempoSensible;
 //TIEMPO SLEEPMODE
-unsigned long prorrogaGSM;
+unsigned long tiempoRefrescoGSM;
 //TIEMPO BOCINA
 unsigned long tiempoBocina;
 
@@ -334,16 +334,23 @@ static byte tiempoFracccion;
 			mcp.digitalWrite(GSM_PIN, LOW);
 			break;
 
-		case GSM_TEMPORAL:
+		case GSM_REFRESH:
 
-			if(checkearMargenTiempo(prorrogaGSM)){
-				mcp.digitalWrite(GSM_PIN, LOW);
-			}else {
+			if(checkearMargenTiempo(tiempoRefrescoGSM)){
+				sleepModeGSM = GSM_ON;
 				mcp.digitalWrite(GSM_PIN, HIGH);
+			}else {
+				mcp.digitalWrite(GSM_PIN, LOW);
 			}
+
 			break;
 		}
 
+	}
+
+	void refrescarModuloGSM(){
+		setMargenTiempo(tiempoRefrescoGSM, 1000);
+		sleepModeGSM = GSM_REFRESH;
 	}
 
 	void checkearSms(){
@@ -564,7 +571,6 @@ static byte tiempoFracccion;
 				arrCopy<int>(eeDatosSalto.DATOS_SENSOR,datos ,TOTAL_SENSORES);
 
 				estadoError = COMPROBAR_DATOS;
-				//sleepModeGSM = GSM_TEMPORAL;
 			}
 		}
 	}
@@ -589,8 +595,17 @@ static byte tiempoFracccion;
 
 		Serial.println(F("Comprobando datos "));
 		estadoError = ENVIAR_AVISO;
+
+		//Liberamos la actividad en modulo
+		vTaskSuspend(envioServidorSaas); //Pausa la ejecucion SAAS
 		sleepModeGSM = GSM_ON;
 		setMargenTiempo(tiempoMargen,TIEMPO_CARGA_GSM);
+
+		if(!modem.waitForNetwork(1000, true)){
+			Serial.println(F("Modulo sin red refrescando"));
+			refrescarModuloGSM();
+		}
+
 	}
 
 	void setEstadoErrorRealizarLlamadas(){
@@ -601,10 +616,6 @@ static byte tiempoFracccion;
 	void setEstadoErrorEsperarAyuda(){
 		Serial.println(F("Esperar ayuda"));
 		estadoError = ESPERAR_AYUDA;
-
-		setMargenTiempo(prorrogaGSM, TIEMPO_PRORROGA_GSM, TIEMPO_PRORROGA_GSM_TEST);
-		//sleepModeGSM = GSM_TEMPORAL;
-
 	}
 
 	void procesoError(){
@@ -829,8 +840,6 @@ static byte tiempoFracccion;
 				saasCronEstado = ENVIO;
 				retryCount = 0; // Reset retry count when starting a new execution
 			}
-
-			// TODO XX tiempo antes vuelvo a encender
 			break;
 
 		case ENVIO:
@@ -843,6 +852,10 @@ static byte tiempoFracccion;
 			}else {
 				Serial.println(F("No hay cobertura se aborta el envio"));
 				executionResult = 0;
+
+				//Refresco el modulo
+				refrescarModuloGSM();
+
 			}
 
 
@@ -855,7 +868,6 @@ static byte tiempoFracccion;
 				saasCronEstado = ESPERA_REINTENTO;
 			}
 
-			//Apagar
 			break;
 
 		case ESPERA_REINTENTO:

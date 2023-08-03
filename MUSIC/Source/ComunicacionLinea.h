@@ -20,10 +20,6 @@ extern HardwareSerial UART_RS;
 extern Terminal* T_LIST[];
 extern Adafruit_MCP23X17 mcp;
 
-
-#include "RecursosCompartidosRTOS.h"
-extern RecursosCompartidosRTOS rcomp0;
-
 class ComunicacionLinea {
 
 

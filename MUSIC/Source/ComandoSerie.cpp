@@ -379,6 +379,12 @@ void ComandoSerie::comprobarComando() {
 		T_COCHERA.borrarUltimoElemento();
 	}
 
+	if (compararCadena(data, "t -purge")){
+		nombreComando(data);
+		T_COCHERA.limpiarDatosTerminal();
+	}
+
+
 	if(compararCadena(data, "at")){
 		nombreComando(data);
 		UART_GSM.println("AT");
@@ -403,6 +409,53 @@ void ComandoSerie::comprobarComando() {
 		nombreComando(data);
 		Serial.println(datosSensores.imprimeDatos());
 	}
+
+	if (compararCadena(data, "gsm -r")){
+		nombreComando(data);
+		refrescarModuloGSM();
+	}
+
+	if (compararCadena(data, "t -m1")){
+		nombreComando(data);
+		Serial.println("Probando multiples detecciones");
+		byte myArray[] = {1, 0, 0, 1, 0, 1, 0, 1};
+		byte myArray2[] = {0, 0};
+
+		for (int i = 0; i < 3; i++) {
+			T_COCHERA.guardarDatosTerminal(myArray, myArray2);
+		}
+	}
+
+	if (compararCadena(data, "t -m2")){
+		nombreComando(data);
+		Serial.println("Probando detecciones individuales");
+		byte myArray[] = {1, 0, 0, 0, 0, 0, 0, 0};
+		byte myArray2[] = {0, 0};
+		for (int i = 0; i < 3; i++) {
+			T_COCHERA.guardarDatosTerminal(myArray, myArray2);
+		}
+	}
+
+	if (compararCadena(data, "t -m3")){
+		nombreComando(data);
+		Serial.println("Probando sabotaje");
+		byte myArray[] = {1, 0, 0, 0, 0, 0, 0, 0};
+		byte myArray2[] = {1, 0};
+
+		T_COCHERA.guardarDatosTerminal(myArray, myArray2);
+
+	}
+
+	if (compararCadena(data, "t -m4")){
+		nombreComando(data);
+		Serial.println("Probando averia");
+		byte myArray[] = {0, 0, 0, 0, 0, 0, 0, 0};
+		byte myArray2[] = {1, 0};
+
+		T_COCHERA.guardarDatosTerminal(myArray, myArray2);
+
+	}
+
 
 	if(compararCadena(data, "info")){
 		nombreComando(data);

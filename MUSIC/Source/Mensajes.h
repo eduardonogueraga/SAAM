@@ -21,9 +21,7 @@
 #include "Env.h"
 #include "Fecha.h"
 #include <Adafruit_MCP23X17.h>
-#include "RecursosCompartidosRTOS.h"
 
-extern RecursosCompartidosRTOS rcomp1; //mcp
 extern EventosJson eventosJson;
 extern Adafruit_MCP23X17 mcp;
 extern byte INTENTOS_REACTIVACION;

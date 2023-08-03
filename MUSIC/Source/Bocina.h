@@ -13,9 +13,6 @@
 #include <Adafruit_MCP23X17.h>
 extern Adafruit_MCP23X17 mcp;
 
-#include "RecursosCompartidosRTOS.h"
-extern RecursosCompartidosRTOS rcomp1; //mcp
-
 
 class Bocina {
 

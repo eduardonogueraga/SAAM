@@ -36,6 +36,7 @@ extern EventosJson eventosJson;
 class Terminal {
 
 private:
+	byte TERMINAL_ID;
 	char TERMINAL_NAME[10];
 	byte NUM_SENSORES;
 	byte NUM_LINEAS_CTL;
@@ -84,7 +85,7 @@ private:
 	double EvaluarSensor(Lista* lista, int numSensor);
 	void EvaluarSensorPhantom(Lista* lista);
 	void purgarNodosViejos(Lista* lista);
-
+	void purgarLista();
 	byte nodosRevisados = 0;
 	byte persistenciaFotoresistencia = 0;
 
@@ -92,10 +93,12 @@ private:
 
 
 public:
-	Terminal(char* nombreTerminal, byte numFotoSensor = 1, byte numLineasCtl = 2, byte numSensores = 8);
+	Terminal(byte id,char* nombreTerminal, byte numFotoSensor = 1, byte numLineasCtl = 2, byte numSensores = 8);
 
 	InterpretacionTerminal interpretacion;
+	RespuestaTerminal respuesta;
 
+	byte getTerminalId() const;
 	int getDatosFotosensor() const ;
 	byte getNumFotoSensor() const;
 	byte getNumLineasCtl() const;
@@ -118,10 +121,11 @@ public:
 	void borrarPrimerElemento();
 	void borrarUltimoElemento();
 
-	InterpretacionTerminal evaluarDatosTerminal();
+	RespuestaTerminal evaluarDatosTerminal();
 	void evaluarPhantomTerminal();
 	void controlNodosEnMemoria();
 	void limpiarResultadoPhantom();
+	void limpiarDatosTerminal();
 
 };
 

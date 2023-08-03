@@ -4,10 +4,12 @@
  * Leyenda: @develop  @PEND (Pendiente de adaptar a ESP32)
  *
  * POR HACER:
+ *
+ *- Añadir envios informativos sin saltar la alarma
+ * -Añadir un envio SAAS adicional y posterior a mensaje y las llamadas
  * -Enriquecer el log con dia de la semana o temperatura
  * -Ajustar los requerimientos de SAAS
- * -Añadir un envio SAAS adicional y posterior a mensaje y las llamadas
- * -Permitir una opcion que mantenga el modulo SIM800 reseteado
+ * -Ajustar el modo sabotaje
  *
  */
 
@@ -130,6 +132,7 @@ void setup()
 				&gestionLinea,
 				1);
 */
+
 	    xTaskCreatePinnedToCore(
 	    		tareaSaas,
 				"tareaSaas",
@@ -159,7 +162,6 @@ void loop()
 	procesosSistema();
 	procesosPrincipales();
 	linea.mantenerComunicacion();
-	//rcomp1.test();
 
 }
 
@@ -178,6 +180,7 @@ void tareaLinea(void *pvParameters){
 		vTaskDelay(1000);
 	}
 }
+
 
 void procesosSistema(){
 
@@ -249,40 +252,67 @@ void procesoAlarma(){
 			pir2.compruebaEstado(mcp.digitalRead(PIR_SENSOR_2));
 			pir3.compruebaEstado(mcp.digitalRead(PIR_SENSOR_3));
 
-
 			if(mg.disparador()){
 				Serial.println(F("\nDisparador:  MG"));
 				zona = MG;
+				respuestaTerminal.resumen = "PUERTA COCHERA";
 				setEstadoAlerta();
+				break;
 			}
 
 			if(pir1.disparador()){
 				Serial.println(F("\nDisparador: PIR1"));
 				zona = PIR_1;
+				respuestaTerminal.resumen = "COCHERA";
 				setEstadoAlerta();
+				break;
 			}
 
 			if(pir2.disparador()){
 				Serial.println(F("\nDisparador: PIR2"));
 				zona = PIR_2;
+				respuestaTerminal.resumen = "PORCHE";
+				Serial.print(respuestaTerminal.resumen);
 				setEstadoAlerta();
+				break;
 			}
 
 			if(pir3.disparador()){
 				Serial.println(F("\nDisparador: PIR3"));
 				zona = PIR_3;
+				respuestaTerminal.resumen = "ALMACEN";
 				setEstadoAlerta();
+				break;
 			}
 
-			//Terminal check
-			InterpretacionTerminal interpretacion;
-
 			for (int i = 0; i < 1; i++) { //N_TERMINALES_LINEA
-				interpretacion = T_LIST[i]->evaluarDatosTerminal();
+				respuestaTerminal = T_LIST[i]->evaluarDatosTerminal();
 
-				if(interpretacion != TERMINAL_OK){
-					zona = PIR_1; //@PEND ADAPTAR
-					setEstadoAlerta();
+				if(respuestaTerminal.interpretacion != TERMINAL_OK){
+
+					if(respuestaTerminal.interpretacion == BAD_COMM
+					|| respuestaTerminal.interpretacion == BAD_REPLY
+					|| respuestaTerminal.interpretacion == NO_REPLY){
+						//Se avisara pero la alarma no saltara
+						Serial.print(F("\nTerminal "));
+						Serial.print(T_LIST[i]->getTerminalName());
+						Serial.println(F(" supera el umbral de fallo en la comunicacion"));
+						//Enviar notificacion al server TODO
+
+						//Resetear strikes
+						T_LIST[i]->limpiarStrikes();
+
+					}else {
+						//Constitutivo de aviso
+						zona = PIR_1; //@PEND ADAPTAR
+
+						respuestaTerminal.resumen  = String(T_LIST[i]->getTerminalName()).substring(0, 4)  + "-" + respuestaTerminal.resumen;
+						Serial.println(respuestaTerminal.resumen);
+						setEstadoAlerta();
+						break;
+					}
+
+
 				}
 			}
 
@@ -352,7 +382,6 @@ void setEstadoGuardia()
 	estadoAlarma = ESTADO_GUARDIA;
 	guardarFlagEE("ESTADO_GUARDIA", 1);
 
-	//sleepModeGSM = GSM_OFF;
 	limpiarSensores();
 	lcd_clave_tiempo = millis();
 	lcd_info_tiempo = millis() + TIEMPO_ALERT_LCD;
@@ -376,9 +405,6 @@ void setEstadoGuardiaReactivacion()
 
 	setMargenTiempo(tiempoBocina, (TIEMPO_BOCINA*0.5), TIEMPO_BOCINA_REACTIVACION_TEST);
 	setMargenTiempo(tiempoMargen,(TIEMPO_ON*0.01));
-	setMargenTiempo(prorrogaGSM, TIEMPO_PRORROGA_GSM, TIEMPO_PRORROGA_GSM_TEST);
-	//sleepModeGSM = GSM_TEMPORAL;
-
 
 	//Desabilitar puerta tras la reactivacion
 	if(configSystem.SENSORES_HABLITADOS[0] && zona == MG ){
@@ -395,6 +421,7 @@ void setEstadoGuardiaReactivacion()
 
 	for (int i = 0; i < 1; i++) { //N_TERMINALES_LINEA
 		T_LIST[i]->limpiarResultadoPhantom();
+		T_LIST[i]->limpiarDatosTerminal();
 	}
 
 	registro.registrarLogSistema("ALARMA ACTIVADA AUTOMATICAMENTE");
@@ -418,8 +445,15 @@ void setEstadoAlerta()
 		setMargenTiempo(tiempoMargen,(TIEMPO_OFF*TIEMPO_OFF_MODO_SENSIBLE));
 	}
 
-	sleepModeGSM = GSM_ON;
+	//Liberamos la actividad en modulo
 	vTaskSuspend(envioServidorSaas); //Pausa la ejecucion SAAS
+	sleepModeGSM = GSM_ON;
+
+	if(!modem.waitForNetwork(1000, true)){
+		Serial.println(F("Modulo sin red refrescando"));
+		refrescarModuloGSM();
+	}
+
 }
 
 void setEstadoEnvio()
@@ -446,7 +480,6 @@ void setEstadoReposo()
 	limpiarSensores();
 	pararBocina();
 	tiempoSensible = millis();
-	//sleepModeGSM = GSM_OFF;
 	estadoLlamada = TLF_1;
 	desactivaciones ++;
 	guardarFlagEE("ESTADO_GUARDIA", 0);
@@ -464,6 +497,11 @@ void setEstadoReposo()
 
 
 		guardarFlagEE("PUERTA_ABIERTA", 0);
+	}
+
+	//Eliminamos la informacion de los terminales
+	for (int i = 0; i < 1; i++) { //N_TERMINALES_LINEA
+		T_LIST[i]->limpiarDatosTerminal();
 	}
 
 	registro.registrarLogSistema("ALARMA DESACTIVADA MANUALMENTE");

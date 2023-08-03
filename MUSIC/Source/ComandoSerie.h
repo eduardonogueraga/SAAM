@@ -44,6 +44,7 @@ extern byte sensorHabilitado[];
 extern void interrupcionFalloAlimentacion();
 extern int testHttpRequest();
 extern int getIdPaqueteSaas();
+extern void refrescarModuloGSM();
 
 class ComandoSerie {
 

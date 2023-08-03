@@ -189,6 +189,13 @@ struct configuracion_sistema_t {
      String proveedor = "";
  } ProveedorEstado;
 
+ typedef struct  {
+	 InterpretacionTerminal interpretacion;
+	 String resumen = "";
+	 byte idSensorDetonante;
+	 byte idTerminal;
+ } RespuestaTerminal;
+
 
 //ENUM Y TYPEDEFS
 enum aliasConfigSistema{MD_SENS, MDL_SD, MDL_RTC};
@@ -217,7 +224,8 @@ typedef enum {
 typedef enum {
 	GSM_ON,
 	GSM_OFF,
-	GSM_TEMPORAL
+	GSM_TEMPORAL,
+	GSM_REFRESH
 } SLEEPMODE_GSM;
 
 typedef enum {

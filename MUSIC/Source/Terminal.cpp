@@ -12,8 +12,9 @@
 
 #include "Terminal.h"
 
-Terminal::Terminal(char* nombreTerminal, byte numFotoSensor, byte numLineasCtl, byte numSensores) {
+Terminal::Terminal(byte id, char* nombreTerminal, byte numFotoSensor, byte numLineasCtl, byte numSensores) {
 
+	this->TERMINAL_ID = id;
 	strncpy(TERMINAL_NAME, nombreTerminal, sizeof(TERMINAL_NAME) - 1);
 	TERMINAL_NAME[sizeof(TERMINAL_NAME) - 1] = '\0';  // Asegurarse de que el arreglo tenga un carácter nulo al final
 
@@ -28,6 +29,11 @@ Terminal::Terminal(char* nombreTerminal, byte numFotoSensor, byte numLineasCtl, 
 
 	this->listaTerminal.cabeza = NULL;
 	this->listaTerminal.longitud = 0;
+}
+
+
+byte Terminal::getTerminalId() const {
+	return TERMINAL_ID;
 }
 
 int Terminal::getDatosFotosensor() const {
@@ -139,29 +145,31 @@ void Terminal::controlNodosEnMemoria(){
 
 }
 
-InterpretacionTerminal Terminal::evaluarDatosTerminal(){
+RespuestaTerminal Terminal::evaluarDatosTerminal(){
 
 	byte flagEstadoServicio = 0;
 	byte flagFotoSensor = 0;
 	byte flagDeteccion = 0;
 
+	respuesta.idTerminal = getTerminalId(); //identificamos la respuesta
+
 	//Evalua el estado del servicio si existen i o superan los umbrales de strike
 	if(getNoReplyStrike() >= UMBRAL_NO_REPLY_STRIKE){
-		interpretacion = NO_REPLY;
+		respuesta.interpretacion = NO_REPLY;
 
 		Serial.println("INTER: NO REPLY");
-		return interpretacion;
+		return respuesta;
 	}
 	if(getBadCommStrike() >= UMBRAL_BAD_COMM_STRIKE){
-		interpretacion = BAD_COMM;
+		respuesta.interpretacion = BAD_COMM;
 		Serial.println("INTER: BAD COMM");
-		return interpretacion;
+		return respuesta;
 	}
 
 	if(getBadReplyStrike() >= UMBRAL_BAD_REPLY_STRIKE){
-		interpretacion = BAD_REPLY;
+		respuesta.interpretacion = BAD_REPLY;
 		Serial.println("INTER: BAD REPLY");
-		return interpretacion;
+		return respuesta;
 	}
 
 
@@ -170,6 +178,8 @@ InterpretacionTerminal Terminal::evaluarDatosTerminal(){
 	for (int i = 0; i < getNumLineasCtl(); i++) {
 		//hay que determinar si existen porcentajes altos en sesores para deteminar averia o sabotaje
 		if(datosControlLineas[i]){
+			respuesta.resumen = "";
+			respuesta.resumen += "LINEA " + String(i);
 			flagEstadoServicio = 1;
 		}
 	}
@@ -200,12 +210,18 @@ InterpretacionTerminal Terminal::evaluarDatosTerminal(){
 
 				if(sensorPorcentaje >= UMBRAL_SENSOR_INDIVIDUAL){
 					flagDeteccion =1;
+					respuesta.resumen = "";
+					respuesta.resumen += "S" + String(i) + ":" + String(sensorPorcentaje) + "%";
+
+					respuesta.idSensorDetonante = i;
 				}
 				porcentajeDeteccion += sensorPorcentaje;
 			}
 
 			if(porcentajeDeteccion >= UMBRAL_SENSOR_TOTAL){
 				flagDeteccion =1;
+				respuesta.resumen = "";
+				respuesta.resumen += "T" + String(porcentajeDeteccion) + "%";
 			}
 
 			nodosRevisados = listaLongitud(&this->listaTerminal);
@@ -214,23 +230,23 @@ InterpretacionTerminal Terminal::evaluarDatosTerminal(){
 	}
 
 	if(flagEstadoServicio && porcentajeDeteccion > UMBRAL_SABOTAJE){
-		interpretacion = SABOTAJE;
+		respuesta.interpretacion = SABOTAJE;
 		Serial.println("INTER: SABOTAJE");
 	}else if(flagEstadoServicio){
-		interpretacion = AVERIA;
+		respuesta.interpretacion = AVERIA;
 		Serial.println("INTER: AVERIA");
 	}else if(flagDeteccion){
-		interpretacion = DETECCION;
+		respuesta.interpretacion = DETECCION;
 		Serial.println("INTER: DETECCION");
 	}else if(flagFotoSensor){
 		Serial.println("INTER: FOTO");
-		interpretacion = DETECCION_FOTOSENIBLE;
+		respuesta.interpretacion = DETECCION_FOTOSENIBLE;
 	}
 	else {
-		interpretacion = TERMINAL_OK;
+		respuesta.interpretacion = TERMINAL_OK;
 	}
 
-	return interpretacion;
+	return respuesta;
 }
 
 void Terminal::evaluarPhantomTerminal(){
@@ -239,8 +255,26 @@ void Terminal::evaluarPhantomTerminal(){
 
 
 void Terminal::limpiarResultadoPhantom(){
-	for (int i = 0; i < getNumLineasCtl(); i++) {
+	for (int i = 0; i < getNumSensores(); i++) {
 		sampleSensoresPhantom[i] = 0;
+	}
+}
+
+void Terminal::limpiarDatosTerminal(){
+	//Eliminamos los nodos del terminal
+	purgarLista();
+	//Reinicializamos el estado del servicio
+	for (int i = 0; i < MAX_DATOS_CTL_LINEA; i++) {
+		datosControlLineas[i] = 0;
+	}
+	setDatosFotosensor(0);
+
+}
+
+void Terminal::purgarLista(){
+	int t = listaLongitud(&this->listaTerminal);
+	for (int i = 0; i < t; i++){
+		EliminarPrincipio(&this->listaTerminal);
 	}
 }
 

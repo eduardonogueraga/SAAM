@@ -192,9 +192,18 @@ void Pantalla::lcdGuardia(){
 	void Pantalla::lcdAlerta(){
 
 		lcd.setCursor(0,0);
-		lcd.print(F("INTRUSISMO"));
+
+		if(respuestaTerminal.interpretacion == DETECCION_FOTOSENIBLE){
+			lcd.print(F("LUZ DETECTADA"));
+		}else if(respuestaTerminal.interpretacion == AVERIA){
+			lcd.print(F("AVERIA"));
+		}else if(respuestaTerminal.interpretacion == SABOTAJE){
+			lcd.print(F("SABOTAJE"));
+		}else {
+			lcd.print(F("INTRUSISMO"));
+		}
 		lcd.setCursor(0,1);
-		lcd.print(nombreZonas[zona]);
+		lcd.print(respuestaTerminal.resumen);
 	}
 
 	void Pantalla::lcdAvisoEnviado(){
