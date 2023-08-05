@@ -19,6 +19,7 @@
 extern HardwareSerial UART_RS;
 extern Terminal* T_LIST[];
 extern Adafruit_MCP23X17 mcp;
+extern byte ACCESO_LISTAS;
 
 class ComunicacionLinea {
 

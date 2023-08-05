@@ -42,7 +42,7 @@ void ComunicacionLinea::setEscucharRed(byte escucharRed) {
 }
 
 void ComunicacionLinea::mantenerComunicacion(){
-	if(!configSystem.ESCUCHAR_LINEA)
+	if(!configSystem.ESCUCHAR_LINEA || !ACCESO_LISTAS)
 		return;
 
 /*
@@ -53,11 +53,11 @@ if(flagTest){
 }
 */
 
-	/*
+/*
 	if(!escucharLinea(*T_LIST[0])){
 		return;
 	}
-	 */
+*/
 
 	//Se interrogan a los terminales conectados
 /*
@@ -268,12 +268,12 @@ void ComunicacionLinea::limpiarBuffer(char *str){
 
 
 void ComunicacionLinea::enviarTrazaDatos(){
-	mcp.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission @FAIL
+	//mcp.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission @FAIL
 	//setEscucharRed(1);
 	//vTaskDelay(50);
    Serial.println(tramaEnviada);
    this->writeChar(tramaEnviada);
-   mcp.digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode @FAIL
+   //mcp.digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode @FAIL
    //setEscucharRed(0);
    //vTaskDelay(50);
 }
@@ -352,7 +352,7 @@ void ComunicacionLinea::interrogarTerminal(Terminal &terminal){
 
 	switch (terminalComposer) {
 	case LLAMAR_TERMINAL:
-		mcp.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission @FAIL
+		//mcp.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission @FAIL
 		//setEscucharRed(1);
 		//vTaskDelay(50);
 
@@ -372,15 +372,16 @@ void ComunicacionLinea::interrogarTerminal(Terminal &terminal){
 
 	case ESCUCHAR_LINEA:
 
-		mcp.digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode @FAIL
+		//mcp.digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode @FAIL
 		//setEscucharRed(0);
 		//vTaskDelay(50);
 
 		//vTaskDelay(500);
 		//this->testUart(); //@TEST
 
+		vTaskDelay(500);
 		if (millis() < tiempoEspera) {
-		//vTaskDelay(2000);
+
 
 		    lectura = escucharLinea(terminal);
 
@@ -456,7 +457,7 @@ void ComunicacionLinea::interrogarTerminal(Terminal &terminal){
 			Serial.println(numeroReintentosTerminal); //@TEST
 
 		if(numeroReintentosTerminal < 2){
-			mcp.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission @FAIL
+			//mcp.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission @FAIL
 			//setEscucharRed(1);
 			//vTaskDelay(50);
 

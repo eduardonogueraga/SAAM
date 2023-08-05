@@ -86,8 +86,10 @@ private:
 	void EvaluarSensorPhantom(Lista* lista);
 	void purgarNodosViejos(Lista* lista);
 	void purgarLista();
+	void limpiarResultadoPhantom();
 	byte nodosRevisados = 0;
 	byte persistenciaFotoresistencia = 0;
+	String generarCabecera(int numElementos);
 
 	SAAS_PARAMETROS_SALTO saasParametrosSalto;
 
@@ -124,8 +126,9 @@ public:
 	RespuestaTerminal evaluarDatosTerminal();
 	void evaluarPhantomTerminal();
 	void controlNodosEnMemoria();
-	void limpiarResultadoPhantom();
 	void limpiarDatosTerminal();
+
+	String generarInformeDatos();
 
 };
 

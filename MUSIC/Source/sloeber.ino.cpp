@@ -23,6 +23,7 @@ void setEstadoGuardiaReactivacion() ;
 void setEstadoAlerta() ;
 void setEstadoEnvio() ;
 void setEstadoReposo() ;
+void setEstadoInquieto() ;
 
 #include "MUSIC.ino"
 

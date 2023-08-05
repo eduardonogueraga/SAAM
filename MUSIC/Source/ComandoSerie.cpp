@@ -346,13 +346,35 @@ void ComandoSerie::comprobarComando() {
 		delay(5);
 	}
 
+	if (compararCadena(data, "t -print")){
+		nombreComando(data);
+		Serial.println(T_COCHERA.generarInformeDatos());
+	}
 
 	if (compararCadena(data, "t -add")){
 		nombreComando(data);
-		 byte myArray[] = {1, 0, 0, 0, 0, 0, 0, 0};
-		 byte myArray2[] = {0, 0};
+		 byte myArray[] = {1, 0, 0, 0, 1, 0, 0, 0};
+		 byte myArray2[] = {1, 0};
 		T_COCHERA.guardarDatosTerminal(myArray, myArray2);
 	}
+
+    if (compararCadena(data, "t -addr")) {
+        nombreComando(data);
+
+        byte myArray[8];
+        byte myArray2[2];
+
+        for (int i = 0; i < 8; i++) {
+            myArray[i] = random(2); // Generar números aleatorios entre 0 y 1
+        }
+
+        for (int i = 0; i < 2; i++) {
+            myArray2[i] = random(2); // Generar números aleatorios entre 0 y 1
+        }
+
+        T_COCHERA.guardarDatosTerminal(myArray, myArray2);
+    }
+
 
 	if (compararCadena(data, "t -show")){
 		nombreComando(data);

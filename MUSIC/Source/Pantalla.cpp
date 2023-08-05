@@ -215,6 +215,13 @@ void Pantalla::lcdGuardia(){
 
 	}
 
+	void Pantalla::lcdInquieto(){
+		lcd.setCursor(0,0);
+		lcd.print(F("AVISO NOTIFICADO"));
+		lcd.setCursor(0,1);
+		lcd.print(F("DESACTIVAR    >#"));
+	}
+
 	void Pantalla::lcdMenu(){
 
 		lcd.setCursor(0,0);

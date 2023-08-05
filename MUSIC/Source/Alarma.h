@@ -111,6 +111,8 @@ Registro registro;
 EventosJson eventosJson;
 ComunicacionLinea linea;
 
+byte ACCESO_LISTAS = 1;
+
 //Terminales en linea
 Terminal T_COCHERA = Terminal(1,"COCHERA");
 //Terminal T_PORCHE = Terminal("PORCHE");
@@ -430,7 +432,7 @@ static byte tiempoFracccion;
 
 	}
 
-	void checkearAlertasDetenidas(){
+	void checkearAlertasDetenidas(){ //TODO choca con el blindaje de los terminales
 		if (leerFlagEEInt("ESTADO_ALERTA") == 1 && leerFlagEEInt("ERR_INTERRUPT") == 0) {
 
 			eeDatosSalto = NVS_RestoreData<datos_saltos_t>("SALTO_DATA");
@@ -693,6 +695,13 @@ static byte tiempoFracccion;
 				mcp.digitalWrite(LED_COCHERA, LOW);
 			}
 
+		}
+	}
+
+
+	void limpiarTerminalesLinea(){
+		for (int i = 0; i < 1; i++) { //N_TERMINALES_LINEA
+			T_LIST[i]->limpiarDatosTerminal();
 		}
 	}
 

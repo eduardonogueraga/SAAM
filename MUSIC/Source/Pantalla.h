@@ -52,6 +52,7 @@ public:
 	void lcdGuardia();
 	void lcdAlerta();
 	void lcdAvisoEnviado();
+	void lcdInquieto();
 	void lcdMenu();
 	void menuConfig();
 	void menuConfigSubMenu();

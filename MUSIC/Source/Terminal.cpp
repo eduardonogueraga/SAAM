@@ -151,6 +151,8 @@ RespuestaTerminal Terminal::evaluarDatosTerminal(){
 	byte flagFotoSensor = 0;
 	byte flagDeteccion = 0;
 
+    char registroConjunto[50];
+
 	respuesta.idTerminal = getTerminalId(); //identificamos la respuesta
 
 	//Evalua el estado del servicio si existen i o superan los umbrales de strike
@@ -205,8 +207,19 @@ RespuestaTerminal Terminal::evaluarDatosTerminal(){
 			for (int i = 0; i < getNumSensores(); i++) {
 				double sensorPorcentaje = EvaluarSensor(&listaTerminal, i);
 
-				Serial.print("INTER: %: ");
-				Serial.println(sensorPorcentaje);
+				if(sensorPorcentaje>0){
+
+					Serial.print("INTER: %: ");
+					Serial.println(sensorPorcentaje);
+
+					snprintf(registroConjunto, sizeof(registroConjunto), "%s%d%s", "MOVIMIENTO EN TERMINAL X:",i," ONLINE");
+					registro.registrarLogSistema(registroConjunto);
+					eventosJson.guardarDeteccion((sensorPorcentaje >= UMBRAL_SENSOR_INDIVIDUAL),
+													FRACCION_SALTO,
+													P_MODO_NORMAL,
+													i,
+													P_ESTADO_ONLINE); //Regularizar el id del terminal
+				}
 
 				if(sensorPorcentaje >= UMBRAL_SENSOR_INDIVIDUAL){
 					flagDeteccion =1;
@@ -254,12 +267,6 @@ void Terminal::evaluarPhantomTerminal(){
 }
 
 
-void Terminal::limpiarResultadoPhantom(){
-	for (int i = 0; i < getNumSensores(); i++) {
-		sampleSensoresPhantom[i] = 0;
-	}
-}
-
 void Terminal::limpiarDatosTerminal(){
 	//Eliminamos los nodos del terminal
 	purgarLista();
@@ -268,7 +275,99 @@ void Terminal::limpiarDatosTerminal(){
 		datosControlLineas[i] = 0;
 	}
 	setDatosFotosensor(0);
+	limpiarResultadoPhantom();
 
+}
+
+String Terminal::generarInformeDatos(){
+
+	String salida;
+	Nodo* puntero = this->listaTerminal.cabeza;
+	unsigned long marcaTiempoNodoAnterior = 0;
+	double porcentajeTotal = 0.0;
+
+	//Evalua los datos en la lista
+	if(!listaVacia(&this->listaTerminal)){
+		String t = std::string(62, '-').c_str();
+		salida += "Terminal ";
+		salida += getTerminalName();
+		salida += "\n";
+
+		//pintar cabecera
+		salida += generarCabecera(getNumSensores());
+		salida += t;
+		salida += "\n";
+
+		//Pintar nodos
+		while(puntero){
+			for (int i = 0; i < getNumSensores(); i++) {
+				salida += puntero->data.sampleSensores[i];
+			    salida += "\t\t";
+			}
+
+			if(marcaTiempoNodoAnterior == 0){
+				 salida += "\tseg: 0\n";
+			}else {
+				salida += "\tseg: " + String((puntero->data.marcaTiempo-marcaTiempoNodoAnterior)/1000) + "\n";
+			}
+			marcaTiempoNodoAnterior = puntero->data.marcaTiempo;
+
+			puntero = puntero->siguente; //Muevo el iterador una posicion
+		}
+		salida += t;
+		salida += "\n";
+
+		//Pintar resultado analisis
+		for (int i = 0; i < getNumSensores(); i++) {
+			double d = EvaluarSensor(&listaTerminal, i);
+			porcentajeTotal += d;
+			salida += String(d);
+			salida += "%\t";
+		}
+
+		salida += "\n";
+		salida += String(t);
+		salida += "\n";
+		salida += "Total: ";
+		salida += String(porcentajeTotal);
+		salida += "% Max:";
+		salida += UMBRAL_SENSOR_TOTAL;
+		salida += "%\n";
+
+		//Pintar datos fotoresistencias
+		if(getNumFotoSensor() &&  (persistenciaFotoresistencia > UMBRAL_PERSISTENCIA_FOTORESISTENCIA)){
+			salida += "Lectura luminica: ";
+            salida += String(getDatosFotosensor());
+		}
+		//Pintar detalles del servicio
+		for (int i = 0; i < getNumLineasCtl(); i++) {
+			if(datosControlLineas[i]){
+				salida += "Averia en la linea de datos: ";
+				salida += String(i+1);
+				salida += "\n";
+			}
+		}
+
+		salida += "\n";
+	}
+	return salida;
+}
+
+void Terminal::limpiarResultadoPhantom(){
+	for (int i = 0; i < getNumSensores(); i++) {
+		sampleSensoresPhantom[i] = 0;
+	}
+	maxEjecucion = 0;
+}
+
+String Terminal::generarCabecera(int numElementos) {
+    String salida;
+    for (int i = 1; i <= numElementos; i++) {
+    	salida += "S0" + String(i) + "\t" ;
+    	salida += '\t';
+    }
+    salida += '\n';
+    return salida;
 }
 
 void Terminal::purgarLista(){
@@ -294,14 +393,14 @@ double Terminal::EvaluarSensor(Lista* lista, int numSensor) {
     unsigned long diferenciaTiempo = 0;
     unsigned long diferenciaTiempoAux = 0;
 
-    char registroConjunto[50];
+   // char registroConjunto[50];
 
     while (puntero) {
         if (puntero->data.sampleSensores[numSensor]) {
 
-        	snprintf(registroConjunto, sizeof(registroConjunto), "%s%d%s", "MOVIMIENTO EN TERMINAL X:",numSensor," ONLINE");
-        	registro.registrarLogSistema(registroConjunto);
-        	eventosJson.guardarDeteccion(1, FRACCION_SALTO, P_MODO_NORMAL,numSensor, P_ESTADO_ONLINE); //Regularizar el id del terminal
+        	//snprintf(registroConjunto, sizeof(registroConjunto), "%s%d%s", "MOVIMIENTO EN TERMINAL X:",numSensor," ONLINE");
+        	//registro.registrarLogSistema(registroConjunto);
+        	//eventosJson.guardarDeteccion(1, FRACCION_SALTO, P_MODO_NORMAL,numSensor, P_ESTADO_ONLINE); //Regularizar el id del terminal
             contadorSalto++;
             if (diferenciaTiempoAux == 0) {
                 diferenciaTiempoAux = puntero->data.marcaTiempo;

@@ -10,6 +10,7 @@
  * -Enriquecer el log con dia de la semana o temperatura
  * -Ajustar los requerimientos de SAAS
  * -Ajustar el modo sabotaje
+ * - Modo inquieto
  *
  */
 
@@ -122,16 +123,16 @@ void setup()
 	    //Serial.println(xPortGetCoreID());
 	    //Hilo 0
 
-/*
+
 	    xTaskCreatePinnedToCore(
 	    		tareaLinea,
 				"tareaLinea",
 				(1024*5),
 				NULL,
-				2,
+				1,
 				&gestionLinea,
 				1);
-*/
+
 
 	    xTaskCreatePinnedToCore(
 	    		tareaSaas,
@@ -161,7 +162,7 @@ void loop()
 	demonio.demonioSerie();
 	procesosSistema();
 	procesosPrincipales();
-	linea.mantenerComunicacion();
+	//linea.mantenerComunicacion();
 
 }
 
@@ -352,26 +353,60 @@ void procesoAlarma(){
 					setMargenTiempo(tiempoSensible,TIEMPO_MODO_SENSIBLE, TIEMPO_MODO_SENSIBLE_TEST);
 				}
 				setEstadoGuardiaReactivacion();
+			}else {
+				//TODO cuando no queden reactivaciones hay que sacar a la alarma de aqui para que
+				//el SAAS continue recibiendo informes de situacion
+				setEstadoInquieto();
 			}
-
 		}
 
-		mg.compruebaPhantom(mcp.digitalRead(MG_SENSOR),datosSensoresPhantom);
-		pir1.compruebaPhantom(mcp.digitalRead(PIR_SENSOR_1),datosSensoresPhantom);
-		pir2.compruebaPhantom(mcp.digitalRead(PIR_SENSOR_2),datosSensoresPhantom);
-		pir3.compruebaPhantom(mcp.digitalRead(PIR_SENSOR_3),datosSensoresPhantom);
+		if(INTENTOS_REACTIVACION < 3){
+			//Si la alarma aun tiene opciones de reinicio examinamos el phantom
+			mg.compruebaPhantom(mcp.digitalRead(MG_SENSOR),datosSensoresPhantom);
+			pir1.compruebaPhantom(mcp.digitalRead(PIR_SENSOR_1),datosSensoresPhantom);
+			pir2.compruebaPhantom(mcp.digitalRead(PIR_SENSOR_2),datosSensoresPhantom);
+			pir3.compruebaPhantom(mcp.digitalRead(PIR_SENSOR_3),datosSensoresPhantom);
 
-
-		for (int i = 0; i < 1; i++) { //N_TERMINALES_LINEA
-			T_LIST[i]->evaluarPhantomTerminal();
+			//Linea
+			for (int i = 0; i < 1; i++) { //N_TERMINALES_LINEA
+				T_LIST[i]->evaluarPhantomTerminal();
+			}
 		}
-
 
 		realizarLlamadas();
 		sonarBocina();
 		desactivarAlarma();
 
 		break;
+
+	case ESTADO_INQUIETO:
+
+		if(!isLcdInfo())
+		pantalla.lcdLoadView(&pantalla, &Pantalla::lcdInquieto);
+
+		//TODO Evaluacion de datos y uso de bocina sin avisos
+		/*
+		for (int i = 0; i < 1; i++) { //N_TERMINALES_LINEA
+			respuestaTerminal = T_LIST[i]->evaluarDatosTerminal();
+
+			if(respuestaTerminal.interpretacion != TERMINAL_OK){
+
+				if(respuestaTerminal.interpretacion != BAD_COMM
+						|| respuestaTerminal.interpretacion != BAD_REPLY
+						|| respuestaTerminal.interpretacion != NO_REPLY){
+
+					//Constitutivo de aviso
+					Serial.println(respuestaTerminal.resumen);
+					Serial.println("Aviso inquieto accionando bocina");
+				}
+
+			}
+		}*/
+
+		desactivarAlarma();
+		sonarBocina();
+		break;
+
 	}
 }
 
@@ -383,6 +418,9 @@ void setEstadoGuardia()
 	guardarFlagEE("ESTADO_GUARDIA", 1);
 
 	limpiarSensores();
+	//Eliminamos la informacion de los terminales
+	limpiarTerminalesLinea();
+
 	lcd_clave_tiempo = millis();
 	lcd_info_tiempo = millis() + TIEMPO_ALERT_LCD;
 	setMargenTiempo(tiempoMargen,TIEMPO_ON, TIEMPO_ON_TEST);
@@ -416,13 +454,15 @@ void setEstadoGuardiaReactivacion()
 		NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
 	}
 
+	//Se envian los mensajes de reactivacion
 	mensaje.mensajeReactivacion(datosSensoresPhantom);
 	datosSensoresPhantom.borraDatos();
 
-	for (int i = 0; i < 1; i++) { //N_TERMINALES_LINEA
-		T_LIST[i]->limpiarResultadoPhantom();
-		T_LIST[i]->limpiarDatosTerminal();
-	}
+	Serial.println("Datos phantom");
+	Serial.println(T_COCHERA.generarInformeDatos()); //@TEST ONLY
+
+	//Se limpia el resultado del phantom para dejar paso a la nueva ejecucion
+	limpiarTerminalesLinea();
 
 	registro.registrarLogSistema("ALARMA ACTIVADA AUTOMATICAMENTE");
 	//eventosJson.guardarLog(); @PEND
@@ -434,6 +474,8 @@ void setEstadoAlerta()
 {
 	Serial.println("\nIntrusismo detectado en " + nombreZonas[zona]);
 	estadoAlarma = ESTADO_ALERTA;
+
+	ACCESO_LISTAS = 0; //Blindamos las listas de datos
 	guardarFlagEE("ESTADO_ALERTA", 1);
 	guardarEstadoAlerta();
 
@@ -464,8 +506,17 @@ void setEstadoEnvio()
 	setMargenTiempo(tiempoBocina, TIEMPO_BOCINA, TIEMPO_BOCINA_TEST);
 	setMargenTiempo(tiempoMargen,TIEMPO_REACTIVACION, TIEMPO_REACTIVACION_TEST);
 
+	//Desde aqui se envian los correspondientes avisos
+
 	mensaje.mensajeAlerta(datosSensores);
 	guardarFlagEE("ESTADO_ALERTA", 0);
+
+	//Liberamos el acceso cuando los mensajes esten enviados y limpiamos para el analisis phantom
+
+	Serial.println(T_COCHERA.generarInformeDatos()); //@TEST ONLY
+
+	ACCESO_LISTAS = 1;
+	limpiarTerminalesLinea();
 }
 
 void setEstadoReposo()
@@ -500,11 +551,45 @@ void setEstadoReposo()
 	}
 
 	//Eliminamos la informacion de los terminales
-	for (int i = 0; i < 1; i++) { //N_TERMINALES_LINEA
-		T_LIST[i]->limpiarDatosTerminal();
-	}
+	limpiarTerminalesLinea();
 
 	registro.registrarLogSistema("ALARMA DESACTIVADA MANUALMENTE");
+	eventosJson.guardarEntrada();
+	//eventosJson.guardarLog(); @PEND
+}
+
+
+void setEstadoInquieto()
+{
+	Serial.println(F("\nAlarma Desactivada Automaticamente"));
+	estadoAlarma = ESTADO_INQUIETO;
+
+	lcd_clave_tiempo = millis();
+	lcd_info_tiempo = millis() + TIEMPO_ALERT_LCD;
+
+	tiempoSensible = millis();
+	estadoLlamada = TLF_1;
+
+	guardarFlagEE("ESTADO_GUARDIA", 0);
+	guardarFlagEE("ESTADO_ALERTA", 0);
+	guardarFlagEE("F_RESTAURADO", 0);
+	guardarFlagEE("F_REACTIVACION", 0);
+
+
+	//Rehabilitar sensor puerta
+	if(flagPuertaAbierta){
+		sensorHabilitado[0] = 1;
+		arrCopy<byte>(sensorHabilitado, configSystem.SENSORES_HABLITADOS, 4);
+		NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
+
+		guardarFlagEE("PUERTA_ABIERTA", 0);
+	}
+
+	//Eliminamos la informacion de los terminales
+	limpiarSensores();
+	limpiarTerminalesLinea();
+
+	registro.registrarLogSistema("ALARMA DESACTIVADA AUTOMATICAMENTE");
 	eventosJson.guardarEntrada();
 	//eventosJson.guardarLog(); @PEND
 }

@@ -211,7 +211,8 @@ typedef enum {
 	ESTADO_REPOSO,
 	ESTADO_GUARDIA,
 	ESTADO_ALERTA,
-	ESTADO_ENVIO
+	ESTADO_ENVIO,
+	ESTADO_INQUIETO
 } EstadosAlarma;
 
 typedef enum {
