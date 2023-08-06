@@ -11,12 +11,11 @@
  *
  *      Ejemplos trazas
  *
- *      SAAM -> TERMINAL
- *      ###INIT#PORCHE#MASTER#DATA#N#N#N#N#END###
- *
+ *      SAAM -> COCHERA
+ *      ###I#CH#MA#0#N#N#N#N#F###
  *
  *      TERMINAL -> SAAM
- *      ###INIT##MASTER#PORCHE#REPLY#NONE#L1:0;L2:0#19#PL1-1:0;PL1-2:0;PL1-3:0;PL1-4:0;PL2-1:0;PL2-2:0;PL2-3:0;PL2-4:0#END###
+ *      ###I#MA#CH#1#N#1;0#63#0;0;1;1;1;1;1;1#F###
  *
  */
 
@@ -89,8 +88,7 @@ LecturasLinea ComunicacionLinea::escucharLinea(Terminal &terminal) {
 
 	if(gotoUart==1){ //Control serie
 		gotoUart=0;
-		const char datosFake[] = "###INIT#MASTER#COCHERA#REPLY#N#0;0#80#0;0;0;0;0;0;0;0#END###";
-		//const char datosFake[] = "###INIT##MASTER#PORCHE#RETRY#N#N#N#N#END###";
+		const char datosFake[] = "###I#MA#CH#1#N#1;0#63#0;0;1;1;1;1;1;1#F###";
 		strncpy(tramaRecibida, datosFake, sizeof(tramaRecibida) - 1);
 		tramaRecibida[sizeof(tramaRecibida) - 1] = '\0';
 		goto uartData;
@@ -144,8 +142,8 @@ LecturasLinea ComunicacionLinea::escucharLinea(Terminal &terminal) {
 
 			if (strcmp(datosStrings[AUTOR], terminal.getTerminalName()) == 0) {
 				//EL REMITENTE ES EL CORRECTO, PROSIGUE LA EXTRACCION DE LOS DATOS
+				  if (atoi(datosStrings[METODO]) == MTH_REPLY){
 
-				if (strcmp(datosStrings[METODO], metodoRespuesta) == 0){
 					//EL METODO ES DE RESPUESTA Y CONTIENE INFORMACION
 					//SUBTRAMA SENSORES
 					token =  strtok(NULL, DELIMITADOR);
@@ -268,14 +266,10 @@ void ComunicacionLinea::limpiarBuffer(char *str){
 
 
 void ComunicacionLinea::enviarTrazaDatos(){
-	//mcp.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission @FAIL
-	//setEscucharRed(1);
-	//vTaskDelay(50);
+	digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission @FAIL
    Serial.println(tramaEnviada);
    this->writeChar(tramaEnviada);
-   //mcp.digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode @FAIL
-   //setEscucharRed(0);
-   //vTaskDelay(50);
+   digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode @FAIL
 }
 
 
@@ -317,6 +311,12 @@ void ComunicacionLinea::constructorTramaDatos(Terminal &terminal, byte metodo){
 
 void ComunicacionLinea::procesarMetodo(byte metodo){
 
+	char metodoId[2];
+	itoa(metodo, metodoId, 2);
+
+	strncat(tramaEnviada, metodoId, sizeof(tramaEnviada));
+
+	/*
 	switch(metodo){
 
 	case MTH_DATA:
@@ -331,7 +331,7 @@ void ComunicacionLinea::procesarMetodo(byte metodo){
 		strncat(tramaEnviada, "RESET_OK", sizeof(tramaEnviada));
 		break;
 
-	}
+	}*/
 }
 
 void ComunicacionLinea::writeChar(char *TEXTO_ENVIO) {
@@ -352,9 +352,7 @@ void ComunicacionLinea::interrogarTerminal(Terminal &terminal){
 
 	switch (terminalComposer) {
 	case LLAMAR_TERMINAL:
-		//mcp.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission @FAIL
-		//setEscucharRed(1);
-		//vTaskDelay(50);
+		digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission @FAIL
 
 		this->constructorTramaDatos(terminal, MTH_DATA);
 		//this->enviarTrazaDatos();
@@ -372,14 +370,12 @@ void ComunicacionLinea::interrogarTerminal(Terminal &terminal){
 
 	case ESCUCHAR_LINEA:
 
-		//mcp.digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode @FAIL
-		//setEscucharRed(0);
-		//vTaskDelay(50);
+		digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode @FAIL
 
 		//vTaskDelay(500);
 		//this->testUart(); //@TEST
 
-		vTaskDelay(500);
+		//vTaskDelay(500);
 		if (millis() < tiempoEspera) {
 
 
@@ -395,7 +391,8 @@ void ComunicacionLinea::interrogarTerminal(Terminal &terminal){
 
 					strncpy(metodo, datosStrings[METODO], sizeof(metodo));
 
-					if (strcmp(metodo, metodoRespuesta) == 0) {
+					if (atoi(datosStrings[METODO]) == MTH_REPLY) {
+
 						//El terminal devuelve la informacion OK
 
 						Serial.println("RS: METODO DATA"); //@TEST
@@ -410,7 +407,7 @@ void ComunicacionLinea::interrogarTerminal(Terminal &terminal){
 						terminalComposer = LLAMAR_TERMINAL;
 						this->flagSalidaComposer = 1;
 
-					}else if(strcmp(metodo, metodoReintento) == 0){
+					}else if(atoi(datosStrings[METODO]) == MTH_RETRY){
 						//El terminal destino no entendio nuestra peticion y solicita reintento
 						Serial.println("RS: METODO REINTENTO"); //@TEST
 
@@ -457,9 +454,7 @@ void ComunicacionLinea::interrogarTerminal(Terminal &terminal){
 			Serial.println(numeroReintentosTerminal); //@TEST
 
 		if(numeroReintentosTerminal < 2){
-			//mcp.digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission @FAIL
-			//setEscucharRed(1);
-			//vTaskDelay(50);
+			digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission @FAIL
 
 			this->constructorTramaDatos(terminal, MTH_RETRY);
 			//this->enviarTrazaDatos();

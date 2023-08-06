@@ -10,7 +10,8 @@
  * -Enriquecer el log con dia de la semana o temperatura
  * -Ajustar los requerimientos de SAAS
  * -Ajustar el modo sabotaje
- * - Modo inquieto
+ * -Modo inquieto
+ * -Durante el modo reposo se hacen envioSAAS pero lo que entra por linea no se evalua ni guarda en el modelo Json
  *
  */
 
@@ -92,7 +93,9 @@ void setup()
 	    mcp.pinMode(GSM_PIN, OUTPUT);
 
 		//MODULO RS485
-	    mcp.pinMode(RS_CTL, OUTPUT);
+	    //mcp.pinMode(RS_CTL, OUTPUT);
+	    pinMode(RS_CTL, OUTPUT);
+
 
 		//PUERTOS INTERNOS
 	    mcp.pinMode(BOCINA_PIN, OUTPUT);
@@ -106,7 +109,9 @@ void setup()
 	    //Configuracion de los puertos
 
 	    mcp.digitalWrite(LED_COCHERA, LOW);
-	    mcp.digitalWrite(RS_CTL,LOW);
+	    //mcp.digitalWrite(RS_CTL,LOW);
+	    digitalWrite(RS_CTL,LOW);
+
 
 	    //Activamos el modulo GSM
 	    mcp.digitalWrite(GSM_PIN, HIGH);
@@ -152,6 +157,8 @@ void setup()
 	    //SIM800L
 	    //comprobarConexionGSM(5000L);
 
+	    //blinker.attach(4, blinkTEST);
+
 }
 
 
@@ -162,7 +169,6 @@ void loop()
 	demonio.demonioSerie();
 	procesosSistema();
 	procesosPrincipales();
-	//linea.mantenerComunicacion();
 
 }
 
@@ -178,7 +184,7 @@ void tareaSaas(void *pvParameters) {
 void tareaLinea(void *pvParameters){
 	  while (1) {
 		linea.mantenerComunicacion();
-		vTaskDelay(1000);
+		vTaskDelay(300);
 	}
 }
 
@@ -187,7 +193,6 @@ void procesosSistema(){
 
 
 	watchDog();
-	//chekearPeticionRs();
 	sleepMode();
 	checkearSensorPuertaCochera();
 	avisoLedPuertaCochera();
@@ -528,6 +533,7 @@ void setEstadoReposo()
 	lcd_info_tiempo = millis() + TIEMPO_ALERT_LCD;
 
 	INTENTOS_REACTIVACION = 0;
+	ACCESO_LISTAS = 1; //Habilita la escritura de la linea
 	limpiarSensores();
 	pararBocina();
 	tiempoSensible = millis();

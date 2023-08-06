@@ -114,8 +114,8 @@ ComunicacionLinea linea;
 byte ACCESO_LISTAS = 1;
 
 //Terminales en linea
-Terminal T_COCHERA = Terminal(1,"COCHERA");
-//Terminal T_PORCHE = Terminal("PORCHE");
+Terminal T_COCHERA = Terminal(1,"CH");
+Terminal T_PORCHE = Terminal(2,"PC");
 //Terminal T_ALMACEN = Terminal("ALMACEN");
 
 Terminal* T_LIST[] = { &T_COCHERA };
@@ -169,6 +169,15 @@ static byte tiempoFracccion;
  byte flagPuertaAbierta = 0;
 
  //FUNCIONES//
+ Ticker blinker;
+ void blinkTEST() {
+	 Serial.println(F("\nBlinker"));
+
+   digitalWrite(TEST_PIN_RS, !digitalRead(TEST_PIN_RS));
+
+   Serial.println(digitalRead(TEST_PIN_RS));
+
+ }
 
  void leerEntradaTeclado(){
 	 key = keypad.getKey();
@@ -313,15 +322,6 @@ static byte tiempoFracccion;
 
 	void watchDog(){
 		mcp.digitalWrite(WATCHDOG, !mcp.digitalRead(WATCHDOG));
-	}
-
-	void chekearPeticionRs()
-	{
-		if(linea.getEscucharRed()){
-			mcp.digitalWrite(RS_CTL, LOW);
-		}else {
-			mcp.digitalWrite(RS_CTL, HIGH);
-		}
 	}
 
 	void sleepMode(){

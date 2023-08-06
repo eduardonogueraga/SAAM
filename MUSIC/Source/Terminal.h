@@ -37,7 +37,7 @@ class Terminal {
 
 private:
 	byte TERMINAL_ID;
-	char TERMINAL_NAME[10];
+	char TERMINAL_NAME[5];
 	byte NUM_SENSORES;
 	byte NUM_LINEAS_CTL;
 	byte NUM_FOTO_SENSOR;

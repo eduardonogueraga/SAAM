@@ -44,7 +44,8 @@
 #define WATCHDOG 3//P4 // @develop ('Pines adaptados')
 
 //RS485
-#define RS_CTL 1//P6
+//#define RS_CTL 1//P6 @MCP
+#define RS_CTL 13
 
 //CONTROL RELES 12V
 #define RELE_AUXILIAR 10
@@ -60,6 +61,7 @@
 #define RS_TX 18
 #define RS_RX 5
 
+#define TEST_PIN_RS 13
 
 //SD
 #define REGISTRO_SS_PIN 53
@@ -85,7 +87,14 @@
 
 //COMUNICACION LINEA
 enum infoTrazas{DESTINATARIO, AUTOR, METODO, METODO_DESC, ESTADO_SERVICIO, FOTOSENSOR};
-enum metodosTrazas{MTH_DATA, MTH_RETRY, MTH_RESET};
+
+typedef enum {
+	MTH_DATA,
+	MTH_REPLY,
+	MTH_RETRY,
+	MTH_RESET,
+	MTH_FAIL
+} metodosTrazas;
 
 #define N_TERMINALES_LINEA 2
 

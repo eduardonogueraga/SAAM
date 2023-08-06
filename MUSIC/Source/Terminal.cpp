@@ -276,6 +276,7 @@ void Terminal::limpiarDatosTerminal(){
 	}
 	setDatosFotosensor(0);
 	limpiarResultadoPhantom();
+	limpiarStrikes();
 
 }
 
