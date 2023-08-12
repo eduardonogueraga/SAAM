@@ -7,10 +7,10 @@
  *
  *- Añadir envios informativos sin saltar la alarma
  * -Añadir un envio SAAS adicional y posterior a mensaje y las llamadas
- * -Enriquecer el log con dia de la semana o temperatura
  * -Ajustar los requerimientos de SAAS
  * -Ajustar el modo sabotaje
  * -Modo inquieto
+ * -Enriquecer el log con dia de la semana o temperatura
  * -Durante el modo reposo se hacen envioSAAS pero lo que entra por linea no se evalua ni guarda en el modelo Json
  *
  */
@@ -432,7 +432,7 @@ void setEstadoGuardia()
 
 	registro.registrarLogSistema("ALARMA ACTIVADA MANUALMENTE");
 	eventosJson.guardarEntrada();
-	//eventosJson.guardarLog(); @PEND
+	eventosJson.guardarLog(ALARMA_ACTIVADA_MANUALMENTE_LOG);
 }
 
 void setEstadoGuardiaReactivacion()
@@ -470,7 +470,7 @@ void setEstadoGuardiaReactivacion()
 	limpiarTerminalesLinea();
 
 	registro.registrarLogSistema("ALARMA ACTIVADA AUTOMATICAMENTE");
-	//eventosJson.guardarLog(); @PEND
+	eventosJson.guardarLog(ALARMA_ACTIVADA_AUTOMATICAMENTE_LOG);
 	eventosJson.guardarEntrada();
 	vTaskResume(envioServidorSaas); //Continua la ejecucion SAAS
 }
@@ -561,7 +561,7 @@ void setEstadoReposo()
 
 	registro.registrarLogSistema("ALARMA DESACTIVADA MANUALMENTE");
 	eventosJson.guardarEntrada();
-	//eventosJson.guardarLog(); @PEND
+	eventosJson.guardarLog(ALARMA_DESACTIVADA_MANUALMENTE_LOG);
 }
 
 
@@ -597,5 +597,5 @@ void setEstadoInquieto()
 
 	registro.registrarLogSistema("ALARMA DESACTIVADA AUTOMATICAMENTE");
 	eventosJson.guardarEntrada();
-	//eventosJson.guardarLog(); @PEND
+	eventosJson.guardarLog(ALARMA_DESACTIVADA_AUTOMATICAMENTE_LOG);
 }

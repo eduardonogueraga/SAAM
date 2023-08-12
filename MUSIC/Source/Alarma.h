@@ -423,7 +423,7 @@ static byte tiempoFracccion;
 		if (leerFlagEEInt("ESTADO_GUARDIA") == 1 || leerFlagEEInt("ERR_INTERRUPT") == 0) {
 			estadoAlarma = ESTADO_GUARDIA;
 			registro.registrarLogSistema("CARGADO ESTADO GUARDIA PREVIO");
-			//eventosJson.guardarLog(RESET_MANUAL_LOG); @PEND
+			eventosJson.guardarLog(CARGADO_ESTADO_GUARDIA_PREVIO_LOG);
 
 			//Informar de que se ha restaurado una entrada
 			guardarFlagEE("F_RESTAURADO", 1);
@@ -446,7 +446,7 @@ static byte tiempoFracccion;
 			snprintf(registroConjunto, sizeof(registroConjunto), "%s%s", "CARGADO ESTADO ALERTA EN ", nombreZonas[zona]);
 
 			registro.registrarLogSistema(registroConjunto);
-			//eventosJson.guardarLog(RESET_MANUAL_LOG); @PEND
+			eventosJson.guardarLog(INTRUSISMO_RESTAURADO_LOG);
 
 			Serial.println("\nIntrusismo restaurado en " + nombreZonas[zona]);
 			estadoAlarma = ESTADO_ALERTA;

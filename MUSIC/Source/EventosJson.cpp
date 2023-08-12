@@ -182,13 +182,14 @@ void EventosJson::guardarEntrada(){
 
 }
 
-void EventosJson::guardarDeteccion(byte strikes, byte umbral, byte modo, byte id, byte estado,  byte valor){
+void EventosJson::guardarDeteccion(byte strikes, byte umbral, byte modo, byte idTerminal, byte id, byte estado,  byte valor){
 
 /*
 	'intrusismo' => Si la deteccion es la que provoca intrusismo
 	'umbral' => Rango maximo
 	'restaurado' => Si se ha restaurado la detecccion
 	'modo_deteccion' =>  "normal" : "phantom",
+	id_terminal idTerminal
 	'tipo' => ID sensor,
 	'estado' => "ONLINE" : "OFFLINE",
 	'valor_sensor' => VALOR DIGITAL O ANALOGICO,
@@ -197,12 +198,13 @@ void EventosJson::guardarDeteccion(byte strikes, byte umbral, byte modo, byte id
 	char reg[20];
 	byte sensor_id[] = {102, 103, 104, 105};
 
-	snprintf(reg, sizeof(reg), "%d|%d|%d|%d|%d|%d|%d",
+	snprintf(reg, sizeof(reg), "%d|%d|%d|%d|%d|%d|%d|%d",
 			(strikes==umbral),
 			umbral,
-			0, //Se restauran detecciones?
+			0,
 			modo,
-			sensor_id[id],
+			(idTerminal == 0)? 0 : idTerminal,
+			(idTerminal == 0)? sensor_id[id] : id,
 			estado,
 			valor);
 
@@ -474,6 +476,7 @@ byte EventosJson::enviarInformeSaas(){
 			if(registro.leerReintentosModelo(&modelo) == MAX_REINTENTOS_ENVIO_MODELO){
 				Serial.println(F("Modelo eliminado por exceso de reintentos"));
 				registro.registrarLogSistema("Modelo eliminado por exceso de reintentos");
+				guardarLog(MODELO_ELIMINADO_EXCESO_REINTENTOS_LOG);
 				registro.extraerPrimerElemento();
 			}
 
@@ -487,10 +490,12 @@ byte EventosJson::enviarInformeSaas(){
 				Serial.println(F("Modelo sd enviado"));
 				confirmarIdPaquete();
 				registro.registrarLogSistema("Modelo enviado desde SD");
+				guardarLog(MODELO_ENVIADO_SD_LOG);
 				registro.extraerPrimerElemento(); //Saco el registro
 				estadoEnvio = 1;
 			}else if(resultado == ERROR_ID){
 				registro.registrarLogSistema("Error en el id del modelo");
+				guardarLog(MODELO_ERROR_EN_ID_LOG);
 				estadoEnvio = 0;
 				return estadoEnvio; //Salgo
 			}
@@ -498,6 +503,7 @@ byte EventosJson::enviarInformeSaas(){
 				//Error abortar informe
 				registro.actualizarUltimoElemento("retry");
 				registro.registrarLogSistema("Error enviando modelo");
+				guardarLog(MODELO_ERROR_ENVIO_LOG);
 				estadoEnvio = 0;
 				return estadoEnvio; //Salgo
 			}
@@ -525,11 +531,13 @@ byte EventosJson::enviarInformeSaas(){
 
 			if (resultado == ERROR_ID) {
 				registro.registrarLogSistema("Error en el id del modelo");
+				guardarLog(MODELO_ERROR_EN_ID_LOG);
 			}
 
 			if (resultado == ERROR_ENVIO) {
 				//Error el modelo actual a fallado por lo que es enviado a fichero para su posterior reenvio
 				registro.registrarLogSistema("Error enviando modelo");
+				guardarLog(MODELO_ERROR_ENVIO_LOG);
 			}
 
 			registro.exportarEventosJson(&JSON_DOC);
@@ -539,6 +547,7 @@ byte EventosJson::enviarInformeSaas(){
 		Serial.println(F("Modelo memoria enviado"));
 		confirmarIdPaquete();
 		registro.registrarLogSistema("Modelo enviado");
+		guardarLog(MODELO_ENVIADO_LOG);
 		estadoEnvio = 1;
 	}
 

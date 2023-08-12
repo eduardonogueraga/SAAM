@@ -217,6 +217,7 @@ RespuestaTerminal Terminal::evaluarDatosTerminal(){
 					eventosJson.guardarDeteccion((sensorPorcentaje >= UMBRAL_SENSOR_INDIVIDUAL),
 													FRACCION_SALTO,
 													P_MODO_NORMAL,
+													getTerminalId(),
 													i,
 													P_ESTADO_ONLINE); //Regularizar el id del terminal
 				}
@@ -398,11 +399,7 @@ double Terminal::EvaluarSensor(Lista* lista, int numSensor) {
 
     while (puntero) {
         if (puntero->data.sampleSensores[numSensor]) {
-
-        	//snprintf(registroConjunto, sizeof(registroConjunto), "%s%d%s", "MOVIMIENTO EN TERMINAL X:",numSensor," ONLINE");
-        	//registro.registrarLogSistema(registroConjunto);
-        	//eventosJson.guardarDeteccion(1, FRACCION_SALTO, P_MODO_NORMAL,numSensor, P_ESTADO_ONLINE); //Regularizar el id del terminal
-            contadorSalto++;
+        	contadorSalto++;
             if (diferenciaTiempoAux == 0) {
                 diferenciaTiempoAux = puntero->data.marcaTiempo;
                 contadorMatch++; //Un primer combo para aumentar el porcentaje al principio
@@ -445,7 +442,13 @@ void Terminal::EvaluarSensorPhantom(Lista* lista){
 
                 	 snprintf(registroConjunto, sizeof(registroConjunto), "%s%d%s", "MOVIMIENTO PHANTOM EN TERMINAL X:",i," ONLINE");
                 	 registro.registrarLogSistema(registroConjunto);
-                	 eventosJson.guardarDeteccion(1, FRACCION_SALTO, P_MODO_PHANTOM,i, P_ESTADO_ONLINE); //Regularizar el id del terminal
+                	 eventosJson.guardarDeteccion(
+                			 1,
+							 FRACCION_SALTO,
+							 P_MODO_PHANTOM,
+							 getTerminalId(),
+							 i,
+							 P_ESTADO_ONLINE); //Regularizar el id del terminal
                      sampleSensoresPhantom[i]++;
                 }
             }

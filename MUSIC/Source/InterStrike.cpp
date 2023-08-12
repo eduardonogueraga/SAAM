@@ -76,7 +76,7 @@ extern EventosJson eventosJson;
 
 					snprintf(registroConjunto, sizeof(registroConjunto), "%s%d%s", "MOVIMIENTO EN PIR",this->numero," ONLINE");
 					registro.registrarLogSistema(registroConjunto);
-					eventosJson.guardarDeteccion(this->strike, this->max, 1, this->numero, 1);
+					eventosJson.guardarDeteccion(this->strike, this->max, 1, 0,this->numero, 1);
 
 
 
@@ -86,7 +86,7 @@ extern EventosJson eventosJson;
 					Serial.print(" deshabilitado");
 					snprintf(registroConjunto, sizeof(registroConjunto), "%s%d%s", "MOVIMIENTO EN PIR",this->numero," OFFLINE");
 					registro.registrarLogSistema(registroConjunto);
-					eventosJson.guardarDeteccion(this->strike, this->max, 1, this->numero, 0);
+					eventosJson.guardarDeteccion(this->strike, this->max, 1,0, this->numero, 0);
 
 				}
 			}
@@ -137,7 +137,7 @@ extern EventosJson eventosJson;
 						strike++;
 						Serial.print("\nSignal strike MG");
 						registro.registrarLogSistema("DETECCION ABERTURA DE PUERTA");
-						eventosJson.guardarDeteccion(this->strike, this->max, 1, this->numero, 1);
+						eventosJson.guardarDeteccion(this->strike, this->max, 1,0, this->numero, 1);
 					}
 				}
 			}
@@ -214,7 +214,7 @@ extern EventosJson eventosJson;
 					_datos.setDatos(this->numero, strike);
 					snprintf(registroConjunto, sizeof(registroConjunto), "%s%d%s", "PHANTOM EN PIR",this->numero," ONLINE");
 					registro.registrarLogSistema(registroConjunto);
-					eventosJson.guardarDeteccion(this->strike, this->max, 0, this->numero, 1);
+					eventosJson.guardarDeteccion(this->strike, this->max, 0, 0,this->numero, 1);
 				}
 			} else {
 				Serial.print("\nSensor ");
@@ -222,7 +222,7 @@ extern EventosJson eventosJson;
 				Serial.print(" deshabilitado");
 				snprintf(registroConjunto, sizeof(registroConjunto), "%s%d%s", "PHANTOM EN PIR",this->numero," OFFLINE");
 				registro.registrarLogSistema(registroConjunto);
-				eventosJson.guardarDeteccion(this->strike, this->max, 0, this->numero, 0);
+				eventosJson.guardarDeteccion(this->strike, this->max, 0,0, this->numero, 0);
 			}
 		}
 

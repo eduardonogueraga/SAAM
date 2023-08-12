@@ -57,7 +57,7 @@ public:
 	void mostrarModeloJSON();
 
 	void guardarEntrada();
-	void guardarDeteccion(byte strikes, byte umbral, byte modo, byte id, byte estado,  byte valor = 1);
+	void guardarDeteccion(byte strikes, byte umbral, byte modo, byte idTerminal, byte id, byte estado,  byte valor = 1);
 	void guardarNotificacion(byte tipo, byte asunto , char cuerpo[],byte tlf);
 	void guardarLog(byte id);
 
