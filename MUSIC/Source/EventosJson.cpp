@@ -364,7 +364,7 @@ void EventosJson::confirmarIdPaquete(){
 	guardarFlagEE("PACKAGE_ID", ultimoIdInstalado);
 }
 
-SAAS_GESTION_ENVIO_R EventosJson::gestionarEnvioPaquete(String* modeloJson){
+SAAS_GESTION_ENVIO_R EventosJson::gestionarEnvioModeloJson(String* modeloJson, SAAS_TIPO_HTTP_REQUEST tipoDatos){
 
 	SAAS_GESTION_ENVIO_R resultado = ERROR_ENVIO;
 	byte flagSalida = 0;
@@ -379,7 +379,7 @@ SAAS_GESTION_ENVIO_R EventosJson::gestionarEnvioPaquete(String* modeloJson){
 		switch (gestionPaquete) {
 		case ENVIAR_POR_POST:
 
-			respuesta = postPaqueteSaas(&modelo);
+			respuesta = postDatosSaas(&modelo, tipoDatos);
 			switch (respuesta.codigo) {
 			case 200:
 				//Salir del bucle si todo ok
@@ -484,7 +484,7 @@ byte EventosJson::enviarInformeSaas(){
 
 			Serial.println(modelo);
 
-			resultado = gestionarEnvioPaquete(&modelo);
+			resultado = gestionarEnvioModeloJson(&modelo, PAQUETE);
 
 			if(resultado == ENVIO_OK){
 				Serial.println(F("Modelo sd enviado"));
@@ -521,7 +521,7 @@ byte EventosJson::enviarInformeSaas(){
 	SALIDA_JSON = asignarIdPaquete(&SALIDA_JSON);
 	Serial.println(SALIDA_JSON);
 
-	resultado = gestionarEnvioPaquete(&SALIDA_JSON);
+	resultado = gestionarEnvioModeloJson(&SALIDA_JSON, PAQUETE);
 
 	if(resultado != ENVIO_OK){
 		estadoEnvio = 0;
@@ -559,5 +559,38 @@ byte EventosJson::enviarInformeSaas(){
 	componerJSON();
 
 	return estadoEnvio;
+
+}
+
+
+byte EventosJson::enviarNotificacionSaas(byte tipo, String* contenido){
+	//Se prepara una notificacion para enviar al servidor
+
+	SAAS_GESTION_ENVIO_R resultado;
+	char logEnvio[300] = "";
+
+	StaticJsonDocument<300> notificacion;
+
+	notificacion["type"] = tipo;
+	notificacion["reg"] = *contenido;
+	notificacion["date"] = fecha.imprimeFechaJSON(1);
+
+	String notificacionModelo;
+	serializeJson(notificacion, notificacionModelo);
+
+	Serial.println(notificacionModelo);
+
+	resultado = gestionarEnvioModeloJson(&notificacionModelo, NOTIFICACION);
+
+	snprintf(logEnvio, sizeof(logEnvio), "[%s] - Notificacion %s contenido: %S",
+			((resultado == ENVIO_OK) ? "Notificacion enviada con exito" : "Error notificacion no enviada"),
+			(tipo ? "del sistema" : "de alarma"),
+			contenido->c_str());
+
+	Serial.println(logEnvio);
+
+	registro.registrarLogSistema(logEnvio);
+
+	return (resultado == ENVIO_OK);
 
 }

@@ -28,7 +28,7 @@ extern EstadosAlarma estadoAlarma;
 
 extern ConfigSystem configSystem;
 
-extern RespuestaHttp postPaqueteSaas(String* modeloJson);
+extern RespuestaHttp postDatosSaas(String* modeloJson, SAAS_TIPO_HTTP_REQUEST tipoDatos);
 extern int getIdPaqueteSaas();
 extern int generarTokenSaas();
 extern const char* version[];
@@ -41,7 +41,7 @@ private:
 	byte cargarJsonNVS(StaticJsonDocument<MAX_SIZE_JSON>& jsonDoc);
 	String asignarIdPaquete(String* modelo);
 	void confirmarIdPaquete();
-	SAAS_GESTION_ENVIO_R gestionarEnvioPaquete(String* modeloJson);
+	SAAS_GESTION_ENVIO_R gestionarEnvioModeloJson(String* modeloJson, SAAS_TIPO_HTTP_REQUEST tipoDatos);
 
 	SAAS_GESTION_ENVIO gestionPaquete;
 
@@ -67,6 +67,8 @@ public:
 	void cargarJsonNVS();
 	void actualizarCabecera();
 	byte enviarInformeSaas();
+	byte enviarNotificacionSaas(byte tipo, String* contenido);
+
 	String* getSalidaJsonPointer() { //@TEST ONLY
 
 		SALIDA_JSON.clear();

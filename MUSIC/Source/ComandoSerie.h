@@ -45,6 +45,12 @@ extern void interrupcionFalloAlimentacion();
 extern int testHttpRequest();
 extern int getIdPaqueteSaas();
 extern void refrescarModuloGSM();
+extern void enviarNotificacionesSaas(byte tipo, String* contenido);
+
+extern TaskHandle_t envioNotificacionSaas;
+extern void tareaNotificacionSaas(void *pvParameters);
+extern NotificacionSaas datosNotificacionSaas;
+extern void liberarNotificacionSaas(byte tipo, String* contenido);
 
 class ComandoSerie {
 

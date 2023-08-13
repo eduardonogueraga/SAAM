@@ -15,6 +15,7 @@ void setup();
 void loop();
 void tareaLinea(void *pvParameters);
 void tareaSaas(void *pvParameters);
+void tareaNotificacionSaas(void *pvParameters);
 void procesosSistema() ;
 void procesosPrincipales() ;
 void procesoAlarma();

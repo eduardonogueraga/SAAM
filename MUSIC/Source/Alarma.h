@@ -41,11 +41,14 @@
 
 
 //VERSION (VE -> Version Estable VD -> Version Desarrollo)
-const char* version[] = {"MUSIC VE21R0", "30/07/23"};
+const char* version[] = {"MUSIC VE21R0", "13/08/23"};
 
 //RTOS
 TaskHandle_t gestionLinea;
 TaskHandle_t envioServidorSaas;
+TaskHandle_t envioNotificacionSaas;
+//Parametros para tareas
+NotificacionSaas datosNotificacionSaas;
 
 //VARIABLES GLOBALES
 ConfigSystem configSystem;
@@ -171,7 +174,7 @@ static byte tiempoFracccion;
  //FUNCIONES//
  Ticker blinker;
  void blinkTEST() {
-	 Serial.println(F("\nBlinker"));
+	 Serial.println(F("\nBlinker")); //@TEST
 
    digitalWrite(TEST_PIN_RS, !digitalRead(TEST_PIN_RS));
 
@@ -895,6 +898,55 @@ static byte tiempoFracccion;
 		}
 	}
 
+	void liberarNotificacionSaas(byte tipo, String* contenido){
+		//Se definen los datos de la notificacion y se crea una tarea en segundo plano
+
+		 datosNotificacionSaas.tipo = tipo;
+		 datosNotificacionSaas.contenido = *contenido;
+
+			xTaskCreatePinnedToCore(
+					tareaNotificacionSaas,
+					"tareaNotificacionSaas",
+					(1024*10), //Buffer
+					&datosNotificacionSaas, //Param
+					2, //Prioridad
+					&envioNotificacionSaas, //Task
+					0);
+	}
+
+	void enviarNotificacionesSaas(byte tipo, String* contenido){
+
+		byte resultado;
+		bool peticionOK = false;
+
+		for (int intento = 1; intento <= MAX_REINTENTOS_ENVIO_NOTIFICACION && !peticionOK; intento++) {
+			Serial.print(F("Intento: "));
+			Serial.println(intento);
+
+			if(!modem.waitForNetwork(2000, true)){ //@TEST NO NEGAR EN PROD
+				Serial.println(F("Hay cobertura se procede al envio"));
+				resultado = eventosJson.enviarNotificacionSaas(tipo, &*contenido);
+			}else {
+				Serial.println(F("No hay cobertura se aborta el intento"));
+				resultado = 0;
+				//Refresco el modulo
+				refrescarModuloGSM();
+			}
+
+			if (resultado == 1) {
+				Serial.println(F("Notificacion enviada exitosamente."));
+				peticionOK = true;
+			} else {
+				Serial.println(F("Fallo al enviar notificacion."));
+
+				if (intento < MAX_REINTENTOS_ENVIO_NOTIFICACION) {
+					Serial.println(F("Esperando 10 segundos antes de reintentar..."));
+					vTaskDelay(2000);
+				}
+			}
+		}
+	}
+
 	RespuestaHttp realizarPeticionHttp(const char* metodo, const char* resource, byte auth = 1, const char* jsonData = nullptr){
 
 		RespuestaHttp respuesta;
@@ -1061,10 +1113,19 @@ static byte tiempoFracccion;
 
 
 
-	RespuestaHttp postPaqueteSaas(String* modeloJson){
+	RespuestaHttp postDatosSaas(String* modeloJson, SAAS_TIPO_HTTP_REQUEST tipoDatos){
 		RespuestaHttp respuesta;
 		const char* jsonData = modeloJson->c_str();
-		respuesta = realizarPeticionHttp("POST", postEventosJson, 1, jsonData);
+
+		if(tipoDatos == PAQUETE){
+			 Serial.println("Envio de paquete");
+			respuesta = realizarPeticionHttp("POST", postEventosJson, 1, jsonData);
+		}else if(tipoDatos == NOTIFICACION){
+			Serial.println("Envio de notificacion");
+			respuesta = realizarPeticionHttp("POST", postNotificacionJson, 1, jsonData);
+		}else {
+			Serial.print("Error tipo de peticion http no reconocida");
+		}
 
 	    Serial.print("Codigo: ");
 	    Serial.println(respuesta.codigo);

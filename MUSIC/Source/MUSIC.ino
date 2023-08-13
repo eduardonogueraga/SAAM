@@ -180,6 +180,15 @@ void tareaSaas(void *pvParameters) {
   }
 }
 
+void tareaNotificacionSaas(void *pvParameters){
+	NotificacionSaas *datos = (NotificacionSaas *)pvParameters;
+
+	Serial.println("Notificacion");
+	enviarNotificacionesSaas(datos->tipo, &datos->contenido);
+
+	vTaskDelay(100);
+	vTaskDelete(NULL);
+}
 
 void tareaLinea(void *pvParameters){
 	  while (1) {
@@ -498,9 +507,10 @@ void setEstadoAlerta()
 
 	if(!modem.waitForNetwork(1000, true)){
 		Serial.println(F("Modulo sin red refrescando"));
-		refrescarModuloGSM();
+		refrescarModuloGSM(); //Si se refresca el modulo no puedes usar seguidamente http
 	}
 
+	//Llamamos a la tarea de notificacion
 }
 
 void setEstadoEnvio()

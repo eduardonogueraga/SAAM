@@ -118,6 +118,7 @@ enum infoMapeoSensores {
 
 //SAAS MODELO JSON
 #define MAX_REINTENTOS_ENVIO_MODELO 5
+#define MAX_REINTENTOS_ENVIO_NOTIFICACION 2
 
 typedef enum {
 	SILENCIO,
@@ -204,6 +205,14 @@ struct configuracion_sistema_t {
 	 byte idSensorDetonante;
 	 byte idTerminal;
  } RespuestaTerminal;
+
+
+ typedef struct  {
+	 byte tipo;
+	 String contenido = "";
+ } NotificacionSaas;
+
+
 
 
 //ENUM Y TYPEDEFS
@@ -357,6 +366,12 @@ typedef enum  {
 	ENVIO,
 	ESPERA_REINTENTO
 } SAAS_CRON_ENVIOS;
+
+typedef enum  {
+    PAQUETE,
+	NOTIFICACION
+} SAAS_TIPO_HTTP_REQUEST;
+
 
 
 

@@ -17,7 +17,6 @@ void ComandoSerie::demonioSerie(){
 	if (Serial.available() > 0 ){
 
 		if(Serial.available() > 0)
-
 		comandoRecibido = Serial.readStringUntil('\n');
 		comandoRecibido.trim();
 		comandoRecibido.toCharArray(data, sizeof(data));
@@ -211,12 +210,35 @@ void ComandoSerie::comprobarComando() {
 		eventosJson.enviarInformeSaas();
 	}
 
+	if (compararCadena(data, "json -send not")){
+		nombreComando(data);
+		//Nivel de modelo
+		String t = "Movimiento en patio";
+		eventosJson.enviarNotificacionSaas(0, &t);
+	}
+
+
+	if (compararCadena(data, "note -t")){
+		String t = "Movimiento en patio";
+		//Nivel de composer
+		enviarNotificacionesSaas(1, &t);
+	}
+
+	if(compararCadena(data, "note -send")){
+		nombreComando(data);
+		//Nivel RTOS
+		String t = "Movimiento en patio 1,2,3";
+		liberarNotificacionSaas(1, &t);
+	}
+
+
 	if (compararCadena(data, "json -ch")){
 		nombreComando(data);
 
 		registro.actualizarUltimoElemento("retry");
 		registro.actualizarUltimoElemento("id", 455);
 	}
+
 
 	if(compararCadena(data, "http -id")){
 		nombreComando(data);
@@ -274,8 +296,22 @@ void ComandoSerie::comprobarComando() {
 		)";
 
 
-		 postPaqueteSaas(&json);
+		postDatosSaas(&json, PAQUETE);
 
+	}
+
+	if(compararCadena(data, "http -not")){
+		nombreComando(data);
+
+		String json = R"(
+			{
+				"type": 1,
+				"reg": "Movimiento detectado en PIR3",
+				"date": "2023-08-10T18:50:52"
+			}
+			)";
+
+		postDatosSaas(&json, NOTIFICACION);
 	}
 
 	if(compararCadena(data, "token")){
@@ -315,12 +351,6 @@ void ComandoSerie::comprobarComando() {
 
 			registro.registrarLogHttpRequest(&httpResponse);
 		}
-
-
-	if (compararCadena(data, "saas")){
-		nombreComando(data);
-		eventosJson.enviarInformeSaas();
-	}
 
 	if (compararCadena(data, "go saas")){
 		nombreComando(data);
@@ -420,7 +450,6 @@ void ComandoSerie::comprobarComando() {
 		UART_GSM.println("AT&W");
 		UART_GSM.println("AT+CFUN=1,1");
 	}
-
 
 	if(compararCadena(data, "power")){
 		nombreComando(data);
