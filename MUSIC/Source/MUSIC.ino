@@ -184,7 +184,7 @@ void tareaNotificacionSaas(void *pvParameters){
 	NotificacionSaas *datos = (NotificacionSaas *)pvParameters;
 
 	Serial.println("Notificacion");
-	enviarNotificacionesSaas(datos->tipo, &datos->contenido);
+	enviarNotificacionesSaas(datos->tipo, datos->contenido);
 
 	vTaskDelay(100);
 	vTaskDelete(NULL);

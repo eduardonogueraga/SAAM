@@ -563,7 +563,7 @@ byte EventosJson::enviarInformeSaas(){
 }
 
 
-byte EventosJson::enviarNotificacionSaas(byte tipo, String* contenido){
+byte EventosJson::enviarNotificacionSaas(byte tipo, const char* contenido){
 	//Se prepara una notificacion para enviar al servidor
 
 	SAAS_GESTION_ENVIO_R resultado;
@@ -572,7 +572,7 @@ byte EventosJson::enviarNotificacionSaas(byte tipo, String* contenido){
 	StaticJsonDocument<300> notificacion;
 
 	notificacion["type"] = tipo;
-	notificacion["reg"] = *contenido;
+	notificacion["reg"] = contenido;
 	notificacion["date"] = fecha.imprimeFechaJSON(1);
 
 	String notificacionModelo;
@@ -582,10 +582,12 @@ byte EventosJson::enviarNotificacionSaas(byte tipo, String* contenido){
 
 	resultado = gestionarEnvioModeloJson(&notificacionModelo, NOTIFICACION);
 
-	snprintf(logEnvio, sizeof(logEnvio), "[%s] - Notificacion %s contenido: %S",
+	snprintf(logEnvio, sizeof(logEnvio), "[%s] - Notificacion %s contenido: %s",
 			((resultado == ENVIO_OK) ? "Notificacion enviada con exito" : "Error notificacion no enviada"),
 			(tipo ? "del sistema" : "de alarma"),
-			contenido->c_str());
+			//contenido->c_str()
+			contenido
+			);
 
 	Serial.println(logEnvio);
 

@@ -67,7 +67,7 @@ public:
 	void cargarJsonNVS();
 	void actualizarCabecera();
 	byte enviarInformeSaas();
-	byte enviarNotificacionSaas(byte tipo, String* contenido);
+	byte enviarNotificacionSaas(byte tipo, const char* contenido);
 
 	String* getSalidaJsonPointer() { //@TEST ONLY
 

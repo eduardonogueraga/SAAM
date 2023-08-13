@@ -36,6 +36,7 @@
 #include "EventosJson.h"
 #include "ComunicacionLinea.h"
 #include "Terminal.h"
+#include "PilaTareas.h"
 
 //#include "MUXMCP23X17.h"
 
@@ -898,11 +899,10 @@ static byte tiempoFracccion;
 		}
 	}
 
-	void liberarNotificacionSaas(byte tipo, String* contenido){
+	void crearTareaNotificacionSaas(byte tipo, const char* contenido){
 		//Se definen los datos de la notificacion y se crea una tarea en segundo plano
-
 		 datosNotificacionSaas.tipo = tipo;
-		 datosNotificacionSaas.contenido = *contenido;
+		 strcpy(datosNotificacionSaas.contenido, contenido);
 
 			xTaskCreatePinnedToCore(
 					tareaNotificacionSaas,
@@ -914,7 +914,7 @@ static byte tiempoFracccion;
 					0);
 	}
 
-	void enviarNotificacionesSaas(byte tipo, String* contenido){
+	void enviarNotificacionesSaas(byte tipo, const char* contenido){
 
 		byte resultado;
 		bool peticionOK = false;
@@ -925,7 +925,7 @@ static byte tiempoFracccion;
 
 			if(!modem.waitForNetwork(2000, true)){ //@TEST NO NEGAR EN PROD
 				Serial.println(F("Hay cobertura se procede al envio"));
-				resultado = eventosJson.enviarNotificacionSaas(tipo, &*contenido);
+				resultado = eventosJson.enviarNotificacionSaas(tipo, contenido);
 			}else {
 				Serial.println(F("No hay cobertura se aborta el intento"));
 				resultado = 0;

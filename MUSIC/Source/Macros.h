@@ -209,7 +209,7 @@ struct configuracion_sistema_t {
 
  typedef struct  {
 	 byte tipo;
-	 String contenido = "";
+	 char contenido[100];
  } NotificacionSaas;
 
 
@@ -371,8 +371,6 @@ typedef enum  {
     PAQUETE,
 	NOTIFICACION
 } SAAS_TIPO_HTTP_REQUEST;
-
-
 
 
 //MENU

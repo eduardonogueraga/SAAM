@@ -213,22 +213,20 @@ void ComandoSerie::comprobarComando() {
 	if (compararCadena(data, "json -send not")){
 		nombreComando(data);
 		//Nivel de modelo
-		String t = "Movimiento en patio";
-		eventosJson.enviarNotificacionSaas(0, &t);
+		eventosJson.enviarNotificacionSaas(0, "Movimiento en patio");
 	}
 
 
 	if (compararCadena(data, "note -t")){
 		String t = "Movimiento en patio";
 		//Nivel de composer
-		enviarNotificacionesSaas(1, &t);
+		enviarNotificacionesSaas(1, "Movimiento en patio");
 	}
 
 	if(compararCadena(data, "note -send")){
 		nombreComando(data);
 		//Nivel RTOS
-		String t = "Movimiento en patio 1,2,3";
-		liberarNotificacionSaas(1, &t);
+		crearTareaNotificacionSaas(1, "Movimiento en patio 1,2,3");
 	}
 
 
@@ -449,6 +447,19 @@ void ComandoSerie::comprobarComando() {
 		UART_GSM.println("AT+IPR=115200");
 		UART_GSM.println("AT&W");
 		UART_GSM.println("AT+CFUN=1,1");
+	}
+
+
+
+
+	if(compararCadena(data, "pila -t")){
+		nombreComando(data);
+		testTaskNodos();
+	}
+
+	if(compararCadena(data, "pila -d")){
+		nombreComando(data);
+		testTaskNodosDelete();
 	}
 
 	if(compararCadena(data, "power")){
