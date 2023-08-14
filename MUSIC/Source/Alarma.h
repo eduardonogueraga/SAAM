@@ -36,8 +36,6 @@
 #include "EventosJson.h"
 #include "ComunicacionLinea.h"
 #include "Terminal.h"
-#include "PilaTareas.h"
-
 //#include "MUXMCP23X17.h"
 
 
@@ -46,10 +44,12 @@ const char* version[] = {"MUSIC VE21R0", "13/08/23"};
 
 //RTOS
 TaskHandle_t gestionLinea;
-TaskHandle_t envioServidorSaas;
-TaskHandle_t envioNotificacionSaas;
+TaskHandle_t envioServidorSaas = NULL;
+TaskHandle_t envioNotificacionSaas = NULL;
 //Parametros para tareas
 NotificacionSaas datosNotificacionSaas;
+
+#include "PilaTareas.h"
 
 //VARIABLES GLOBALES
 ConfigSystem configSystem;
@@ -138,6 +138,7 @@ const unsigned long TIEMPO_MODO_SENSIBLE = 3600000; // (*0.0166)  -> 60000*
 const unsigned long TIEMPO_BOCINA = 600000; // (*0.0333) -> 20000* //300000(*0.0666) ->20000
 const unsigned long TIEMPO_PRORROGA_GSM = 1200000; // (*0.05) -> 60000
 const unsigned short TIEMPO_CARGA_GSM = 10000;
+const unsigned short TIEMPO_MAX_TAREA = 5000;
 
 unsigned long tiempoMargen;
 
@@ -147,6 +148,9 @@ unsigned long tiempoSensible;
 unsigned long tiempoRefrescoGSM;
 //TIEMPO BOCINA
 unsigned long tiempoBocina;
+//TIEMPO DE EJECUCION DE TAREAS
+unsigned long tiempoTareaEnEjecucion;
+
 
 //TIEMPO CLAVE
 unsigned long lcd_clave_tiempo;
@@ -835,68 +839,50 @@ static byte tiempoFracccion;
 		Serial.println(F("GPRS disconnected"));
 	}
 
-	void checkearEnvioSaas(){
-		//Queda pendiente controlar el envio cuando el sistema este en fase de alarma
-		if(!configSystem.ENVIO_SAAS)
-			return;
+	void encolarEnvioModeloSaas(){
+		//Se guarda en la cola el envio periodico al saas
+		DatosTarea datosNodo;
+		datosNodo.tipoPeticion = PAQUETE;
+		InsertarFinal(&listaTareas, datosNodo);
+	}
 
-		static unsigned long lastExecutionTime = 0;
-		static int retryCount = 0;
+
+	void crearTareaEnvioModeloSaas(){
+		xTaskCreatePinnedToCore(
+				tareaSaas,
+				"tareaSaas",
+				(1024*10), //Buffer
+				NULL, //Param
+				1, //Prioridad
+				&envioServidorSaas, //Task
+				0);
+	}
+
+	byte enviarEnvioModeloSaas(){
 		byte executionResult;
 
-
-		switch (saasCronEstado) {
-		case ESPERA_ENVIO:
-			//if (millis() - lastExecutionTime >= (((configSystem.ESPERA_SAAS_MULTIPLICADOR*5)+10)*60000)) { //600000
-			if (millis() - lastExecutionTime >= 30000) { //600000
-
-				saasCronEstado = ENVIO;
-				retryCount = 0; // Reset retry count when starting a new execution
-			}
-			break;
-
-		case ENVIO:
-			Serial.print(F("Enviando datos al servidor por el nucleo:"));
-			Serial.println(xPortGetCoreID());
-
-			if(!modem.waitForNetwork(2000, true)){ //@TEST NO NEGAR EN PROD
-				Serial.println(F("Hay cobertura se procede al envio"));
-				executionResult = eventosJson.enviarInformeSaas();
-			}else {
-				Serial.println(F("No hay cobertura se aborta el envio"));
-				executionResult = 0;
-
-				//Refresco el modulo
-				refrescarModuloGSM();
-
-			}
-
-
-			if (executionResult == 1) {
-				saasCronEstado = ESPERA_ENVIO;
-				lastExecutionTime = millis();
-			} else {
-				Serial.println("Reintento");
-				lastExecutionTime = millis();
-				saasCronEstado = ESPERA_REINTENTO;
-			}
-
-			break;
-
-		case ESPERA_REINTENTO:
-			if (retryCount < 2) {
-				if (millis() - lastExecutionTime >= 10000) { //120000
-					saasCronEstado = ENVIO;
-					retryCount++;
-				}
-			} else {
-				Serial.println("Demasiados reintentos se espera al siguente ciclo");
-				lastExecutionTime = millis();
-				saasCronEstado = ESPERA_ENVIO;
-			}
-			break;
-
+		if(!modem.waitForNetwork(2000, true)){ //@TEST NO NEGAR EN PROD
+			Serial.println(F("Hay cobertura se procede al envio"));
+			executionResult = eventosJson.enviarInformeSaas();
+		}else {
+			Serial.println(F("No hay cobertura se aborta el envio"));
+			executionResult = 0;
+			//Refresco el modulo
+			refrescarModuloGSM();
 		}
+
+		return executionResult;
+	}
+
+	void encolarNotificacionSaas(byte tipo, const char* contenido){
+		//Se guarda en la cola la notificacion para ser procesada
+		DatosTarea datosNodo;
+
+		datosNodo.tipoPeticion = NOTIFICACION;
+		datosNodo.notificacion.tipo = tipo;
+		strcpy(datosNodo.notificacion.contenido, contenido);
+
+		InsertarFinal(&listaTareas, datosNodo);
 	}
 
 	void crearTareaNotificacionSaas(byte tipo, const char* contenido){
@@ -914,7 +900,7 @@ static byte tiempoFracccion;
 					0);
 	}
 
-	void enviarNotificacionesSaas(byte tipo, const char* contenido){
+	byte enviarNotificacionesSaas(byte tipo, const char* contenido){
 
 		byte resultado;
 		bool peticionOK = false;
@@ -944,6 +930,129 @@ static byte tiempoFracccion;
 					vTaskDelay(2000);
 				}
 			}
+		}
+
+		return resultado;
+	}
+
+	void gestionarPilaDeTareas(){
+		//Se compueba la lista de tareas y se ejecutan secuencialmente
+
+		//Compruebo si la lista esta vacia
+		if(listaTareas.cabeza == NULL){
+			return;
+		}
+
+		//Se controla que no pueda haber un desbordamiento
+		if (listaLongitud(&listaTareas) > MAX_NODOS_EN_EJECUCION) {
+			EliminarPrincipio(&listaTareas);
+		}
+
+		TaskNodo* tarea = recuperarPrimerElemento(&listaTareas);
+		TaskHandle_t manejador;
+
+
+		//Comprobar si alguno de los elementos de la lista esta ya listo para procesarse
+		//itero la lista ... si no hay vuelta
+
+		if(tarea->data.tipoPeticion == NOTIFICACION){
+			manejador = envioNotificacionSaas;
+		}else if(tarea->data.tipoPeticion == PAQUETE) {
+			manejador = envioServidorSaas;
+		}else {
+			manejador = NULL;
+		}
+
+
+		//Si hay una tarea en cola compruebo si esta en ejecucion
+		if(manejador == NULL){
+			Serial.print("Tarea no creada, Reintentos: ");
+			Serial.println(tarea->reintentos);
+
+			//Creo la tarea conveniente en funcion del ipo de peticion
+			if(tarea->data.tipoPeticion == NOTIFICACION){
+				//Creo la tarea para notificaciones
+				Serial.println("Creando tarea notificacion");
+				crearTareaNotificacionSaas(tarea->data.notificacion.tipo, tarea->data.notificacion.contenido);
+			}
+
+			if(tarea->data.tipoPeticion == PAQUETE){
+				//Creo la tarea para el envio de paquetes
+				Serial.println("Creando tarea envio modelo json");
+				crearTareaEnvioModeloSaas();
+			}
+
+			//Pend modificar tiempos segun este en alarma o no
+			setMargenTiempo(tiempoTareaEnEjecucion,TIEMPO_MAX_TAREA);
+
+		}else {
+			//La tarea existe compruebo su estado
+			eTaskState estadoTarea = eTaskGetState(manejador);
+
+			Serial.print("Estado de la tarea eTaskState: ");
+			Serial.println(estadoTarea);
+
+			if(estadoTarea == eSuspended){
+				//Compruebo el flag global de la tarea http
+					//Si no ha sido exitosa movemos al final con timeout
+
+				//Suspendemos cuando termina OK
+				Serial.println("Tarea finalizada");
+				//Libero la tarea para que ella sola se diriga hacia su irremediable final
+				vTaskResume(manejador);
+				//Elimino el nodo
+				EliminarPrincipio(&listaTareas);
+
+			}else {
+				//Dejamos trabajar a la tarea y controlamos el tiempo
+
+				if(checkearMargenTiempo(tiempoTareaEnEjecucion)){
+					Serial.println("Se supera el tiempo de ejecucion");
+
+					//Cerramos la tareas directamente
+					//eRunning 0 , eReady 1 , eBlocked 2, eSuspended 3, etc.
+					if(tarea->data.tipoPeticion == NOTIFICACION){
+						vTaskSuspend(envioNotificacionSaas);
+						//Elimino la tarea
+						vTaskDelete(envioNotificacionSaas);
+						envioNotificacionSaas = NULL;
+
+					}else if(tarea->data.tipoPeticion == PAQUETE) {
+						vTaskSuspend(envioServidorSaas);
+						//Elimino la tarea
+						vTaskDelete(envioServidorSaas);
+						envioServidorSaas = NULL;
+					}
+
+					if(tarea->reintentos == MAX_REINTENTOS_REPROCESO_TAREA){
+						//Elimino la tarea
+						Serial.println("Eliminando tarea por exceso de intentos");
+						EliminarPrincipio(&listaTareas);
+					}else {
+						tarea->reintentos++;
+						//Muevo la tarea al final
+						Serial.println("Tarea pospuesta");
+						EliminarPrincipio(&listaTareas);
+						InsertarFinal(&listaTareas, tarea->data, tarea->reintentos);
+					}
+				}
+
+			}
+		}
+	}
+
+	void checkearEnvioSaas(){
+		//Queda pendiente controlar el envio cuando el sistema este en fase de alarma TODO
+		if(!configSystem.ENVIO_SAAS)
+			return;
+
+		static unsigned long lastExecutionTime = 0;
+		//if (millis() - lastExecutionTime >= (((configSystem.ESPERA_SAAS_MULTIPLICADOR*5)+10)*60000)) { //600000
+		if (millis() - lastExecutionTime >= 30000) { //600000
+
+			//Encolar envio modelo
+			encolarEnvioModeloSaas();
+			lastExecutionTime = millis();
 		}
 	}
 

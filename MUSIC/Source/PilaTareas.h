@@ -18,6 +18,8 @@ struct DatosTarea {
 };
 
 typedef	struct TaskNodo {
+	byte reintentos;
+	unsigned long tiempoEspera;
 	DatosTarea data; //Datos que van en el taskNodo
 	struct TaskNodo* siguente;
 }TaskNodo;
@@ -34,9 +36,10 @@ PilaTareas listaTareas;
 
 //-----------------------------------------------------------
 
-TaskNodo* CrearTaskNodo(DatosTarea data){
+TaskNodo* CrearTaskNodo(DatosTarea data, byte reintentos = 0){
 	TaskNodo* taskNodo = (TaskNodo*) malloc(sizeof(TaskNodo));
 	taskNodo->data = data;
+	taskNodo->reintentos = reintentos;
 	taskNodo->siguente = NULL; //Apunta por defecto
 	return taskNodo;
 }
@@ -64,9 +67,10 @@ void RecorrerPilaTareas(PilaTareas* lista){
 	int contador = 0;
 
 	while(puntero){
-		printf("TaskNodo: %d Tipo peticion: %d Tipo de notificacion: %d Contenido noti: %s \n",
+		printf("TaskNodo: %d Tipo peticion: %d Tipo de notificacion: %d Reintentos: %d Contenido noti: %s \n",
 				contador,
 				puntero->data.tipoPeticion,
+				puntero->reintentos,
 				puntero->data.notificacion.tipo,
 				puntero->data.notificacion.contenido
 				);
@@ -77,8 +81,8 @@ void RecorrerPilaTareas(PilaTareas* lista){
 }
 
 
-void InsertarPrincipio(PilaTareas* lista, DatosTarea data){
-	TaskNodo* taskNodo = CrearTaskNodo(data);
+void InsertarPrincipio(PilaTareas* lista, DatosTarea data, byte reintentos = 0){
+	TaskNodo* taskNodo = CrearTaskNodo(data,reintentos);
 	taskNodo->siguente = lista->cabeza; //Su siguente es el que estaba antes primero
 
 	lista->cabeza = taskNodo; //Actualizo la lista
@@ -86,8 +90,8 @@ void InsertarPrincipio(PilaTareas* lista, DatosTarea data){
 }
 
 
-void InsertarFinal(PilaTareas* lista, DatosTarea data){
-	TaskNodo* taskNodo = CrearTaskNodo(data);
+void InsertarFinal(PilaTareas* lista, DatosTarea data, byte reintentos = 0){
+	TaskNodo* taskNodo = CrearTaskNodo(data,reintentos);
 
 	if(lista->cabeza == NULL){
 		lista->cabeza = taskNodo;
@@ -137,25 +141,54 @@ void EliminarUltimo(PilaTareas* lista){
 	}
 }
 
+TaskNodo* recuperarPrimerElemento(PilaTareas* lista){
+	if(lista->cabeza){
+		TaskNodo* tarea = lista->cabeza;
+		return tarea;
+	}else {
+		return NULL;
+	}
+}
+
+
 //----------------------------------------------------------
 
 
 void testTaskNodos(){
 
-	DatosTarea datosNodo;
-	datosNodo.tipoPeticion = PAQUETE;
+	static int idTest;
 
-	datosNodo.notificacion.tipo = 1;
-	strcpy(datosNodo.notificacion.contenido, "Valor para contenido2");
+	DatosTarea datosNodo;
+
+	datosNodo.tipoPeticion = NOTIFICACION;
+	datosNodo.notificacion.tipo = idTest;
+	strcpy(datosNodo.notificacion.contenido, "Deteccion en sitio");
 
 	InsertarFinal(&listaTareas, datosNodo);
 	RecorrerPilaTareas(&listaTareas);
+
+	idTest++;
 }
 
 
 void testTaskNodosDelete(){
-	EliminarPrincipio(&listaTareas);
+    EliminarPrincipio(&listaTareas);
 	RecorrerPilaTareas(&listaTareas);
+}
+
+void testTaskNodosRecorrer(){
+	RecorrerPilaTareas(&listaTareas);
+}
+
+
+void testTaskNodosMover(){
+	TaskNodo* tarea = recuperarPrimerElemento(&listaTareas);
+	tarea->reintentos++;
+
+	EliminarPrincipio(&listaTareas);
+	InsertarFinal(&listaTareas, tarea->data, tarea->reintentos);
+
+    RecorrerPilaTareas(&listaTareas);
 }
 
 

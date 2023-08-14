@@ -5,6 +5,7 @@
  *
  * POR HACER:
  *
+ * -Probar que en caso de necesitar tlf y sms las tareas en segundo plano finalizan OK
  *- Añadir envios informativos sin saltar la alarma
  * -Añadir un envio SAAS adicional y posterior a mensaje y las llamadas
  * -Ajustar los requerimientos de SAAS
@@ -139,15 +140,6 @@ void setup()
 				1);
 
 
-	    xTaskCreatePinnedToCore(
-	    		tareaSaas,
-				"tareaSaas",
-				(1024*10), //Buffer
-				NULL, //Param
-				1, //Prioridad
-				&envioServidorSaas, //Task
-				0);
-
 	    disableCore0WDT(); //Quito el watchdog en 0 que Dios me perdone
 
 	    // Iniciar el planificador de tareas
@@ -174,19 +166,34 @@ void loop()
 
 
 void tareaSaas(void *pvParameters) {
-  while (1) {
-	  checkearEnvioSaas();
-    vTaskDelay(1000);
-  }
+
+	Serial.println("Task Paquete datos");
+	//enviarEnvioModeloSaas();
+
+	//Pendiente de cierre
+	vTaskSuspend(NULL);
+	vTaskDelay(100);
+	//Finalizar tras release
+	envioServidorSaas = NULL;
+	vTaskDelete(NULL);
 }
 
 void tareaNotificacionSaas(void *pvParameters){
 	NotificacionSaas *datos = (NotificacionSaas *)pvParameters;
 
-	Serial.println("Notificacion");
-	enviarNotificacionesSaas(datos->tipo, datos->contenido);
-
+	Serial.println("Task Notificacion");
+	//enviarNotificacionesSaas(datos->tipo, datos->contenido);
+/*
+	 while (1) {
+		 Serial.println("Tarea jammed");
+		 vTaskDelay(1000);
+	 }
+*/
+	//Pendiente de cierre
+	vTaskSuspend(NULL);
 	vTaskDelay(100);
+	//Finalizar tras release
+	envioNotificacionSaas = NULL;
 	vTaskDelete(NULL);
 }
 
@@ -210,6 +217,7 @@ void procesosSistema(){
 	resetAutomatico();
 	checkearBateriaDeEmergencia();
 	escucharGSM();
+	//gestionarPilaDeTareas();
 	//checkearEnvioSaas();
 }
 

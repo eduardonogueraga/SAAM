@@ -45,7 +45,7 @@ extern void interrupcionFalloAlimentacion();
 extern int testHttpRequest();
 extern int getIdPaqueteSaas();
 extern void refrescarModuloGSM();
-extern void enviarNotificacionesSaas(byte tipo,  const char* contenido);
+extern byte enviarNotificacionesSaas(byte tipo,  const char* contenido);
 
 extern TaskHandle_t envioNotificacionSaas;
 extern void tareaNotificacionSaas(void *pvParameters);
@@ -54,6 +54,9 @@ extern void crearTareaNotificacionSaas(byte tipo, const char* contenido);
 
 extern void testTaskNodos();
 extern void testTaskNodosDelete();
+extern void gestionarPilaDeTareas();
+extern void testTaskNodosRecorrer();
+extern void testTaskNodosMover();
 
 class ComandoSerie {
 

@@ -462,6 +462,24 @@ void ComandoSerie::comprobarComando() {
 		testTaskNodosDelete();
 	}
 
+
+	if(compararCadena(data, "pila -r")){
+		nombreComando(data);
+		testTaskNodosRecorrer();
+	}
+
+
+	if(compararCadena(data, "pila -m")){
+		nombreComando(data);
+		testTaskNodosMover();
+	}
+
+	if(compararCadena(data, "pila -p")){
+		nombreComando(data);
+		gestionarPilaDeTareas();
+	}
+
+
 	if(compararCadena(data, "power")){
 		nombreComando(data);
 		interrupcionFalloAlimentacion();
