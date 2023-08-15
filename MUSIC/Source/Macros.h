@@ -124,6 +124,12 @@ enum infoMapeoSensores {
 #define MAX_REINTENTOS_REPROCESO_TAREA 2
 
 typedef enum {
+	LIBRE,
+	PROCESANDO
+} PilaTareaEstado;
+
+
+typedef enum {
 	SILENCIO,
 	TRAMA_KO,
 	TRAMA_OK

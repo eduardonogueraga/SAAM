@@ -53,10 +53,14 @@ extern NotificacionSaas datosNotificacionSaas;
 extern void crearTareaNotificacionSaas(byte tipo, const char* contenido);
 
 extern void testTaskNodos();
+extern void testTaskNodos2();
 extern void testTaskNodosDelete();
 extern void gestionarPilaDeTareas();
 extern void testTaskNodosRecorrer();
 extern void testTaskNodosMover();
+
+extern void testTaskNodosTimeout();
+extern void testTaskNodosRecuperarProcesable();
 
 class ComandoSerie {
 

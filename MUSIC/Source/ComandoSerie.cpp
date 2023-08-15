@@ -457,6 +457,11 @@ void ComandoSerie::comprobarComando() {
 		testTaskNodos();
 	}
 
+	if(compararCadena(data, "pila -t2")){
+		nombreComando(data);
+		testTaskNodos2();
+	}
+
 	if(compararCadena(data, "pila -d")){
 		nombreComando(data);
 		testTaskNodosDelete();
@@ -477,6 +482,17 @@ void ComandoSerie::comprobarComando() {
 	if(compararCadena(data, "pila -p")){
 		nombreComando(data);
 		gestionarPilaDeTareas();
+	}
+
+	if(compararCadena(data, "pila -at")){
+		nombreComando(data);
+		testTaskNodosTimeout();
+	}
+
+
+	if(compararCadena(data, "pila -rp")){
+		nombreComando(data);
+		testTaskNodosRecuperarProcesable();
 	}
 
 

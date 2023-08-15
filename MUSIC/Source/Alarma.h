@@ -49,6 +49,14 @@ TaskHandle_t envioNotificacionSaas = NULL;
 //Parametros para tareas
 NotificacionSaas datosNotificacionSaas;
 
+//Flags resultado tareas
+byte resultadoEnvioServidorSaas;
+byte resultadoEnvioNotificacionSaas;
+
+byte accesoGestorPila = 1; //Abre y cierra el gestor
+PilaTareaEstado estadoPila;
+
+
 #include "PilaTareas.h"
 
 //VARIABLES GLOBALES
@@ -138,7 +146,8 @@ const unsigned long TIEMPO_MODO_SENSIBLE = 3600000; // (*0.0166)  -> 60000*
 const unsigned long TIEMPO_BOCINA = 600000; // (*0.0333) -> 20000* //300000(*0.0666) ->20000
 const unsigned long TIEMPO_PRORROGA_GSM = 1200000; // (*0.05) -> 60000
 const unsigned short TIEMPO_CARGA_GSM = 10000;
-const unsigned short TIEMPO_MAX_TAREA = 5000;
+const unsigned short TIEMPO_MAX_TAREA = 15000;
+const unsigned short TIEMPO_ESPERA_REINTENTO_TAREA = 15000;
 
 unsigned long tiempoMargen;
 
@@ -903,57 +912,66 @@ static byte tiempoFracccion;
 	byte enviarNotificacionesSaas(byte tipo, const char* contenido){
 
 		byte resultado;
-		bool peticionOK = false;
 
-		for (int intento = 1; intento <= MAX_REINTENTOS_ENVIO_NOTIFICACION && !peticionOK; intento++) {
-			Serial.print(F("Intento: "));
-			Serial.println(intento);
+		if(!modem.waitForNetwork(2000, true)){ //@TEST NO NEGAR EN PROD
+			Serial.println(F("Hay cobertura se procede al envio"));
+			resultado = eventosJson.enviarNotificacionSaas(tipo, contenido);
+		}else {
+			Serial.println(F("No hay cobertura se aborta el intento"));
+			resultado = 0;
+			//Refresco el modulo
+			refrescarModuloGSM();
+		}
 
-			if(!modem.waitForNetwork(2000, true)){ //@TEST NO NEGAR EN PROD
-				Serial.println(F("Hay cobertura se procede al envio"));
-				resultado = eventosJson.enviarNotificacionSaas(tipo, contenido);
-			}else {
-				Serial.println(F("No hay cobertura se aborta el intento"));
-				resultado = 0;
-				//Refresco el modulo
-				refrescarModuloGSM();
-			}
-
-			if (resultado == 1) {
-				Serial.println(F("Notificacion enviada exitosamente."));
-				peticionOK = true;
-			} else {
-				Serial.println(F("Fallo al enviar notificacion."));
-
-				if (intento < MAX_REINTENTOS_ENVIO_NOTIFICACION) {
-					Serial.println(F("Esperando 10 segundos antes de reintentar..."));
-					vTaskDelay(2000);
-				}
-			}
+		if (resultado == 1) {
+			Serial.println(F("Notificacion enviada exitosamente."));
+		} else {
+			Serial.println(F("Fallo al enviar notificacion."));
 		}
 
 		return resultado;
 	}
 
 	void gestionarPilaDeTareas(){
-		//Se compueba la lista de tareas y se ejecutan secuencialmente
+		//Compruebo si se ha habilitado la gestion de tareas
+		if(!accesoGestorPila)
+			return;
 
 		//Compruebo si la lista esta vacia
 		if(listaTareas.cabeza == NULL){
+			//Serial.println("Pila vacia");
 			return;
 		}
 
 		//Se controla que no pueda haber un desbordamiento
 		if (listaLongitud(&listaTareas) > MAX_NODOS_EN_EJECUCION) {
+			Serial.println("Overload en pila de tareas");
 			EliminarPrincipio(&listaTareas);
 		}
 
-		TaskNodo* tarea = recuperarPrimerElemento(&listaTareas);
+		TaskNodo* tarea;
 		TaskHandle_t manejador;
+		unsigned long tiempoReintento;
 
+		//Comprobamos si hay alguna tarea en curso
+		tarea = tareaEnCurso(&listaTareas);
 
-		//Comprobar si alguno de los elementos de la lista esta ya listo para procesarse
-		//itero la lista ... si no hay vuelta
+		//if(tarea != NULL){ //@TEST ONLY
+		//	Serial.println(tarea->data.tipoPeticion);
+		//}
+
+		if(tarea == NULL){
+			//Serial.println("No hay tareas en curso buscamos una nueva");
+			//Comprobar si alguno de los elementos de la lista esta ya listo para procesarse
+			tarea = recuperarTareaProcesable(&listaTareas);
+
+			if(tarea == NULL){
+				//Serial.println("No hay nada en la pila listo para procesar");
+				//Si ninguna de las tareas esta lista volvemos
+				return;
+			}
+		}
+
 
 		if(tarea->data.tipoPeticion == NOTIFICACION){
 			manejador = envioNotificacionSaas;
@@ -961,6 +979,13 @@ static byte tiempoFracccion;
 			manejador = envioServidorSaas;
 		}else {
 			manejador = NULL;
+		}
+
+		//Definimos el tiempo de los reintentos
+		tiempoReintento = TIEMPO_ESPERA_REINTENTO_TAREA;
+
+		if(estadoAlarma == ESTADO_ALERTA){
+			tiempoReintento = (TIEMPO_ESPERA_REINTENTO_TAREA*0.5);
 		}
 
 
@@ -982,26 +1007,60 @@ static byte tiempoFracccion;
 				crearTareaEnvioModeloSaas();
 			}
 
-			//Pend modificar tiempos segun este en alarma o no
-			setMargenTiempo(tiempoTareaEnEjecucion,TIEMPO_MAX_TAREA);
+
+			if(estadoAlarma == ESTADO_ALERTA || estadoAlarma == ESTADO_ENVIO){
+				setMargenTiempo(tiempoTareaEnEjecucion,TIEMPO_MAX_TAREA);
+			}else {
+				setMargenTiempo(tiempoTareaEnEjecucion,(TIEMPO_MAX_TAREA*2));
+			}
+
+			estadoPila = PROCESANDO;
 
 		}else {
 			//La tarea existe compruebo su estado
 			eTaskState estadoTarea = eTaskGetState(manejador);
 
-			Serial.print("Estado de la tarea eTaskState: ");
-			Serial.println(estadoTarea);
+			//Serial.print("Estado de la tarea eTaskState: ");
+			//Serial.println(estadoTarea);
 
 			if(estadoTarea == eSuspended){
-				//Compruebo el flag global de la tarea http
-					//Si no ha sido exitosa movemos al final con timeout
-
 				//Suspendemos cuando termina OK
 				Serial.println("Tarea finalizada");
 				//Libero la tarea para que ella sola se diriga hacia su irremediable final
 				vTaskResume(manejador);
-				//Elimino el nodo
-				EliminarPrincipio(&listaTareas);
+
+				//Compruebo el flag global de la tarea http
+				byte resultadoTarea;
+
+				if(tarea->data.tipoPeticion == NOTIFICACION){
+					resultadoTarea = resultadoEnvioNotificacionSaas;
+				}
+
+				if(tarea->data.tipoPeticion == PAQUETE) {
+					resultadoTarea = resultadoEnvioServidorSaas;
+				}
+
+				if(resultadoTarea){
+					//Elimino el nodo
+					Serial.println("Resultado OK borro la tarea");
+					EliminarTareaEnPosicion(&listaTareas,tarea->posicion);
+				}else {
+
+					if(tarea->reintentos == MAX_REINTENTOS_REPROCESO_TAREA){
+						Serial.println("Tarea ko supera los reintnetos");
+						EliminarTareaEnPosicion(&listaTareas,tarea->posicion);
+					}else {
+						//Si no ha sido exitosa movemos al final con timeout
+						Serial.println("Tarea ko reintento con timeout");
+						tarea->reintentos++;
+						EliminarTareaEnPosicion(&listaTareas,tarea->posicion);
+						InsertarFinal(&listaTareas, tarea->data, tarea->reintentos, (millis()+tiempoReintento));
+					}
+
+				}
+
+				estadoPila = LIBRE;
+				finalizarTareaEnCurso(&listaTareas);
 
 			}else {
 				//Dejamos trabajar a la tarea y controlamos el tiempo
@@ -1027,14 +1086,17 @@ static byte tiempoFracccion;
 					if(tarea->reintentos == MAX_REINTENTOS_REPROCESO_TAREA){
 						//Elimino la tarea
 						Serial.println("Eliminando tarea por exceso de intentos");
-						EliminarPrincipio(&listaTareas);
+						EliminarTareaEnPosicion(&listaTareas, tarea->posicion);
 					}else {
 						tarea->reintentos++;
 						//Muevo la tarea al final
 						Serial.println("Tarea pospuesta");
-						EliminarPrincipio(&listaTareas);
-						InsertarFinal(&listaTareas, tarea->data, tarea->reintentos);
+						EliminarTareaEnPosicion(&listaTareas,tarea->posicion);
+						InsertarFinal(&listaTareas, tarea->data, tarea->reintentos, (millis()+tiempoReintento));
 					}
+
+					estadoPila = LIBRE;
+					finalizarTareaEnCurso(&listaTareas);
 				}
 
 			}

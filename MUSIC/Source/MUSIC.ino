@@ -168,7 +168,14 @@ void loop()
 void tareaSaas(void *pvParameters) {
 
 	Serial.println("Task Paquete datos");
-	//enviarEnvioModeloSaas();
+	resultadoEnvioServidorSaas = 1;
+	//resultadoEnvioServidorSaas = enviarEnvioModeloSaas();
+	vTaskDelay(100);
+
+	for (int i = 0; i < 10; i++) {//@TEST ONLY
+		Serial.println("Tarea paquete trabajando...");
+		vTaskDelay(800);
+	}
 
 	//Pendiente de cierre
 	vTaskSuspend(NULL);
@@ -182,13 +189,16 @@ void tareaNotificacionSaas(void *pvParameters){
 	NotificacionSaas *datos = (NotificacionSaas *)pvParameters;
 
 	Serial.println("Task Notificacion");
-	//enviarNotificacionesSaas(datos->tipo, datos->contenido);
-/*
-	 while (1) {
-		 Serial.println("Tarea jammed");
-		 vTaskDelay(1000);
-	 }
-*/
+	resultadoEnvioNotificacionSaas = 1;
+	//resultadoEnvioNotificacionSaas = enviarNotificacionesSaas(datos->tipo, datos->contenido);
+	vTaskDelay(100);
+
+
+	for (int i = 0; i < 10; i++) { //@TEST ONLY
+		Serial.println("Tarea notificacion trabajando...");
+	  vTaskDelay(800);
+	}
+
 	//Pendiente de cierre
 	vTaskSuspend(NULL);
 	vTaskDelay(100);
@@ -217,8 +227,8 @@ void procesosSistema(){
 	resetAutomatico();
 	checkearBateriaDeEmergencia();
 	escucharGSM();
-	//gestionarPilaDeTareas();
-	//checkearEnvioSaas();
+	gestionarPilaDeTareas();
+	checkearEnvioSaas();
 }
 
 void procesosPrincipales()
