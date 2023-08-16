@@ -455,6 +455,10 @@ byte EventosJson::enviarInformeSaas(){
 	byte estadoEnvio  = 0;
 
 
+	RegistroLogTarea reg;
+	reg.tipoLog = 0; //systema
+
+
 	//Comprobar si existen paquetes exportados
 	if(configSystem.MODULO_SD || SD_STATUS == 1){
 
@@ -475,8 +479,11 @@ byte EventosJson::enviarInformeSaas(){
 			//Comprobamos si el modelo tiene demasiados reintentos en cuyo caso se eliminara
 			if(registro.leerReintentosModelo(&modelo) == MAX_REINTENTOS_ENVIO_MODELO){
 				Serial.println(F("Modelo eliminado por exceso de reintentos"));
-				registro.registrarLogSistema("Modelo eliminado por exceso de reintentos");
-				guardarLog(MODELO_ELIMINADO_EXCESO_REINTENTOS_LOG);
+				//registro.registrarLogSistema("Modelo eliminado por exceso de reintentos"); //TODO
+				 snprintf(reg.log, sizeof(reg.log), "Modelo eliminado por exceso de reintentos");
+				 xQueueSend(colaRegistros, &reg, 0);
+
+				guardarLog(MODELO_ELIMINADO_EXCESO_REINTENTOS_LOG); //?
 				registro.extraerPrimerElemento();
 			}
 
@@ -489,12 +496,16 @@ byte EventosJson::enviarInformeSaas(){
 			if(resultado == ENVIO_OK){
 				Serial.println(F("Modelo sd enviado"));
 				confirmarIdPaquete();
-				registro.registrarLogSistema("Modelo enviado desde SD");
+				//registro.registrarLogSistema("Modelo enviado desde SD"); //TODO
+				 snprintf(reg.log, sizeof(reg.log), "Modelo enviado desde SD");
+				 xQueueSend(colaRegistros, &reg, 0);
 				guardarLog(MODELO_ENVIADO_SD_LOG);
 				registro.extraerPrimerElemento(); //Saco el registro
 				estadoEnvio = 1;
 			}else if(resultado == ERROR_ID){
-				registro.registrarLogSistema("Error en el id del modelo");
+				//registro.registrarLogSistema("Error en el id del modelo"); //TODO
+				 snprintf(reg.log, sizeof(reg.log), "Error en el id del modelo");
+				xQueueSend(colaRegistros, &reg, 0);
 				guardarLog(MODELO_ERROR_EN_ID_LOG);
 				estadoEnvio = 0;
 				return estadoEnvio; //Salgo
@@ -502,7 +513,9 @@ byte EventosJson::enviarInformeSaas(){
 			else {
 				//Error abortar informe
 				registro.actualizarUltimoElemento("retry");
-				registro.registrarLogSistema("Error enviando modelo");
+				//registro.registrarLogSistema("Error enviando modelo"); //TODO
+				 snprintf(reg.log, sizeof(reg.log), "Error enviando modelo");
+				 xQueueSend(colaRegistros, &reg, 0);
 				guardarLog(MODELO_ERROR_ENVIO_LOG);
 				estadoEnvio = 0;
 				return estadoEnvio; //Salgo
@@ -530,13 +543,17 @@ byte EventosJson::enviarInformeSaas(){
 			JSON_DOC["retry"] = "1";
 
 			if (resultado == ERROR_ID) {
-				registro.registrarLogSistema("Error en el id del modelo");
+				//registro.registrarLogSistema("Error en el id del modelo"); //TODO
+				snprintf(reg.log, sizeof(reg.log), "Error en el id del modelo");
+				xQueueSend(colaRegistros, &reg, 0);
 				guardarLog(MODELO_ERROR_EN_ID_LOG);
 			}
 
 			if (resultado == ERROR_ENVIO) {
 				//Error el modelo actual a fallado por lo que es enviado a fichero para su posterior reenvio
-				registro.registrarLogSistema("Error enviando modelo");
+				//registro.registrarLogSistema("Error enviando modelo"); //TODO
+				snprintf(reg.log, sizeof(reg.log), "Error enviando modelo");
+				xQueueSend(colaRegistros, &reg, 0);
 				guardarLog(MODELO_ERROR_ENVIO_LOG);
 			}
 
@@ -546,7 +563,9 @@ byte EventosJson::enviarInformeSaas(){
 	}else {
 		Serial.println(F("Modelo memoria enviado"));
 		confirmarIdPaquete();
-		registro.registrarLogSistema("Modelo enviado");
+		//registro.registrarLogSistema("Modelo enviado"); //TODO
+		snprintf(reg.log, sizeof(reg.log), "Modelo enviado");
+		xQueueSend(colaRegistros, &reg, 0);
 		guardarLog(MODELO_ENVIADO_LOG);
 		estadoEnvio = 1;
 	}
@@ -567,7 +586,6 @@ byte EventosJson::enviarNotificacionSaas(byte tipo, const char* contenido){
 	//Se prepara una notificacion para enviar al servidor
 
 	SAAS_GESTION_ENVIO_R resultado;
-	char logEnvio[300] = "";
 
 	StaticJsonDocument<300> notificacion;
 
@@ -582,16 +600,19 @@ byte EventosJson::enviarNotificacionSaas(byte tipo, const char* contenido){
 
 	resultado = gestionarEnvioModeloJson(&notificacionModelo, NOTIFICACION);
 
-	snprintf(logEnvio, sizeof(logEnvio), "[%s] - Notificacion %s contenido: %s",
+
+	RegistroLogTarea reg;
+
+	snprintf(reg.log, sizeof(reg.log), "[%s] - Notificacion %s contenido: %s",
 			((resultado == ENVIO_OK) ? "Notificacion enviada con exito" : "Error notificacion no enviada"),
 			(tipo ? "del sistema" : "de alarma"),
 			//contenido->c_str()
 			contenido
 			);
+	reg.tipoLog = 0; //systema
 
-	Serial.println(logEnvio);
-
-	registro.registrarLogSistema(logEnvio);
+	 xQueueSend(colaRegistros, &reg, portMAX_DELAY);
+	//registro.registrarLogSistema(logEnvio); //@FAIL
 
 	return (resultado == ENVIO_OK);
 

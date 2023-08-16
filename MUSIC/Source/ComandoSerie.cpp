@@ -337,7 +337,7 @@ void ComandoSerie::comprobarComando() {
 			nombreComando(data);
 
 
-			String httpResponse = "HTTP/1.1 200 OK\r\n"
+			 char httpResponse[] = "HTTP/1.1 200 OK\r\n"
 			                          "Content-Type: application/json\r\n"
 			                          "\r\n"
 			                          "{\r\n"
@@ -347,8 +347,19 @@ void ComandoSerie::comprobarComando() {
 			                          "    \"edad\": 30\r\n"
 			                          "}\r\n";
 
-			registro.registrarLogHttpRequest(&httpResponse);
+			registro.registrarLogHttpRequest(httpResponse);
 		}
+
+	if (compararCadena(data, "encolar reg")){
+
+		RegistroLogTarea reg;
+		TickType_t espera = pdMS_TO_TICKS(50);
+		snprintf(reg.log, sizeof(reg.log), "Soy un alocado registro de prueba");
+		reg.tipoLog = 0; //systema
+		xQueueSend(colaRegistros, &reg, espera);
+
+	}
+
 
 	if (compararCadena(data, "go saas")){
 		nombreComando(data);
@@ -495,6 +506,11 @@ void ComandoSerie::comprobarComando() {
 		testTaskNodosRecuperarProcesable();
 	}
 
+	if(compararCadena(data, "pila -sleep")){
+		nombreComando(data);
+		rehabilitarEjecucionPila();
+	}
+
 
 	if(compararCadena(data, "power")){
 		nombreComando(data);
@@ -551,6 +567,44 @@ void ComandoSerie::comprobarComando() {
 		T_COCHERA.guardarDatosTerminal(myArray, myArray2);
 
 	}
+
+
+	if(compararCadena(data, "12")){
+		nombreComando(data);
+
+		if(leerFlagEEInt("N_SMS_ENVIADOS") != 0){
+			guardarFlagEE("N_SMS_ENVIADOS", 0);
+			registro.registrarLogSistema("INTENTOS SMS DIARIOS RECUPERADOS");
+			eventosJson.guardarLog(INTENTOS_SMS_DIARIOS_RECUPERADOS_LOG);
+			Serial.println(F("Intentos diarios recuperados"));
+
+		}
+
+		if(leerFlagEEInt("N_ALR_SEND") != 0){
+			guardarFlagEE("N_ALR_SEND", 0);
+			registro.registrarLogSistema("INTENTOS NOTIFICACION ALARMA DIARIAS RECUPERADAS");
+			eventosJson.guardarLog(INTENTOS_NOT_ALR_DIARIOS_RECUPERADOS_LOG);
+			Serial.println(F("Intentos notificaciones alr diarios recuperados"));
+
+		}
+
+		if(leerFlagEEInt("N_SYS_SEND") != 0){
+			guardarFlagEE("N_SYS_SEND", 0);
+			registro.registrarLogSistema("INTENTOS NOTIFICACION SYS DIARIAS RECUPERADAS");
+			eventosJson.guardarLog(INTENTOS_NOT_SYS_DIARIOS_RECUPERADOS_LOG);
+			Serial.println(F("Intentos notificaciones sys diarios recuperados"));
+
+		}
+
+		if(leerFlagEEInt("N_MOD_SEND") != 0){
+			guardarFlagEE("N_MOD_SEND", 0);
+			registro.registrarLogSistema("INTENTOS MODELO JSON DIARIOS RECUPERADOS");
+			eventosJson.guardarLog(INTENTOS_MODELO_JSON_DIARIOS_RECUPERADOS_LOG);
+			Serial.println(F("Intentos modelo json recuperados"));
+		}
+
+	}
+
 
 
 	if(compararCadena(data, "info")){

@@ -122,6 +122,10 @@ enum infoMapeoSensores {
 
 //SAA PILA TAREAS
 #define MAX_REINTENTOS_REPROCESO_TAREA 2
+#define MAX_NOTIFICACIONES_SYS_DIARIAS 50
+#define MAX_NOTIFICACIONES_ALARM_DIARIAS 80
+#define MAX_MODELO_JSON_DIARIOS 200
+
 
 typedef enum {
 	LIBRE,
@@ -170,6 +174,8 @@ template <typename T> void NVS_SaveData(const char* key, T value);
 template <typename T> T NVS_RestoreData(const char* key);
 
 String fixedLengthString(String& original, size_t fixedLength);
+
+void encolarNotificacionSaas(byte tipo, const char* contenido);
 
 void pantallaDeError(String mensaje);
 //STRUCTS
@@ -222,6 +228,10 @@ struct configuracion_sistema_t {
  } NotificacionSaas;
 
 
+ typedef struct  {
+	 byte tipoLog;
+	 char log[300];
+ } RegistroLogTarea;
 
 
 //ENUM Y TYPEDEFS
@@ -344,7 +354,10 @@ typedef enum  {
 	MODELO_ENVIADO_SD_LOG = 142,
 	MODELO_ERROR_EN_ID_LOG = 143,
 	MODELO_ERROR_ENVIO_LOG = 144,
-	MODELO_ENVIADO_LOG = 145
+	MODELO_ENVIADO_LOG = 145,
+	INTENTOS_NOT_SYS_DIARIOS_RECUPERADOS_LOG  = 146,
+	INTENTOS_NOT_ALR_DIARIOS_RECUPERADOS_LOG  = 147,
+	INTENTOS_MODELO_JSON_DIARIOS_RECUPERADOS_LOG  = 148
 } SAAS_LITERAL_LOGS;
 
 

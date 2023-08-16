@@ -6,14 +6,10 @@
  * POR HACER:
  *
  * -Probar que en caso de necesitar tlf y sms las tareas en segundo plano finalizan OK
- *- Añadir envios informativos sin saltar la alarma
- * -Añadir un envio SAAS adicional y posterior a mensaje y las llamadas
- * -Ajustar los requerimientos de SAAS
+ * -Envio de SMS compatibilidad terminales
  * -Ajustar el modo sabotaje
  * -Modo inquieto
  * -Enriquecer el log con dia de la semana o temperatura
- * -Durante el modo reposo se hacen envioSAAS pero lo que entra por linea no se evalua ni guarda en el modelo Json
- *
  */
 
 
@@ -142,14 +138,20 @@ void setup()
 
 	    disableCore0WDT(); //Quito el watchdog en 0 que Dios me perdone
 
+	    colaRegistros = xQueueCreate(10, sizeof(RegistroLogTarea));
+
 	    // Iniciar el planificador de tareas
 	    //vTaskStartScheduler();
 
 
 	    //SIM800L
-	    //comprobarConexionGSM(5000L);
+	    comprobarConexionGSM(5000L);
 
 	    //blinker.attach(4, blinkTEST);
+
+	   // guardarFlagEE("N_SYS_SEND", 0);
+	    //guardarFlagEE("N_ALR_SEND", 0);
+	    //guardarFlagEE("N_MOD_SEND", 0);
 
 }
 
@@ -169,14 +171,14 @@ void tareaSaas(void *pvParameters) {
 
 	Serial.println("Task Paquete datos");
 	resultadoEnvioServidorSaas = 1;
-	//resultadoEnvioServidorSaas = enviarEnvioModeloSaas();
+	resultadoEnvioServidorSaas = enviarEnvioModeloSaas();
 	vTaskDelay(100);
-
+/*
 	for (int i = 0; i < 10; i++) {//@TEST ONLY
 		Serial.println("Tarea paquete trabajando...");
 		vTaskDelay(800);
 	}
-
+*/
 	//Pendiente de cierre
 	vTaskSuspend(NULL);
 	vTaskDelay(100);
@@ -190,15 +192,15 @@ void tareaNotificacionSaas(void *pvParameters){
 
 	Serial.println("Task Notificacion");
 	resultadoEnvioNotificacionSaas = 1;
-	//resultadoEnvioNotificacionSaas = enviarNotificacionesSaas(datos->tipo, datos->contenido);
+	resultadoEnvioNotificacionSaas = enviarNotificacionesSaas(datos->tipo, datos->contenido);
 	vTaskDelay(100);
 
-
+/*
 	for (int i = 0; i < 10; i++) { //@TEST ONLY
 		Serial.println("Tarea notificacion trabajando...");
 	  vTaskDelay(800);
 	}
-
+*/
 	//Pendiente de cierre
 	vTaskSuspend(NULL);
 	vTaskDelay(100);
@@ -223,12 +225,14 @@ void procesosSistema(){
 	checkearSensorPuertaCochera();
 	avisoLedPuertaCochera();
 	resetearAlarma();
-    checkearSms();
+    checkearLimitesEnvios();
 	resetAutomatico();
 	checkearBateriaDeEmergencia();
 	escucharGSM();
 	gestionarPilaDeTareas();
 	checkearEnvioSaas();
+	checkearColaLogsSubtareas();
+	//interrupcionFalloAlimentacion(); //TODO montar un checker que revise el estado de la bateria
 }
 
 void procesosPrincipales()
@@ -330,7 +334,16 @@ void procesoAlarma(){
 						Serial.print(F("\nTerminal "));
 						Serial.print(T_LIST[i]->getTerminalName());
 						Serial.println(F(" supera el umbral de fallo en la comunicacion"));
-						//Enviar notificacion al server TODO
+
+						char contenidoCola[200];
+
+						sprintf(contenidoCola, "\nTerminal %s supera el umbral de fallo en la comunicacion: %s",
+								T_LIST[i]->getTerminalName(),
+								(respuestaTerminal.interpretacion == BAD_COMM)? "Mala comunicacion":
+								(respuestaTerminal.interpretacion == BAD_REPLY)? "Mala respuesta": "Sin respueta"
+								);
+
+						encolarNotificacionSaas(0, contenidoCola);
 
 						//Resetear strikes
 						T_LIST[i]->limpiarStrikes();
@@ -362,6 +375,12 @@ void procesoAlarma(){
 		if(!isLcdInfo())
 		pantalla.lcdLoadView(&pantalla, &Pantalla::lcdAlerta);
 
+		/*//PENDIENTE DE PROBAR
+		if(checkearMargenTiempo(tiempoMargen-10000) && accesoGestorPila == 1){
+			//Cerramos la pila de tareas y terminamos la ejecucion si quedase alguna tarea ejecutandose
+			detenerEjecucionPila();
+		}
+		*/
 		if(checkearMargenTiempo(tiempoMargen)){
 
 			setEstadoEnvio();
@@ -386,7 +405,7 @@ void procesoAlarma(){
 				}
 				setEstadoGuardiaReactivacion();
 			}else {
-				//TODO cuando no queden reactivaciones hay que sacar a la alarma de aqui para que
+				//Cuando no queden reactivaciones hay que sacar a la alarma de aqui para que
 				//el SAAS continue recibiendo informes de situacion
 				setEstadoInquieto();
 			}
@@ -493,13 +512,19 @@ void setEstadoGuardiaReactivacion()
 	Serial.println("Datos phantom");
 	Serial.println(T_COCHERA.generarInformeDatos()); //@TEST ONLY
 
+
+	encolarNotificacionSaas(1, "Alarma reactivada con exito");
+	encolarEnvioModeloSaas(); //Encolamos otro modelo tras el envio de la alarma
+
+	rehabilitarEjecucionPila();
+
 	//Se limpia el resultado del phantom para dejar paso a la nueva ejecucion
 	limpiarTerminalesLinea();
 
 	registro.registrarLogSistema("ALARMA ACTIVADA AUTOMATICAMENTE");
 	eventosJson.guardarLog(ALARMA_ACTIVADA_AUTOMATICAMENTE_LOG);
 	eventosJson.guardarEntrada();
-	vTaskResume(envioServidorSaas); //Continua la ejecucion SAAS
+
 }
 
 void setEstadoAlerta()
@@ -511,6 +536,19 @@ void setEstadoAlerta()
 	guardarFlagEE("ESTADO_ALERTA", 1);
 	guardarEstadoAlerta();
 
+
+	char contenidoCola[200];
+
+	sprintf(contenidoCola, "\%s, %s",
+			(respuestaTerminal.interpretacion == DETECCION)? "Intrusismo":
+			(respuestaTerminal.interpretacion == DETECCION_FOTOSENIBLE)? "Luz detectada":
+			(respuestaTerminal.interpretacion == AVERIA)? "Averia":
+			(respuestaTerminal.interpretacion == SABOTAJE)? "Sabotaje": "Intrusismo",
+			 respuestaTerminal.resumen
+	);
+
+	encolarNotificacionSaas(1, contenidoCola);
+
 	lcd_clave_tiempo = millis();
 
 	if(checkearMargenTiempo(tiempoSensible)){
@@ -519,16 +557,6 @@ void setEstadoAlerta()
 		setMargenTiempo(tiempoMargen,(TIEMPO_OFF*TIEMPO_OFF_MODO_SENSIBLE));
 	}
 
-	//Liberamos la actividad en modulo
-	vTaskSuspend(envioServidorSaas); //Pausa la ejecucion SAAS
-	sleepModeGSM = GSM_ON;
-
-	if(!modem.waitForNetwork(1000, true)){
-		Serial.println(F("Modulo sin red refrescando"));
-		refrescarModuloGSM(); //Si se refresca el modulo no puedes usar seguidamente http
-	}
-
-	//Llamamos a la tarea de notificacion
 }
 
 void setEstadoEnvio()
@@ -539,8 +567,11 @@ void setEstadoEnvio()
 	setMargenTiempo(tiempoBocina, TIEMPO_BOCINA, TIEMPO_BOCINA_TEST);
 	setMargenTiempo(tiempoMargen,TIEMPO_REACTIVACION, TIEMPO_REACTIVACION_TEST);
 
-	//Desde aqui se envian los correspondientes avisos
 
+	//Cerramos la pila de tareas y terminamos la ejecucion si quedase alguna tarea ejecutandose
+	detenerEjecucionPila();
+
+	//Desde aqui se envian los correspondientes avisos
 	mensaje.mensajeAlerta(datosSensores);
 	guardarFlagEE("ESTADO_ALERTA", 0);
 
@@ -573,6 +604,7 @@ void setEstadoReposo()
 	guardarFlagEE("F_RESTAURADO", 0);
 	guardarFlagEE("F_REACTIVACION", 0);
 
+	rehabilitarEjecucionPila();
 
 	//Rehabilitar sensor puerta
 	if(flagPuertaAbierta){
@@ -609,6 +641,8 @@ void setEstadoInquieto()
 	guardarFlagEE("F_RESTAURADO", 0);
 	guardarFlagEE("F_REACTIVACION", 0);
 
+
+	rehabilitarEjecucionPila();
 
 	//Rehabilitar sensor puerta
 	if(flagPuertaAbierta){

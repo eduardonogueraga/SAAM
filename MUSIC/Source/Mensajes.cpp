@@ -105,7 +105,7 @@ void Mensajes::enviarSMS(){
 	procesarSMS();
 
 	char registroConjunto[50];
-	snprintf(registroConjunto, sizeof(registroConjunto), "%s%d", "SMS ENVIADO NUMERO:",leerFlagEE("N_SMS_ENVIADOS"));
+	snprintf(registroConjunto, sizeof(registroConjunto), "%s%d", "SMS ENVIADO NUMERO:",leerFlagEEInt("N_SMS_ENVIADOS"));
 	registro.registrarLogSistema(registroConjunto);
 
 }
@@ -130,7 +130,7 @@ void Mensajes::enviarSMSEmergencia(){ //@PEND Esto estaba terminado??
 
 void Mensajes::procesarSMS(){
 
-	if(leerFlagEE("N_SMS_ENVIADOS") >= LIMITE_MAXIMO_SMS){
+	if(leerFlagEEInt("N_SMS_ENVIADOS") >= LIMITE_MAXIMO_SMS){
 		Serial.println(F("Intentos diarios acabados")); //No se enviaran mas mensajes
 		registro.registrarLogSistema("INTENTOS SMS DIARIOS ACABADOS");
 		eventosJson.guardarLog(INTENTOS_SMS_DIARIOS_ACABADOS_LOG);
@@ -156,7 +156,7 @@ void Mensajes::procesarSMS(){
 	mensajesEnviados++;
 	configSystem.SMS_HISTORICO++;
 	NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
-	guardarFlagEE("N_SMS_ENVIADOS", (leerFlagEE("N_SMS_ENVIADOS")+1));
+	guardarFlagEE("N_SMS_ENVIADOS", (leerFlagEEInt("N_SMS_ENVIADOS")+1));
 
 }
 
@@ -165,7 +165,7 @@ void Mensajes::llamarTlf(char* tlf){
 	if(MODO_DEFAULT) //@develop  !MODO_DEFAULT
 	return;
 
-	if(leerFlagEE("N_SMS_ENVIADOS") >= (LIMITE_MAXIMO_SMS-7)){
+	if(leerFlagEEInt("N_SMS_ENVIADOS") >= (LIMITE_MAXIMO_SMS-7)){
 			Serial.println(F("Intentos diarios acabados")); //No se haran mas llamadas
 			return;
 		}

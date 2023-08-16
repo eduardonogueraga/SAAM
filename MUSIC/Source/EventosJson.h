@@ -33,6 +33,8 @@ extern int getIdPaqueteSaas();
 extern int generarTokenSaas();
 extern const char* version[];
 
+extern QueueHandle_t colaRegistros;
+
 class EventosJson {
 private:
 	StaticJsonDocument<MAX_SIZE_JSON> JSON_DOC;

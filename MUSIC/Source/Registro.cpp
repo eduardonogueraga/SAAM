@@ -93,7 +93,7 @@ void Registro::registrarLogSistema(char descripcion[190]){
 
 }
 
-void Registro::registrarLogHttpRequest(String* respuestaHttp){
+void Registro::registrarLogHttpRequest(char respuestaHttp[300]){
 	if(!configSystem.MODULO_SD || SD_STATUS == 0)
 		return;
 
@@ -117,7 +117,7 @@ void Registro::registrarLogHttpRequest(String* respuestaHttp){
 	root.print("\t");
 	root.print(fecha.imprimeFecha(1));
 	root.print("\n");
-	root.print(*respuestaHttp);
+	root.print(respuestaHttp);
 	root.close();
 
 }

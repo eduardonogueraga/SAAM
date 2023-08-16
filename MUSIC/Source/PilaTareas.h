@@ -217,11 +217,30 @@ void testTaskNodos(){
 	DatosTarea datosNodo;
 
 	datosNodo.tipoPeticion = NOTIFICACION;
-	datosNodo.notificacion.tipo = idTest;
-	strcpy(datosNodo.notificacion.contenido, "Deteccion en sitio");
+	datosNodo.notificacion.tipo = 1;
+	strcpy(datosNodo.notificacion.contenido, "Deteccion en sitio tal");
+
+	//Comprobamos si quedan envios
+	if(leerFlagEE("N_SYS_SEND") >= MAX_NOTIFICACIONES_SYS_DIARIAS && datosNodo.notificacion.tipo == 0){
+		registro.registrarLogSistema("SUPERADO MAXIMO NOTIFICACIONES_SYS_DIARIAS");
+		return;
+	}
+
+	if(leerFlagEE("N_ALR_SEND") >= MAX_NOTIFICACIONES_ALARM_DIARIAS && datosNodo.notificacion.tipo == 1){
+		registro.registrarLogSistema("SUPERADO MAXIMO NOTIFICACIONES_ALR_DIARIAS");
+		return;
+	}
+
 
 	InsertarFinal(&listaTareas, datosNodo, 0,0);
 	RecorrerPilaTareas(&listaTareas);
+
+	if(datosNodo.notificacion.tipo == 1){
+		guardarFlagEE("N_ALR_SEND", (leerFlagEEInt("N_ALR_SEND")+1));
+		Serial.println("aumento");
+	}else {
+		guardarFlagEE("N_SYS_SEND", (leerFlagEEInt("N_SYS_SEND")+1));
+	}
 
 	idTest++;
 }
@@ -236,9 +255,18 @@ void testTaskNodos2(){
 	datosNodo.notificacion.tipo = idTest;
 	strcpy(datosNodo.notificacion.contenido, "No deberias pasar esto");
 
+
+	//Comprobamos si quedan envios
+	if(leerFlagEEInt("N_MOD_SEND") >= MAX_MODELO_JSON_DIARIOS){
+		registro.registrarLogSistema("SUPERADO MAXIMO ENVIOS MODELO DIARIOS");
+		return;
+	}
+
 	InsertarFinal(&listaTareas, datosNodo, 0,0);
 	RecorrerPilaTareas(&listaTareas);
 
+
+	guardarFlagEE("N_MOD_SEND", (leerFlagEEInt("N_MOD_SEND")+1));
 	idTest++;
 
 }

@@ -54,7 +54,10 @@ byte resultadoEnvioServidorSaas;
 byte resultadoEnvioNotificacionSaas;
 
 byte accesoGestorPila = 1; //Abre y cierra el gestor
-PilaTareaEstado estadoPila;
+PilaTareaEstado estadoPila; //Aun no se usa para nada
+
+//Cola para registro en tareas
+QueueHandle_t colaRegistros;
 
 
 #include "PilaTareas.h"
@@ -146,8 +149,10 @@ const unsigned long TIEMPO_MODO_SENSIBLE = 3600000; // (*0.0166)  -> 60000*
 const unsigned long TIEMPO_BOCINA = 600000; // (*0.0333) -> 20000* //300000(*0.0666) ->20000
 const unsigned long TIEMPO_PRORROGA_GSM = 1200000; // (*0.05) -> 60000
 const unsigned short TIEMPO_CARGA_GSM = 10000;
-const unsigned short TIEMPO_MAX_TAREA = 15000;
-const unsigned short TIEMPO_ESPERA_REINTENTO_TAREA = 15000;
+
+const unsigned short TIEMPO_MAX_TAREA = 1500000;
+const unsigned short TIEMPO_ESPERA_REINTENTO_TAREA = 20000;
+const unsigned short TIEMPO_REINCIO_PILA = 20000;
 
 unsigned long tiempoMargen;
 
@@ -159,6 +164,7 @@ unsigned long tiempoRefrescoGSM;
 unsigned long tiempoBocina;
 //TIEMPO DE EJECUCION DE TAREAS
 unsigned long tiempoTareaEnEjecucion;
+unsigned long tiempoReinicioPila;
 
 
 //TIEMPO CLAVE
@@ -372,7 +378,7 @@ static byte tiempoFracccion;
 		sleepModeGSM = GSM_REFRESH;
 	}
 
-	void checkearSms(){
+	void checkearLimitesEnvios(){
 		if(!configSystem.MODULO_RTC){
 			return;
 		}
@@ -385,7 +391,56 @@ static byte tiempoFracccion;
 				Serial.println(F("Intentos diarios recuperados"));
 
 			}
+
+			if(leerFlagEEInt("N_ALR_SEND") != 0){
+				guardarFlagEE("N_ALR_SEND", 0);
+				registro.registrarLogSistema("INTENTOS NOTIFICACION ALARMA DIARIAS RECUPERADAS");
+				eventosJson.guardarLog(INTENTOS_NOT_ALR_DIARIOS_RECUPERADOS_LOG);
+				Serial.println(F("Intentos notificaciones alr diarios recuperados"));
+
+			}
+
+			if(leerFlagEEInt("N_SYS_SEND") != 0){
+				guardarFlagEE("N_SYS_SEND", 0);
+				registro.registrarLogSistema("INTENTOS NOTIFICACION SYS DIARIAS RECUPERADAS");
+				eventosJson.guardarLog(INTENTOS_NOT_SYS_DIARIOS_RECUPERADOS_LOG);
+				Serial.println(F("Intentos notificaciones sys diarios recuperados"));
+
+			}
+
+			if(leerFlagEEInt("N_MOD_SEND") != 0){
+				guardarFlagEE("N_MOD_SEND", 0);
+				registro.registrarLogSistema("INTENTOS MODELO JSON DIARIOS RECUPERADOS");
+				eventosJson.guardarLog(INTENTOS_MODELO_JSON_DIARIOS_RECUPERADOS_LOG);
+				Serial.println(F("Intentos modelo json recuperados"));
+
+			}
+
 		}
+
+	}
+
+	void checkearColaLogsSubtareas(){
+		/*Lee la cola para los registro provenietes de las tareas y los guarda*/
+		RegistroLogTarea reg;
+		TickType_t espera = pdMS_TO_TICKS(50);
+
+		if (uxQueueMessagesWaiting(colaRegistros) > 0) {
+			if (xQueueReceive(colaRegistros, &reg, espera) == pdTRUE) {
+				printf("Tipo de log: %d\n", reg.tipoLog);
+				printf("Mensaje: %s\n", reg.log);
+
+				if(reg.tipoLog == 0){
+					//Log sistema
+					registro.registrarLogSistema(reg.log);
+				}else {
+					//Log http
+					registro.registrarLogHttpRequest(reg.log);
+				}
+
+			}
+		}
+
 
 	}
 
@@ -634,6 +689,10 @@ static byte tiempoFracccion;
 
 	void setEstadoErrorEsperarAyuda(){
 		Serial.println(F("Esperar ayuda"));
+
+		//Encolamos una notificacion
+		encolarNotificacionSaas(0, "Interrupcion por fallo en la alimentacion");
+
 		estadoError = ESPERAR_AYUDA;
 	}
 
@@ -746,16 +805,20 @@ static byte tiempoFracccion;
 
 		Serial.print("\n");
 
-		Serial.printf("FLAG GUARDIA = %d\n", leerFlagEE("ESTADO_GUARDIA"));
-		Serial.printf("FLAG ALERTA = %d\n", leerFlagEE("ESTADO_ALERTA"));
-		Serial.printf("FLAG PUERTA ABIERTA = %d\n", leerFlagEE("PUERTA_ABIERTA"));
-		Serial.printf("NUM SMS ENVIADOS = %d\n", leerFlagEE("N_SMS_ENVIADOS"));
+		Serial.printf("FLAG GUARDIA = %d\n", leerFlagEEInt("ESTADO_GUARDIA"));
+		Serial.printf("FLAG ALERTA = %d\n", leerFlagEEInt("ESTADO_ALERTA"));
+		Serial.printf("FLAG PUERTA ABIERTA = %d\n", leerFlagEEInt("PUERTA_ABIERTA"));
+		Serial.printf("NUM SMS ENVIADOS = %d\n", leerFlagEEInt("N_SMS_ENVIADOS"));
+
+		Serial.printf("NUM NOT SYS ENVIADOS = %d\n", leerFlagEEInt("N_SYS_SEND"));
+		Serial.printf("NUM NOT ALR ENVIADOS = %d\n", leerFlagEEInt("N_ALR_SEND"));
+		Serial.printf("NUM MODELOS ENVIADOS = %d\n", leerFlagEEInt("N_MOD_SEND"));
 
 		Serial.print("\n");
 
-		Serial.printf("ERR INTERRUPT = %d\n", leerFlagEE("ERR_INTERRUPT"));
-		Serial.printf("ERR HISTORICO INTERRUPCIONES = %d\n", leerFlagEE("INTERUP_HIST"));
-		Serial.printf("ERR SMS EMERGENCIA ENVIADO = %d\n", leerFlagEE("MENSAJE_EMERGEN"));
+		Serial.printf("ERR INTERRUPT = %d\n", leerFlagEEInt("ERR_INTERRUPT"));
+		Serial.printf("ERR HISTORICO INTERRUPCIONES = %d\n", leerFlagEEInt("INTERUP_HIST"));
+		Serial.printf("ERR SMS EMERGENCIA ENVIADO = %d\n", leerFlagEEInt("MENSAJE_EMERGEN"));
 	}
 
 	void escucharGSM(){
@@ -852,7 +915,16 @@ static byte tiempoFracccion;
 		//Se guarda en la cola el envio periodico al saas
 		DatosTarea datosNodo;
 		datosNodo.tipoPeticion = PAQUETE;
+
+		//Comprobamos si quedan envios
+		if(leerFlagEEInt("N_MOD_SEND") >= MAX_MODELO_JSON_DIARIOS){
+			registro.registrarLogSistema("SUPERADO MAXIMO ENVIOS MODELO DIARIOS");
+			return;
+		}
+
 		InsertarFinal(&listaTareas, datosNodo);
+
+		guardarFlagEE("N_MOD_SEND", (leerFlagEEInt("N_MOD_SEND")+1));
 	}
 
 
@@ -870,7 +942,7 @@ static byte tiempoFracccion;
 	byte enviarEnvioModeloSaas(){
 		byte executionResult;
 
-		if(!modem.waitForNetwork(2000, true)){ //@TEST NO NEGAR EN PROD
+		if(modem.waitForNetwork(2000, true)){ //@TEST NO NEGAR EN PROD
 			Serial.println(F("Hay cobertura se procede al envio"));
 			executionResult = eventosJson.enviarInformeSaas();
 		}else {
@@ -891,7 +963,24 @@ static byte tiempoFracccion;
 		datosNodo.notificacion.tipo = tipo;
 		strcpy(datosNodo.notificacion.contenido, contenido);
 
+		//Comprobamos si quedan envios
+		if(leerFlagEEInt("N_SYS_SEND") >= MAX_NOTIFICACIONES_SYS_DIARIAS && datosNodo.notificacion.tipo == 0){
+			registro.registrarLogSistema("SUPERADO MAXIMO NOTIFICACIONES_SYS_DIARIAS");
+			return;
+		}
+
+		if(leerFlagEEInt("N_ALR_SEND") >= MAX_NOTIFICACIONES_ALARM_DIARIAS && datosNodo.notificacion.tipo == 1){
+			registro.registrarLogSistema("SUPERADO MAXIMO NOTIFICACIONES_ALR_DIARIAS");
+			return;
+		}
+
 		InsertarFinal(&listaTareas, datosNodo);
+
+		if(datosNodo.notificacion.tipo == 1){
+			guardarFlagEE("N_ALR_SEND", (leerFlagEEInt("N_ALR_SEND")+1));
+		}else {
+			guardarFlagEE("N_SYS_SEND", (leerFlagEEInt("N_SYS_SEND")+1));
+		}
 	}
 
 	void crearTareaNotificacionSaas(byte tipo, const char* contenido){
@@ -913,7 +1002,7 @@ static byte tiempoFracccion;
 
 		byte resultado;
 
-		if(!modem.waitForNetwork(2000, true)){ //@TEST NO NEGAR EN PROD
+		if(modem.waitForNetwork(2000, true)){ //@TEST NO NEGAR EN PROD
 			Serial.println(F("Hay cobertura se procede al envio"));
 			resultado = eventosJson.enviarNotificacionSaas(tipo, contenido);
 		}else {
@@ -935,6 +1024,9 @@ static byte tiempoFracccion;
 	void gestionarPilaDeTareas(){
 		//Compruebo si se ha habilitado la gestion de tareas
 		if(!accesoGestorPila)
+			return;
+
+		if(!checkearMargenTiempo(tiempoReinicioPila))
 			return;
 
 		//Compruebo si la lista esta vacia
@@ -1103,13 +1195,32 @@ static byte tiempoFracccion;
 		}
 	}
 
+	void rehabilitarEjecucionPila(){
+		accesoGestorPila = 1; //Acceso a pila con tiempo de espera
+		setMargenTiempo(tiempoReinicioPila,(TIEMPO_REINCIO_PILA));
+	}
+
+	void detenerEjecucionPila(){
+		accesoGestorPila = 0;
+
+		if(envioNotificacionSaas != NULL){
+			vTaskDelete(envioNotificacionSaas);
+			envioNotificacionSaas = NULL;
+		}
+
+		if(envioServidorSaas != NULL){
+			vTaskDelete(envioServidorSaas);
+			envioServidorSaas = NULL;
+		}
+	}
+
 	void checkearEnvioSaas(){
 		//Queda pendiente controlar el envio cuando el sistema este en fase de alarma TODO
 		if(!configSystem.ENVIO_SAAS)
 			return;
 
 		static unsigned long lastExecutionTime = 0;
-		//if (millis() - lastExecutionTime >= (((configSystem.ESPERA_SAAS_MULTIPLICADOR*5)+10)*60000)) { //600000
+		//if (millis() - lastExecutionTime >= (((configSystem.ESPERA_SAAS_MULTIPLICADOR*5)+10)*60000)) { //600000 // @TEST
 		if (millis() - lastExecutionTime >= 30000) { //600000
 
 			//Encolar envio modelo
@@ -1123,17 +1234,17 @@ static byte tiempoFracccion;
 		RespuestaHttp respuesta;
 
 		/*TEST*/
-		respuesta.codigo= 200;
-		respuesta.respuesta = "OK";// "Id de paquete duplicado";
-		return respuesta;
-		vTaskDelay(1000);
+		//respuesta.codigo= 200;
+		//respuesta.respuesta = "OK";// "Id de paquete duplicado";
+		//return respuesta;
+		//vTaskDelay(1000);
 		/*TEST*/
 
 		if(establecerConexionGPRS()){
 			int estadoHttp = 0;
 			String respuestaHttp;
 
-			vTaskDelay(1000);
+			//vTaskDelay(1000);
 
 			//Formular peticion HTTP
 			//http.connectionKeepAlive();  // Currently, this is needed for HTTPS
@@ -1150,13 +1261,14 @@ static byte tiempoFracccion;
 					estadoHttp = http.post(resource);
 				}
 			}
+
+
 			if(auth){
 				Serial.println("Autorizando peticion...");
 				String SAAS_TOKEN = leerCadenaEE("SAAS_TOKEN");
 				Serial.println(SAAS_TOKEN);
 				http.sendHeader("Authorization", String("Bearer ") + SAAS_TOKEN);
 			}
-
 			http.endRequest();
 
 
@@ -1240,10 +1352,17 @@ static byte tiempoFracccion;
 				Serial.println(F("Server disconnected"));
 			}
 
-			registro.registrarLogHttpRequest(&respuestaHttp);
+			//TODO
+			RegistroLogTarea reg;
+			TickType_t espera = pdMS_TO_TICKS(10);
+			respuestaHttp.toCharArray(reg.log, sizeof(reg.log));
+			reg.tipoLog = 1; //http
+			xQueueSend(colaRegistros, &reg, espera);
+
+			//registro.registrarLogHttpRequest(&respuestaHttp); //FAIL
 			cerrarConexionGPRS();
 
-			vTaskDelay(1000);
+			//vTaskDelay(1000);
 		}
 		return respuesta;
 	}

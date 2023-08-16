@@ -62,6 +62,8 @@ extern void testTaskNodosMover();
 extern void testTaskNodosTimeout();
 extern void testTaskNodosRecuperarProcesable();
 
+extern void rehabilitarEjecucionPila();
+
 class ComandoSerie {
 
 private:

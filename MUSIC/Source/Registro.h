@@ -45,7 +45,7 @@ public:
 	Registro();
 	byte iniciar();
 	void registrarLogSistema(char descripcion[190]);
-	void registrarLogHttpRequest(String* respuestaHttp);
+	void registrarLogHttpRequest(char respuestaHttp[300]);
 	void mostrarRegistro(RegistroDirectorios dir = DIR_LOGS);
 	void listarRegistros(RegistroDirectorios dir = DIR_LOGS);
 	void borrarRegistros(RegistroDirectorios dir = DIR_LOGS);
