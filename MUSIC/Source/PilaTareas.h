@@ -218,7 +218,7 @@ void testTaskNodos(){
 
 	datosNodo.tipoPeticion = NOTIFICACION;
 	datosNodo.notificacion.tipo = 1;
-	strcpy(datosNodo.notificacion.contenido, "Deteccion en sitio tal");
+	strcpy(datosNodo.notificacion.contenido, "Deteccion en un lugar indeterminado");
 
 	//Comprobamos si quedan envios
 	if(leerFlagEE("N_SYS_SEND") >= MAX_NOTIFICACIONES_SYS_DIARIAS && datosNodo.notificacion.tipo == 0){

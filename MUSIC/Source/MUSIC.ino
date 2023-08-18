@@ -9,6 +9,8 @@
  * -Envio de SMS compatibilidad terminales
  * -Ajustar el modo sabotaje
  * -Modo inquieto
+ * -Modificar la cabecera sys para meter el numero de peticiones realizadas
+ * -Remplazar todas las fechas por fecha local
  * -Enriquecer el log con dia de la semana o temperatura
  */
 
@@ -170,7 +172,7 @@ void loop()
 void tareaSaas(void *pvParameters) {
 
 	Serial.println("Task Paquete datos");
-	resultadoEnvioServidorSaas = 1;
+	resultadoEnvioServidorSaas = 0;
 	resultadoEnvioServidorSaas = enviarEnvioModeloSaas();
 	vTaskDelay(100);
 /*
@@ -190,8 +192,8 @@ void tareaSaas(void *pvParameters) {
 void tareaNotificacionSaas(void *pvParameters){
 	NotificacionSaas *datos = (NotificacionSaas *)pvParameters;
 
-	Serial.println("Task Notificacion");
-	resultadoEnvioNotificacionSaas = 1;
+	Serial.println("Task Notificacion Tiempo medio 15 segundos");
+	resultadoEnvioNotificacionSaas = 0;
 	resultadoEnvioNotificacionSaas = enviarNotificacionesSaas(datos->tipo, datos->contenido);
 	vTaskDelay(100);
 
@@ -228,7 +230,7 @@ void procesosSistema(){
     checkearLimitesEnvios();
 	resetAutomatico();
 	checkearBateriaDeEmergencia();
-	escucharGSM();
+	//escucharGSM();
 	gestionarPilaDeTareas();
 	checkearEnvioSaas();
 	checkearColaLogsSubtareas();

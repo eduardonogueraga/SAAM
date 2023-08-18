@@ -382,7 +382,7 @@ SAAS_GESTION_ENVIO_R EventosJson::gestionarEnvioModeloJson(String* modeloJson, S
 			respuesta = postDatosSaas(&modelo, tipoDatos);
 			switch (respuesta.codigo) {
 			case 200:
-				//Salir del bucle si todo ok
+				//Salir del bucle si ok
 				Serial.println(F("200 Paquete enviado OK"));
 				resultado = ENVIO_OK;
 				flagSalida++;
@@ -479,12 +479,12 @@ byte EventosJson::enviarInformeSaas(){
 			//Comprobamos si el modelo tiene demasiados reintentos en cuyo caso se eliminara
 			if(registro.leerReintentosModelo(&modelo) == MAX_REINTENTOS_ENVIO_MODELO){
 				Serial.println(F("Modelo eliminado por exceso de reintentos"));
-				//registro.registrarLogSistema("Modelo eliminado por exceso de reintentos"); //TODO
-				 snprintf(reg.log, sizeof(reg.log), "Modelo eliminado por exceso de reintentos");
-				 xQueueSend(colaRegistros, &reg, 0);
+				snprintf(reg.log, sizeof(reg.log), "Modelo eliminado por exceso de reintentos");
+				reg.saasLogid = MODELO_ELIMINADO_EXCESO_REINTENTOS_LOG;
 
-				guardarLog(MODELO_ELIMINADO_EXCESO_REINTENTOS_LOG); //?
-				registro.extraerPrimerElemento();
+				xQueueSend(colaRegistros, &reg, 0);
+
+				registro.extraerPrimerElemento(); //Descartando modelo
 			}
 
 			modelo = asignarIdPaquete(&modelo);
@@ -496,27 +496,32 @@ byte EventosJson::enviarInformeSaas(){
 			if(resultado == ENVIO_OK){
 				Serial.println(F("Modelo sd enviado"));
 				confirmarIdPaquete();
-				//registro.registrarLogSistema("Modelo enviado desde SD"); //TODO
+
 				 snprintf(reg.log, sizeof(reg.log), "Modelo enviado desde SD");
+				 reg.saasLogid = MODELO_ENVIADO_SD_LOG;
 				 xQueueSend(colaRegistros, &reg, 0);
-				guardarLog(MODELO_ENVIADO_SD_LOG);
+
+
 				registro.extraerPrimerElemento(); //Saco el registro
 				estadoEnvio = 1;
 			}else if(resultado == ERROR_ID){
-				//registro.registrarLogSistema("Error en el id del modelo"); //TODO
+
 				 snprintf(reg.log, sizeof(reg.log), "Error en el id del modelo");
-				xQueueSend(colaRegistros, &reg, 0);
-				guardarLog(MODELO_ERROR_EN_ID_LOG);
+				 reg.saasLogid = MODELO_ERROR_EN_ID_LOG;
+				 xQueueSend(colaRegistros, &reg, 0);
+
+
 				estadoEnvio = 0;
 				return estadoEnvio; //Salgo
 			}
 			else {
 				//Error abortar informe
 				registro.actualizarUltimoElemento("retry");
-				//registro.registrarLogSistema("Error enviando modelo"); //TODO
+
 				 snprintf(reg.log, sizeof(reg.log), "Error enviando modelo");
+				 reg.saasLogid = MODELO_ERROR_ENVIO_LOG;
 				 xQueueSend(colaRegistros, &reg, 0);
-				guardarLog(MODELO_ERROR_ENVIO_LOG);
+
 				estadoEnvio = 0;
 				return estadoEnvio; //Salgo
 			}
@@ -543,18 +548,20 @@ byte EventosJson::enviarInformeSaas(){
 			JSON_DOC["retry"] = "1";
 
 			if (resultado == ERROR_ID) {
-				//registro.registrarLogSistema("Error en el id del modelo"); //TODO
+
 				snprintf(reg.log, sizeof(reg.log), "Error en el id del modelo");
+				reg.saasLogid = MODELO_ERROR_EN_ID_LOG;
 				xQueueSend(colaRegistros, &reg, 0);
-				guardarLog(MODELO_ERROR_EN_ID_LOG);
+
 			}
 
 			if (resultado == ERROR_ENVIO) {
 				//Error el modelo actual a fallado por lo que es enviado a fichero para su posterior reenvio
-				//registro.registrarLogSistema("Error enviando modelo"); //TODO
+
 				snprintf(reg.log, sizeof(reg.log), "Error enviando modelo");
+				reg.saasLogid = MODELO_ERROR_ENVIO_LOG;
 				xQueueSend(colaRegistros, &reg, 0);
-				guardarLog(MODELO_ERROR_ENVIO_LOG);
+
 			}
 
 			registro.exportarEventosJson(&JSON_DOC);
@@ -563,10 +570,11 @@ byte EventosJson::enviarInformeSaas(){
 	}else {
 		Serial.println(F("Modelo memoria enviado"));
 		confirmarIdPaquete();
-		//registro.registrarLogSistema("Modelo enviado"); //TODO
+
 		snprintf(reg.log, sizeof(reg.log), "Modelo enviado");
+		reg.saasLogid = MODELO_ENVIADO_LOG;
 		xQueueSend(colaRegistros, &reg, 0);
-		guardarLog(MODELO_ENVIADO_LOG);
+
 		estadoEnvio = 1;
 	}
 
@@ -611,8 +619,8 @@ byte EventosJson::enviarNotificacionSaas(byte tipo, const char* contenido){
 			);
 	reg.tipoLog = 0; //systema
 
-	 xQueueSend(colaRegistros, &reg, portMAX_DELAY);
-	//registro.registrarLogSistema(logEnvio); //@FAIL
+	xQueueSend(colaRegistros, &reg, 0);
+
 
 	return (resultado == ENVIO_OK);
 

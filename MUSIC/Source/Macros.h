@@ -77,7 +77,7 @@
 
 //BATERIA E INTERRUPCIONES
 #define SENSOR_BATERIA_RESPALDO 15 //Monitoriza el flujo de tension en el booster
-#define FALLO_BATERIA_PRINCIPAL 19 //Interrupcion por fallo en la bateria
+//#define FALLO_BATERIA_PRINCIPAL 19 //Interrupcion por fallo en la bateria TODO No soportada en hardware
 
 //SISTEMA
 #define TIEMPO_ALERT_LCD 6000
@@ -229,8 +229,9 @@ struct configuracion_sistema_t {
 
 
  typedef struct  {
+	 int  saasLogid = 0;
 	 byte tipoLog;
-	 char log[300];
+	 char log[500];
  } RegistroLogTarea;
 
 

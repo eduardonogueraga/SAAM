@@ -150,7 +150,7 @@ const unsigned long TIEMPO_BOCINA = 600000; // (*0.0333) -> 20000* //300000(*0.0
 const unsigned long TIEMPO_PRORROGA_GSM = 1200000; // (*0.05) -> 60000
 const unsigned short TIEMPO_CARGA_GSM = 10000;
 
-const unsigned short TIEMPO_MAX_TAREA = 1500000;
+const unsigned short TIEMPO_MAX_TAREA = 90000;
 const unsigned short TIEMPO_ESPERA_REINTENTO_TAREA = 20000;
 const unsigned short TIEMPO_REINCIO_PILA = 20000;
 
@@ -427,8 +427,9 @@ static byte tiempoFracccion;
 
 		if (uxQueueMessagesWaiting(colaRegistros) > 0) {
 			if (xQueueReceive(colaRegistros, &reg, espera) == pdTRUE) {
-				printf("Tipo de log: %d\n", reg.tipoLog);
-				printf("Mensaje: %s\n", reg.log);
+				//printf("Tipo de log: %d\n", reg.tipoLog);
+				//printf("Mensaje: %s\n", reg.log);
+				//printf("Id SAAS: %d\n", reg.saasLogid);
 
 				if(reg.tipoLog == 0){
 					//Log sistema
@@ -436,6 +437,10 @@ static byte tiempoFracccion;
 				}else {
 					//Log http
 					registro.registrarLogHttpRequest(reg.log);
+				}
+
+				if(reg.saasLogid != 0){
+					eventosJson.guardarLog(reg.saasLogid);
 				}
 
 			}
@@ -993,7 +998,7 @@ static byte tiempoFracccion;
 					"tareaNotificacionSaas",
 					(1024*10), //Buffer
 					&datosNotificacionSaas, //Param
-					2, //Prioridad
+					1, //Prioridad
 					&envioNotificacionSaas, //Task
 					0);
 	}
@@ -1215,7 +1220,6 @@ static byte tiempoFracccion;
 	}
 
 	void checkearEnvioSaas(){
-		//Queda pendiente controlar el envio cuando el sistema este en fase de alarma TODO
 		if(!configSystem.ENVIO_SAAS)
 			return;
 
@@ -1254,7 +1258,7 @@ static byte tiempoFracccion;
 				estadoHttp = http.get(resource);
 			} else if (strcmp(metodo, "POST") == 0) {
 				if (jsonData) {
-					estadoHttp= http.post(resource, "application/json", jsonData);
+					estadoHttp= http.post(resource/*, "application/json", jsonData*/);
 					http.sendHeader("Content-Type", "application/json");
 					http.sendHeader("Content-Length", strlen(jsonData));
 				} else {
@@ -1269,6 +1273,11 @@ static byte tiempoFracccion;
 				Serial.println(SAAS_TOKEN);
 				http.sendHeader("Authorization", String("Bearer ") + SAAS_TOKEN);
 			}
+
+			//Adjuntamos el json en el body
+			http.beginBody();
+			http.print(jsonData);
+
 			http.endRequest();
 
 
@@ -1352,14 +1361,15 @@ static byte tiempoFracccion;
 				Serial.println(F("Server disconnected"));
 			}
 
-			//TODO
+
 			RegistroLogTarea reg;
 			TickType_t espera = pdMS_TO_TICKS(10);
 			respuestaHttp.toCharArray(reg.log, sizeof(reg.log));
 			reg.tipoLog = 1; //http
+
 			xQueueSend(colaRegistros, &reg, espera);
 
-			//registro.registrarLogHttpRequest(&respuestaHttp); //FAIL
+
 			cerrarConexionGPRS();
 
 			//vTaskDelay(1000);
