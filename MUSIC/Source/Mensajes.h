@@ -16,6 +16,7 @@
 #include <HardwareSerial.h>
 #include "EventosJson.h"
 #include "Registro.h"
+#include "Terminal.h"
 
 #include "Macros.h"
 #include "Env.h"
@@ -33,6 +34,9 @@ extern ConfigSystem configSystem;
 extern Fecha fecha;
 extern CODIGO_ERROR codigoError;
 extern byte flagPuertaAbierta;
+
+extern RespuestaTerminal respuestaTerminal;
+extern Terminal* T_LIST[];
 
 
 class Mensajes {
@@ -52,6 +56,7 @@ private:
 	String asuntoAlerta(Datos &datos);
 	const byte LIMITE_MAXIMO_SMS = 15;
 	void procesarSMS();
+	void asuntoAlerta();
 
 	SAAS_LITERAL_NOTIFICACIONES saasNotificaciones;
 	SAAS_LITERAL_NOTIFICACIONES_TLF saaNotificacionesTlf;

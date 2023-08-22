@@ -26,18 +26,28 @@ void Mensajes::inicioGSM(){
 void Mensajes::mensajeAlerta(Datos &datos)  {
 
 	this->tipoMensaje = SMS_TIPO_SALTO;
-	this->asuntoMensaje = this->asuntoAlerta(datos);
-	this->cuerpoMensaje = datos.imprimeDatos();
+	//this->asuntoMensaje = this->asuntoAlerta(datos);
+	//this->cuerpoMensaje = datos.imprimeDatos();
+
+	//Preparamos el asunto
+	asuntoAlerta();
 
 	Serial.println("ASUNTO:");
 	Serial.println(this->asuntoMensaje);
 
+	//Datos sensores core
+	this->cuerpoMensaje = datos.imprimeDatos();
+
+	//Datos terminal
+	for (int i = 0; i < N_TERMINALES_LINEA; i++) {
+		this->cuerpoMensaje += T_LIST[i]->generarInformeDatos();
+	}
 
 	this->pieMensaje = "Intentos restantes: "+ (String)(3-INTENTOS_REACTIVACION);
 	if(flagPuertaAbierta)
 		this->pieMensaje += "\nLa puerta esta abierta";
 
-	pieFechaBateria();
+	//pieFechaBateria(); //Incompatibilidad hardware
 	this->enviarSMS();
 
 	char registroConjunto[50];
@@ -51,7 +61,17 @@ void Mensajes::mensajeReactivacion(Datos &datos){
 
 	this->tipoMensaje = SMS_TIPO_INFO;
 	this->asuntoMensaje = "ALARMA REACTIVADA CON EXITO";
+	//this->cuerpoMensaje = datos.imprimeDatos();
+
+	//Datos sensores core
 	this->cuerpoMensaje = datos.imprimeDatos();
+
+	//Datos terminal
+	for (int i = 0; i < N_TERMINALES_LINEA; i++) {
+		this->cuerpoMensaje += T_LIST[i]->generarInformeDatos();
+	}
+
+
 	this->pieMensaje = "";
 
 	pieFechaBateria();
@@ -84,7 +104,13 @@ void Mensajes::mensajeError(Datos &datos){
 		break;
 	}
 
+	//Datos sensores core
 	this->cuerpoMensaje = datos.imprimeDatos();
+
+	//Datos terminal
+	for (int i = 0; i < N_TERMINALES_LINEA; i++) {
+		this->cuerpoMensaje += T_LIST[i]->generarInformeDatos();
+	}
 
 	pieFechaBateria();
 
@@ -220,6 +246,22 @@ String Mensajes::asuntoAlerta(Datos &datos){
 	}
 
 	return asuntoMensaje;
+}
+
+void Mensajes::asuntoAlerta(){
+
+	if(respuestaTerminal.interpretacion == DETECCION){
+		this->asuntoMensaje += "INTRUSISMO DETECTADO " + respuestaTerminal.resumen;
+	}else if(respuestaTerminal.interpretacion == DETECCION_FOTOSENIBLE){
+		this->asuntoMensaje += "LUZ DETECTADA EN " + respuestaTerminal.idTerminal;
+	}else if(respuestaTerminal.interpretacion == AVERIA){
+		this->asuntoMensaje += "AVERIA: " + respuestaTerminal.resumen;
+	}else if(respuestaTerminal.interpretacion == SABOTAJE){
+		this->asuntoMensaje += "SABOTAJE EN " + respuestaTerminal.resumen;
+	}else {
+		this->asuntoMensaje += "INTRUSISMO DETECTADO " + respuestaTerminal.resumen;
+	}
+
 }
 
 void Mensajes::pieFechaBateria(){

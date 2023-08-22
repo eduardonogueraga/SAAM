@@ -66,8 +66,7 @@ if(flagTest){
 		return;
 	}
 */
-	for (int i = 0; i < 1; i++) { //N_TERMINALES_LINEA
-
+	for (int i = 0; i < N_TERMINALES_LINEA; i++) {
 		while (!this->flagSalidaComposer) {
 			this->interrogarTerminal(*T_LIST[i]);
 			//vTaskDelay(100);

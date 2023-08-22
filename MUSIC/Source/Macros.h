@@ -96,7 +96,7 @@ typedef enum {
 	MTH_FAIL
 } metodosTrazas;
 
-#define N_TERMINALES_LINEA 2
+#define N_TERMINALES_LINEA 1
 
 #define MAX_DATOS_TRAMA 6
 #define MAX_DATOS_SUB_TRAMA 8

@@ -6,6 +6,7 @@
  * POR HACER:
  *
  * -Probar que en caso de necesitar tlf y sms las tareas en segundo plano finalizan OK
+ * -Terminal core que reemplaze interstrike y datos
  * -Envio de SMS compatibilidad terminales
  * -Ajustar el modo sabotaje
  * -Modo inquieto
@@ -229,7 +230,7 @@ void procesosSistema(){
 	resetearAlarma();
     checkearLimitesEnvios();
 	resetAutomatico();
-	checkearBateriaDeEmergencia();
+	//checkearBateriaDeEmergencia(); //TODO Hardware actual incompatible
 	//escucharGSM();
 	gestionarPilaDeTareas();
 	checkearEnvioSaas();
@@ -294,7 +295,7 @@ void procesoAlarma(){
 			if(mg.disparador()){
 				Serial.println(F("\nDisparador:  MG"));
 				zona = MG;
-				respuestaTerminal.resumen = "PUERTA COCHERA";
+				respuestaTerminal.resumen = "PUERTA COCHERA ABIERTA";
 				setEstadoAlerta();
 				break;
 			}
@@ -324,7 +325,7 @@ void procesoAlarma(){
 				break;
 			}
 
-			for (int i = 0; i < 1; i++) { //N_TERMINALES_LINEA
+			for (int i = 0; i < N_TERMINALES_LINEA; i++) {
 				respuestaTerminal = T_LIST[i]->evaluarDatosTerminal();
 
 				if(respuestaTerminal.interpretacion != TERMINAL_OK){
@@ -421,7 +422,7 @@ void procesoAlarma(){
 			pir3.compruebaPhantom(mcp.digitalRead(PIR_SENSOR_3),datosSensoresPhantom);
 
 			//Linea
-			for (int i = 0; i < 1; i++) { //N_TERMINALES_LINEA
+			for (int i = 0; i < N_TERMINALES_LINEA; i++) {
 				T_LIST[i]->evaluarPhantomTerminal();
 			}
 		}
@@ -439,7 +440,7 @@ void procesoAlarma(){
 
 		//TODO Evaluacion de datos y uso de bocina sin avisos
 		/*
-		for (int i = 0; i < 1; i++) { //N_TERMINALES_LINEA
+		for (int i = 0; i < N_TERMINALES_LINEA; i++) {
 			respuestaTerminal = T_LIST[i]->evaluarDatosTerminal();
 
 			if(respuestaTerminal.interpretacion != TERMINAL_OK){

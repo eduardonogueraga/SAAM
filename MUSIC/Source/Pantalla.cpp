@@ -135,14 +135,15 @@ void Pantalla::lcdReposo()
 
 		}
 
-		/* TODO espera de nuevo hardware para mostrar el estado de la bateria
+		/*
+		// TODO espera de nuevo hardware para mostrar el estado de la bateria
 		if(mcp.digitalRead(SENSOR_BATERIA_RESPALDO) == LOW){
 			lcd.print(F(" "));
 		}else{
 			lcd.print(F("!"));
 
 		}
-		*/
+		 */
 }
 
 void Pantalla::lcdGuardia(){
