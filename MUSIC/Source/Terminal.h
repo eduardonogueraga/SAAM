@@ -9,8 +9,8 @@
 #define MUSIC_SOURCE_TERMINAL_H_
 
 #define MAX_NODOS_EN_EJECUCION 20
-#define TIEMPO_COMBO 15000 //Tiempo para que se considere que un salto es consecutivo en el tiempo
-#define TIEMPO_VIDA_NODO 25000
+#define TIEMPO_COMBO 40000 //Tiempo para que se considere que un salto es consecutivo en el tiempo
+#define TIEMPO_VIDA_NODO 90000
 
 #define UMBRAL_NO_REPLY_STRIKE 5
 #define UMBRAL_BAD_REPLY_STRIKE 10
@@ -19,8 +19,8 @@
 #define UMBRAL_PERSISTENCIA_FOTORESISTENCIA 3
 #define UMBRAL_SABOTAJE 30.0
 #define UMBRAL_SENSOR_INDIVIDUAL 99.0
-#define UMBRAL_SENSOR_TOTAL 200.0
-#define PORCENTAJE_SALTO_UNITARIO 4.0
+#define UMBRAL_SENSOR_TOTAL 160.0
+#define PORCENTAJE_SALTO_UNITARIO 15.0
 
 #define FRACCION_SALTO 3
 
@@ -50,6 +50,8 @@ private:
 
 	int DATOS_FOTOSENSOR;
 	byte datosControlLineas[MAX_DATOS_CTL_LINEA];
+
+	int dimensionSamplesMapeo[MAX_DATOS_SUB_TRAMA]; //Define los umbrales por sensor
 
 	int sampleSensoresCont[MAX_DATOS_SUB_TRAMA];
 	int sampleSensoresPhantom[MAX_DATOS_SUB_TRAMA];
@@ -97,7 +99,13 @@ private:
 
 
 public:
-	Terminal(byte id,char* nombreTerminal, byte numFotoSensor = 1, byte numLineasCtl = 2, byte numSensores = 8);
+	Terminal(byte id,
+			char* nombreTerminal,
+			byte numFotoSensor = 1,
+			byte numLineasCtl = 2,
+			byte numSensores = 8,
+			int* dimensionSamplesMapeo = nullptr
+	);
 
 	InterpretacionTerminal interpretacion;
 	RespuestaTerminal respuesta;

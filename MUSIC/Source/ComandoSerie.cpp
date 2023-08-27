@@ -124,7 +124,7 @@ void ComandoSerie::comprobarComando() {
 
 	//Sensores core
 
-	if (compararCadena(data, "core -p")){
+	if (compararCadena(data, "cp")){
 		nombreComando(data);
 		Serial.println(T_CORE.generarInformeDatos());
 	}
@@ -305,7 +305,7 @@ void ComandoSerie::comprobarComando() {
 		      "action": "0",
 		      "msen": "1",
 		      "alive": "568962",
-		      "numsms": "0",
+		      "traffic": "0|0|35|1",
 		      "modules": "1|1|0", 
 		      "sensors": "102;1|103;1|104;1|105;1",
 		      "reset": "2023-08-06T16:13:45"
@@ -452,6 +452,7 @@ void ComandoSerie::comprobarComando() {
 		nombreComando(data);
 		T_CORE.recorrerDatosTerminal();
 
+		Serial.println(T_CORE.getDatosFotosensor());
 		Serial.println(T_COCHERA.getDatosFotosensor());
 /*
 		for (int i = 0; i < 2; i++) {
@@ -486,7 +487,7 @@ void ComandoSerie::comprobarComando() {
 
 	if (compararCadena(data, "t -load")){
 		nombreComando(data);
-		checkearAlertasDetenidas2();
+		Serial.println("Comando incompleto prueba manualmente");
 	}
 
 	if (compararCadena(data, "iterrupcion -r")){
@@ -581,8 +582,7 @@ void ComandoSerie::comprobarComando() {
 		rehabilitarEjecucionPila();
 	}
 
-
-	if(compararCadena(data, "power")){
+	if(compararCadena(data, "power -f")){
 		nombreComando(data);
 		interrupcionFalloAlimentacion();
 	}

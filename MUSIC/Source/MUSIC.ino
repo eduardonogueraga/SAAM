@@ -5,16 +5,12 @@
  *
  * POR HACER:
  *
- *
- * -Añadir mapa de maximos a terminales
- * -Investigar el JSON fail
- * -Ajustar el modo sabotaje / chekearInterrupciones
- * -Resumen en notificaciones no se pinta
- * -Controlar a futuro el impacto entre terminales core
- * -Modo inquieto
- * -Modificar la cabecera sys para meter el numero de peticiones realizadas
- * -Probar que en caso de necesitar tlf y sms las tareas en segundo plano finalizan OK
+ * -Revisar el funcionamiento del terminal
  * -Remplazar todas las fechas por fecha local
+ * -Modo inquieto
+ * -Probar que en caso de necesitar tlf y sms las tareas en segundo plano finalizan OK
+ * -Echar un ojo a las notificaciones / envios saas
+ * -Controlar a futuro el impacto entre terminales core
  * -Enriquecer el log con dia de la semana o temperatura
  */
 
@@ -106,8 +102,8 @@ void setup()
 	    mcp.pinMode(LED_COCHERA, OUTPUT);
 	    mcp.pinMode(RESETEAR,OUTPUT);
 	    mcp.pinMode(WATCHDOG, OUTPUT);
-	    mcp.pinMode(SENSOR_BATERIA_RESPALDO, INPUT);
-	    //attachInterrupt(digitalPinToInterrupt(FALLO_BATERIA_PRINCIPAL), interrupcionFalloAlimentacion, FALLING); @PEND
+	    mcp.pinMode(FALLO_BATERIA_PRINCIPAL, INPUT);
+	    //mcp.pinMode(SENSOR_BATERIA_RESPALDO, INPUT); //No soportado por hardware
 
 	    //Configuracion de los puertos
 
@@ -119,12 +115,14 @@ void setup()
 	    //Activamos el modulo GSM
 	    mcp.digitalWrite(GSM_PIN, HIGH);
 
+	    //Respaldo modelo JSON
+	    eventosJson.iniciarModeloJSON();
+
 	    EstadoInicio();
 	    cargarEstadoPrevio();
 	    checkearAlertasDetenidas();
-	    //chekearInterrupciones(); TODO Adaptar
+	    chekearInterrupciones();
 
-	    eventosJson.iniciarModeloJSON();
 	    registro.registrarLogSistema("ALARMA INICIADA");
 	    eventosJson.guardarLog(ALARMA_INICIADA_LOG);
 
@@ -152,7 +150,6 @@ void setup()
 
 	    //SIM800L
 	    //comprobarConexionGSM(10000L);
-	    //NVSMemory.remove("T_CORE_JSON");
 
 
 
@@ -231,6 +228,7 @@ void procesosSistema(){
     checkearLimitesEnvios();
 	resetAutomatico();
 	//checkearBateriaDeEmergencia(); //TODO Hardware actual incompatible
+	checkearFalloEnAlimientacion();
 	escucharGSM();
 
 	//Quitadas por pruebas
@@ -238,8 +236,6 @@ void procesosSistema(){
 	//gestionarPilaDeTareas();
 	//checkearEnvioSaas();
 	//checkearColaLogsSubtareas();
-
-	//interrupcionFalloAlimentacion(); //TODO montar un checker que revise el estado de la bateria
 }
 
 void procesosPrincipales()
@@ -339,10 +335,8 @@ void procesoAlarma(){
 						break;
 					}
 
-
 				}
 			}
-
 
 		}
 
@@ -518,6 +512,8 @@ void setEstadoAlerta()
 
 
 	char contenidoCola[200];
+	char resumenTerminal[50];
+	respuestaTerminal.resumen.toCharArray(resumenTerminal, 50);
 
 	sprintf(contenidoCola, "\%s, %s:%s",
 			(respuestaTerminal.interpretacion == DETECCION)? "Intrusismo":
@@ -525,7 +521,7 @@ void setEstadoAlerta()
 			(respuestaTerminal.interpretacion == AVERIA)? "Averia":
 			(respuestaTerminal.interpretacion == SABOTAJE)? "Sabotaje": "Intrusismo",
 			 String(literalesZonas[respuestaTerminal.idTerminal][respuestaTerminal.idSensorDetonante]),
-			 respuestaTerminal.resumen //@FAIL
+			 resumenTerminal
 	);
 
 	encolarNotificacionSaas(1, contenidoCola);

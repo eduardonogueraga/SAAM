@@ -36,7 +36,6 @@
 #include "EventosJson.h"
 #include "ComunicacionLinea.h"
 #include "Terminal.h"
-//#include "MUXMCP23X17.h"
 
 
 //VERSION (VE -> Version Estable VD -> Version Desarrollo)
@@ -90,7 +89,6 @@ HttpClient http(client, serverUrl, portHttp); // @suppress("Abstract class canno
 Adafruit_MCP23X17 mcp;
 
 SemaphoreHandle_t semaphore;
-//MUXMCP23X17 mcp(&semaphore);
 
 
 //NVS
@@ -105,20 +103,13 @@ LLAMADAS_GSM estadoLlamada;
 CODIGO_ERROR codigoError;
 SAAS_LITERAL_LOGS saaLiteralLogs;
 SAAS_CRON_ENVIOS  saasCronEstado;
-
+InterStrikeCore sensorCore;
 
 //CLASES
 Autenticacion auth;
 Pantalla pantalla;
 ComandoSerie demonio;
 Bocina bocina;
-
-InterStrikeCore sensorCore;
-
-//InterStrike mg = InterStrike(0, 1, datosSensores);
-//InterStrike pir1 = InterStrike(1, 1, datosSensores, 5000, 60000);
-//InterStrike pir2 = InterStrike(2, 2, datosSensores, 7000, 20000);
-//InterStrike pir3 = InterStrike(3, 2, datosSensores, 5000, 21000);
 Mensajes mensaje(UART_GSM/*, &modem, &client*/);
 Menu menu;
 Fecha fecha;
@@ -129,7 +120,8 @@ ComunicacionLinea linea;
 byte ACCESO_LISTAS = 1;
 
 //Terminales en linea
-Terminal T_CORE = Terminal(0,"TC", 0,0,3);
+int tCoreMapeo[] = {3, 2, 2};
+Terminal T_CORE = Terminal(0,"TC", 0,0,3, tCoreMapeo);
 
 Terminal T_COCHERA = Terminal(1,"CH");
 //Terminal T_PORCHE = Terminal(2,"PC");
@@ -494,7 +486,7 @@ static byte tiempoFracccion;
 		   flagPuertaAbierta = leerFlagEEInt("PUERTA_ABIERTA") == 1;
 
 
-		if (leerFlagEEInt("ESTADO_GUARDIA") == 1 /*|| leerFlagEEInt("ERR_INTERRUPT") == 0*/) {
+		if (leerFlagEEInt("ESTADO_GUARDIA") == 1) {
 			Serial.println("Estado de guardia restaurado");
 			estadoAlarma = ESTADO_GUARDIA;
 			registro.registrarLogSistema("CARGADO ESTADO GUARDIA PREVIO");
@@ -535,11 +527,40 @@ static byte tiempoFracccion;
 		}
 	}
 
-	void checkearAlertasDetenidas2(){
-			//Restauramos la lista de saltos
-			T_LIST[0]->deserializarListJson(eeDatosSalto.LISTADOS_TERMINALES.terminalCoreJson);
-	}
+	void chekearInterrupciones(){
+		if(leerFlagEE("ERR_INTERRUPT") == 1){
 
+			procesoCentral = ERROR;
+			codigoError = static_cast<CODIGO_ERROR>(leerFlagEE("CODIGO_ERROR"));
+
+			if(leerFlagEE("MENSAJE_EMERGEN") == 1){
+
+				if(leerFlagEE("LLAMADA_EMERGEN") == 0){
+					Serial.println(F("Vuelve a por las llamadas"));
+					estadoError = REALIZAR_LLAMADAS;
+					setMargenTiempo(tiempoMargen,240000);
+				}else {
+					Serial.println(F("Vuelve a esperar ayuda"));
+					estadoError = ESPERAR_AYUDA;
+				}
+
+			}else {
+				Serial.println(F("Vuelve desde el principio"));
+
+				eeDatosSalto = NVS_RestoreData<datos_saltos_t>("SALTO_DATA");
+
+				respuestaTerminal.idSensorDetonante = eeDatosSalto.ID_SENSOR;
+				respuestaTerminal.idTerminal = eeDatosSalto.ID_TERMINAL;
+				INTENTOS_REACTIVACION = eeDatosSalto.INTENTOS_REACTIVACION;
+
+				//Restauramos la lista de saltos
+				T_LIST[0]->deserializarListJson(eeDatosSalto.LISTADOS_TERMINALES.terminalCoreJson);
+
+
+				estadoError = COMPROBAR_DATOS;
+			}
+		}
+	}
 	void guardarEstadoAlerta(){
 
 		eeDatosSalto.ID_SENSOR = respuestaTerminal.idSensorDetonante;
@@ -563,17 +584,14 @@ static byte tiempoFracccion;
 		char temp[2048];
 		strcpy(eeDatosSalto.LISTADOS_TERMINALES.terminalCoreJson, temp);
 		NVS_SaveData<datos_saltos_t>("SALTO_DATA", eeDatosSalto);
+
+		flagAlertaRestaurada = 0;
 	}
 
 
 	void guardarEstadoInterrupcion(){
-
 		guardarFlagEE("ERR_INTERRUPT", 1);
-
 		guardarFlagEE("INTERUP_HIST", (leerFlagEE("INTERUP_HIST") + 1));
-
-		configSystem.MODULO_RTC = 0;
-		NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
 	}
 
 	void checkearBateriaDeEmergencia(){
@@ -591,6 +609,12 @@ static byte tiempoFracccion;
 		}
 
 	    sensorBateriaAnterior = mcp.digitalRead(SENSOR_BATERIA_RESPALDO);
+	}
+
+	void checkearFalloEnAlimientacion(){
+		if(mcp.digitalRead(FALLO_BATERIA_PRINCIPAL) == HIGH){
+			interrupcionFalloAlimentacion();
+		}
 	}
 
 	void realizarLlamadas(){
@@ -650,134 +674,15 @@ static byte tiempoFracccion;
 		}
 	}
 
-	void chekearInterrupciones(){
-		if(leerFlagEE("ERR_INTERRUPT") == 1){
-
-			procesoCentral = ERROR;
-			codigoError = static_cast<CODIGO_ERROR>(leerFlagEE("CODIGO_ERROR"));
-
-			if(leerFlagEE("MENSAJE_EMERGEN") == 1){
-
-				if(leerFlagEE("LLAMADA_EMERGEN") == 0){
-					Serial.println(F("Vuelve a por las llamadas"));
-					estadoError = REALIZAR_LLAMADAS;
-					setMargenTiempo(tiempoMargen,240000);
-				}else {
-					Serial.println(F("Vuelve a esperar ayuda"));
-					estadoError = ESPERAR_AYUDA;
-				}
-
-			}else {
-				Serial.println(F("Vuelve desde el principio"));
-
-				eeDatosSalto = NVS_RestoreData<datos_saltos_t>("SALTO_DATA");
-				//int* datos = datosSensores.getDatos(); //@FAIL
-				//arrCopy<int>(eeDatosSalto.DATOS_SENSOR,datos ,TOTAL_SENSORES);
-
-				estadoError = COMPROBAR_DATOS;
-			}
-		}
-	}
-
 	void interrupcionFalloAlimentacion(){
 		Serial.println(F("\nInterrupcion por fallo en la alimentacion"));
 		codigoError = ERR_FALLO_ALIMENTACION;
 		registro.registrarLogSistema("INTERRUPCION POR FALLO EN LA ALIMENTACION");
 		eventosJson.guardarLog(FALLO_ALIMENTACION_LOG);
+
 		procesoCentral = ERROR;
 		guardarFlagEE("CODIGO_ERROR", ERR_FALLO_ALIMENTACION);
 		guardarEstadoInterrupcion();
-	}
-
-	void setEstadoErrorComprobarDatos(){
-		Serial.println(F("Guardando datos "));
-		estadoError = COMPROBAR_DATOS;
-		guardarEstadoAlerta();
-	}
-
-	void setEstadoErrorEnviarAviso(){
-
-		Serial.println(F("Comprobando datos "));
-		estadoError = ENVIAR_AVISO;
-
-		//Liberamos la actividad en modulo
-		vTaskSuspend(envioServidorSaas); //Pausa la ejecucion SAAS
-		sleepModeGSM = GSM_ON;
-		setMargenTiempo(tiempoMargen,TIEMPO_CARGA_GSM);
-
-		if(!modem.waitForNetwork(1000, true)){
-			Serial.println(F("Modulo sin red refrescando"));
-			refrescarModuloGSM();
-		}
-
-	}
-
-	void setEstadoErrorRealizarLlamadas(){
-		estadoError = REALIZAR_LLAMADAS;
-		setMargenTiempo(tiempoMargen,240000);
-	}
-
-	void setEstadoErrorEsperarAyuda(){
-		Serial.println(F("Esperar ayuda"));
-
-		//Encolamos una notificacion
-		encolarNotificacionSaas(0, "Interrupcion por fallo en la alimentacion");
-
-		estadoError = ESPERAR_AYUDA;
-	}
-
-	void procesoError(){
-
-		switch(estadoError){
-
-		case GUARDAR_DATOS:
-			setEstadoErrorComprobarDatos();
-			setEstadoReposo(); //Desactiva
-			break;
-
-		case COMPROBAR_DATOS:
-
-			if(!isLcdInfo())
-			pantalla.lcdLoadView(&pantalla, &Pantalla::errorEmergencia);
-
-			setEstadoErrorEnviarAviso();
-			break;
-
-		case ENVIAR_AVISO:
-
-			if(!isLcdInfo())
-				pantalla.lcdLoadView(&pantalla, &Pantalla::errorEmergencia);
-
-			if(checkearMargenTiempo(tiempoMargen)){
-				mensaje.mensajeError();
-				setEstadoErrorRealizarLlamadas();
-			}
-			desactivarEstadoDeError();
-
-			break;
-
-		case REALIZAR_LLAMADAS:
-
-			if(!isLcdInfo())
-				pantalla.lcdLoadView(&pantalla, &Pantalla::errorEmergencia);
-
-			realizarLlamadas();
-
-			if(checkearMargenTiempo(tiempoMargen)){
-				setEstadoErrorEsperarAyuda();
-				guardarFlagEE("LLAMADA_EMERGEN", 1);
-			}
-
-			desactivarEstadoDeError();
-			break;
-		case ESPERAR_AYUDA:
-
-			if(!isLcdInfo())
-				pantalla.lcdLoadView(&pantalla, &Pantalla::errorEmergencia);
-
-			desactivarEstadoDeError();
-			break;
-		}
 	}
 
 	void checkearSensorPuertaCochera(){
@@ -1544,6 +1449,117 @@ static byte tiempoFracccion;
 		}
 	}
 
+
+	void setEstadoErrorComprobarDatos(){
+		Serial.println(F("Guardando datos "));
+		estadoError = COMPROBAR_DATOS;
+		guardarEstadoAlerta();
+
+		estadoAlarma = ESTADO_REPOSO;
+
+		pararBocina();
+		estadoLlamada = TLF_1;
+
+		guardarFlagEE("ESTADO_GUARDIA", 0);
+		guardarFlagEE("ESTADO_ALERTA", 0);
+		guardarFlagEE("F_RESTAURADO", 0);
+		guardarFlagEE("F_REACTIVACION", 0);
+
+		registro.registrarLogSistema("ALARMA DESACTIVADA AUTOMATICAMENTE");
+		eventosJson.guardarEntrada();
+		eventosJson.guardarLog(ALARMA_DESACTIVADA_AUTOMATICAMENTE_LOG);
+
+	}
+
+	void setEstadoErrorEnviarAviso(){
+
+		Serial.println(F("Comprobando datos "));
+		estadoError = ENVIAR_AVISO;
+
+		//Cerramos la pila de tareas y terminamos la ejecucion si quedase alguna tarea ejecutandose
+		detenerEjecucionPila();
+		//Cerramos el acceso a los terminales
+		ACCESO_LISTAS = 0;
+
+		sleepModeGSM = GSM_ON;
+		setMargenTiempo(tiempoMargen,TIEMPO_CARGA_GSM);
+
+		if(!modem.waitForNetwork(1000, true)){
+			Serial.println(F("Modulo sin red refrescando"));
+			refrescarModuloGSM();
+		}
+
+	}
+
+	void setEstadoErrorRealizarLlamadas(){
+		estadoError = REALIZAR_LLAMADAS;
+		setMargenTiempo(tiempoMargen,240000);
+	}
+
+	void setEstadoErrorEsperarAyuda(){
+		Serial.println(F("Esperar ayuda"));
+
+		//Liberadas los SMS y llamadas encolamos peticiones
+		encolarNotificacionSaas(0, "Interrupcion por fallo en la alimentacion");
+		encolarEnvioModeloSaas(); //Encolamos otro modelo tras el envio de la alarma
+
+		rehabilitarEjecucionPila();
+
+		estadoError = ESPERAR_AYUDA;
+	}
+
+	void procesoError(){
+
+		switch(estadoError){
+
+		case GUARDAR_DATOS:
+			setEstadoErrorComprobarDatos();
+			break;
+
+		case COMPROBAR_DATOS:
+
+			if(!isLcdInfo())
+			pantalla.lcdLoadView(&pantalla, &Pantalla::errorEmergencia);
+
+			setEstadoErrorEnviarAviso();
+			break;
+
+		case ENVIAR_AVISO:
+
+			if(!isLcdInfo())
+				pantalla.lcdLoadView(&pantalla, &Pantalla::errorEmergencia);
+
+			if(checkearMargenTiempo(tiempoMargen)){
+				mensaje.mensajeError();
+				setEstadoErrorRealizarLlamadas();
+			}
+			desactivarEstadoDeError();
+
+			break;
+
+		case REALIZAR_LLAMADAS:
+
+			if(!isLcdInfo())
+				pantalla.lcdLoadView(&pantalla, &Pantalla::errorEmergencia);
+
+			realizarLlamadas();
+
+			if(checkearMargenTiempo(tiempoMargen)){
+				setEstadoErrorEsperarAyuda();
+				guardarFlagEE("LLAMADA_EMERGEN", 1);
+			}
+
+			desactivarEstadoDeError();
+			break;
+		case ESPERAR_AYUDA:
+
+			if(!isLcdInfo())
+				pantalla.lcdLoadView(&pantalla, &Pantalla::errorEmergencia);
+
+			desactivarEstadoDeError();
+			break;
+		}
+	}
 
 	//MANEJO DE MEMORIA NVS
 	uint8_t leerFlagEE(const char* key) {

@@ -62,7 +62,6 @@ extern void rehabilitarEjecucionPila();
 
 extern InterStrikeCore sensorCore;
 extern void guardarEstadoAlerta();
-extern void checkearAlertasDetenidas2();
 
 class ComandoSerie {
 

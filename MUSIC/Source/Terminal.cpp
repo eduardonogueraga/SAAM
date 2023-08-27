@@ -12,7 +12,7 @@
 
 #include "Terminal.h"
 
-Terminal::Terminal(byte id, char* nombreTerminal, byte numFotoSensor, byte numLineasCtl, byte numSensores) {
+Terminal::Terminal(byte id, char* nombreTerminal, byte numFotoSensor, byte numLineasCtl, byte numSensores, int* dimensionSamplesMapeo) { // @suppress("Class members should be properly initialized")
 
 	this->TERMINAL_ID = id;
 	strncpy(TERMINAL_NAME, nombreTerminal, sizeof(TERMINAL_NAME) - 1);
@@ -29,6 +29,17 @@ Terminal::Terminal(byte id, char* nombreTerminal, byte numFotoSensor, byte numLi
 
 	this->listaTerminal.cabeza = NULL;
 	this->listaTerminal.longitud = 0;
+
+	//Se definen las dimensiones por sensor
+	if (dimensionSamplesMapeo != nullptr) {
+		for (int i = 0; i < numSensores; i++) {
+			this->dimensionSamplesMapeo[i] = dimensionSamplesMapeo[i];
+		}
+	}else {
+		for (int i = 0; i < MAX_DATOS_SUB_TRAMA; i++) {
+			this->dimensionSamplesMapeo[i] = FRACCION_SALTO;
+		}
+	}
 }
 
 
@@ -210,7 +221,9 @@ RespuestaTerminal Terminal::evaluarDatosTerminal(){
 
 				if(sensorPorcentaje>0){
 
-					Serial.print("INTER: %: ");
+					Serial.print("SENSOR: ");
+					Serial.print(i+1);
+					Serial.print(" INTER: %: ");
 					Serial.println(sensorPorcentaje);
 
 					snprintf(registroConjunto, sizeof(registroConjunto), "%s%d%s", "MOVIMIENTO EN TERMINAL X:",i," ONLINE");
@@ -225,6 +238,7 @@ RespuestaTerminal Terminal::evaluarDatosTerminal(){
 
 				if(sensorPorcentaje >= UMBRAL_SENSOR_INDIVIDUAL){
 					flagDeteccion =1;
+					Serial.println("Umbral de salto individual");
 					respuesta.resumen = "";
 					respuesta.resumen += "S" + String(i+1) + ":" + String(sensorPorcentaje) + "%";
 
@@ -235,6 +249,7 @@ RespuestaTerminal Terminal::evaluarDatosTerminal(){
 
 			if(porcentajeDeteccion >= UMBRAL_SENSOR_TOTAL){
 				flagDeteccion =1;
+				Serial.println("Umbral de salto total del terminal");
 				respuesta.resumen = "";
 				respuesta.resumen += "T" + String(porcentajeDeteccion) + "%";
 			}
@@ -261,6 +276,12 @@ RespuestaTerminal Terminal::evaluarDatosTerminal(){
 		respuesta.interpretacion = TERMINAL_OK;
 	}
 
+	if(respuesta.interpretacion != TERMINAL_OK){
+		//La respuesta va a detonar un accion, reseteamos las variables a su estado original
+		nodosRevisados = 0;
+		porcentajeDeteccion = 0.0;
+	}
+
 	return respuesta;
 }
 
@@ -282,6 +303,10 @@ void Terminal::limpiarDatosTerminal(){
 	setDatosFotosensor(0);
 	limpiarResultadoPhantom();
 	limpiarStrikes();
+
+	//Reset de variables
+	nodosRevisados = 0;
+    porcentajeDeteccion = 0.0;
 
 }
 
@@ -419,7 +444,6 @@ double Terminal::EvaluarSensor(Lista* lista, int numSensor) {
     unsigned long diferenciaTiempo = 0;
     unsigned long diferenciaTiempoAux = 0;
 
-   // char registroConjunto[50];
 
     while (puntero) {
         if (puntero->data.sampleSensores[numSensor]) {
@@ -448,7 +472,7 @@ double Terminal::EvaluarSensor(Lista* lista, int numSensor) {
 
     sampleSensoresCont[numSensor] = contadorSalto; //Controlamos el numero por salto
 
-    return  calcularPorcentaje(contadorSalto, contadorMatch, FRACCION_SALTO);
+    return  calcularPorcentaje(contadorSalto, contadorMatch, dimensionSamplesMapeo[numSensor]);
 }
 
 
@@ -488,32 +512,28 @@ void Terminal::EvaluarSensorPhantom(Lista* lista){
 
 void Terminal::recalcularNumDeteciones(Lista* lista){
 	/*Se recaulculan los saltos por sensor cuando un nodo se elimina de la lista*/
-    if (lista->cabeza == NULL) {
-    	for (int i = 0; i < getNumSensores(); i++) {
-    		if(sampleSensoresCont[i]){
-    			sampleSensoresCont[i] = 0;
-    		}
-    	}
+	Nodo* puntero = lista->cabeza;
+	static int numNodos;
 
-        return;
-    }
+	if(numNodos != lista->longitud){
+		numNodos = lista->longitud;
 
-    Nodo* puntero = lista->cabeza;
+		//Refresco contador
+		for (int i = 0; i < getNumSensores(); i++) {
+			sampleSensoresCont[i] = 0;
+		}
 
-    while (puntero) {
-        if(puntero->data.marcaTiempo > maxEjecucion){
+		while (puntero) {
+			for (int i = 0; i < getNumSensores(); i++) {
+				if(puntero->data.sampleSensores[i]){
+					sampleSensoresCont[i]++;
+				}
+			}
 
-        	for (int i = 0; i < getNumSensores(); i++) {
-                 if(puntero->data.sampleSensores[i]){
-                	 sampleSensoresCont[i]++;
-                }
-            }
+			puntero = puntero->siguente;
+		}
 
-           maxEjecucion = puntero->data.marcaTiempo;
-        }
-        puntero = puntero->siguente;
-    }
-
+	}
 }
 
 

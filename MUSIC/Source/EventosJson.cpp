@@ -127,11 +127,20 @@ void EventosJson::guardarEvento(char eventName[],char reg[]) {
 	 JsonArray ARRAY_SYSTEM = JSON_DOC["System"];
 
 	 // Se crea un objeto "System" dentro del array "System"
+
+	 //Trafico del modulo GSM
+	 char numTrafic[20];
+	 snprintf(numTrafic, sizeof(numTrafic), "%d|%d|%d|%d",
+			 leerFlagEEInt("N_SMS_ENVIADOS"),
+			 leerFlagEEInt("N_SYS_SEND"),
+			 leerFlagEEInt("N_ALR_SEND"),
+			 leerFlagEEInt("N_MOD_SEND"));
+
 	 JsonObject E_ARR_SYSTEM = ARRAY_SYSTEM.createNestedObject();
 	 E_ARR_SYSTEM["action"] = String(MODO_DEFAULT);
 	 E_ARR_SYSTEM["msen"] = String(configSystem.MODO_SENSIBLE);
 	 E_ARR_SYSTEM["alive"] = String(millis());
-	 E_ARR_SYSTEM["numsms"] = String(leerFlagEEInt("N_SMS_ENVIADOS"));
+	 E_ARR_SYSTEM["traffic"] = numTrafic;
 	 E_ARR_SYSTEM["modules"] = String(configSystem.MODULO_SD)+
 			 "|" + String(configSystem.MODULO_RTC)+
 			 "|0";
@@ -314,6 +323,13 @@ byte EventosJson::cargarJsonNVS(StaticJsonDocument<MAX_SIZE_JSON>& jsonDoc) {
 		return 0;
 	}
 
+	if (jsonDoc.size() == 0) {
+		Serial.println("Modelo JSON vacio Error desde memoria");
+		return 0;
+	} else {
+		Serial.println("Modelo JSON cargado desde memoria OK");
+	}
+
 	return 1;
 }
 
@@ -330,10 +346,18 @@ void EventosJson::actualizarCabecera(){
 		lastSystem = e;
 	}
 
+	//Trafico del modulo GSM
+	char numTrafic[20];
+	snprintf(numTrafic, sizeof(numTrafic), "%d|%d|%d|%d",
+			leerFlagEEInt("N_SMS_ENVIADOS"),
+			leerFlagEEInt("N_SYS_SEND"),
+			leerFlagEEInt("N_ALR_SEND"),
+			leerFlagEEInt("N_MOD_SEND"));
+
 	lastSystem["action"] = String(MODO_DEFAULT);
 	lastSystem["msen"] = String(configSystem.MODO_SENSIBLE);
 	lastSystem["alive"] = String(millis());
-	lastSystem["numsms"] = String(leerFlagEEInt("N_SMS_ENVIADOS"));
+	lastSystem["traffic"] = numTrafic;
 	lastSystem["modules"] = String(configSystem.MODULO_SD)+
 			"|" + String(configSystem.MODULO_RTC)+
 			"|0";

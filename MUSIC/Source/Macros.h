@@ -76,8 +76,9 @@
 #define MCP_ADDR 0x27  // mcp23017 address
 
 //BATERIA E INTERRUPCIONES
-#define SENSOR_BATERIA_RESPALDO 15 //Monitoriza el flujo de tension en el booster
-//#define FALLO_BATERIA_PRINCIPAL 19 //Interrupcion por fallo en la bateria TODO No soportada en hardware
+#define SENSOR_BATERIA_RESPALDO 15 //Interrupcion por fallo en la bateria TODO No soportada en hardware
+#define FALLO_BATERIA_PRINCIPAL 15 //Monitoriza el flujo de tension en el booster
+
 
 //SISTEMA
 #define TIEMPO_ALERT_LCD 6000
