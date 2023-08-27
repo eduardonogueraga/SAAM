@@ -5,12 +5,15 @@
  *
  * POR HACER:
  *
- * -Probar que en caso de necesitar tlf y sms las tareas en segundo plano finalizan OK
- * -Terminal core que reemplaze interstrike y datos
- * -Envio de SMS compatibilidad terminales
- * -Ajustar el modo sabotaje
+ *
+ * -Añadir mapa de maximos a terminales
+ * -Investigar el JSON fail
+ * -Ajustar el modo sabotaje / chekearInterrupciones
+ * -Resumen en notificaciones no se pinta
+ * -Controlar a futuro el impacto entre terminales core
  * -Modo inquieto
  * -Modificar la cabecera sys para meter el numero de peticiones realizadas
+ * -Probar que en caso de necesitar tlf y sms las tareas en segundo plano finalizan OK
  * -Remplazar todas las fechas por fecha local
  * -Enriquecer el log con dia de la semana o temperatura
  */
@@ -119,7 +122,7 @@ void setup()
 	    EstadoInicio();
 	    cargarEstadoPrevio();
 	    checkearAlertasDetenidas();
-	    chekearInterrupciones();
+	    //chekearInterrupciones(); TODO Adaptar
 
 	    eventosJson.iniciarModeloJSON();
 	    registro.registrarLogSistema("ALARMA INICIADA");
@@ -148,13 +151,10 @@ void setup()
 
 
 	    //SIM800L
-	    comprobarConexionGSM(5000L);
+	    //comprobarConexionGSM(10000L);
+	    //NVSMemory.remove("T_CORE_JSON");
 
-	    //blinker.attach(4, blinkTEST);
 
-	   // guardarFlagEE("N_SYS_SEND", 0);
-	    //guardarFlagEE("N_ALR_SEND", 0);
-	    //guardarFlagEE("N_MOD_SEND", 0);
 
 }
 
@@ -231,10 +231,14 @@ void procesosSistema(){
     checkearLimitesEnvios();
 	resetAutomatico();
 	//checkearBateriaDeEmergencia(); //TODO Hardware actual incompatible
-	//escucharGSM();
-	gestionarPilaDeTareas();
-	checkearEnvioSaas();
-	checkearColaLogsSubtareas();
+	escucharGSM();
+
+	//Quitadas por pruebas
+
+	//gestionarPilaDeTareas();
+	//checkearEnvioSaas();
+	//checkearColaLogsSubtareas();
+
 	//interrupcionFalloAlimentacion(); //TODO montar un checker que revise el estado de la bateria
 }
 
@@ -287,44 +291,20 @@ void procesoAlarma(){
 
 		if(checkearMargenTiempo(tiempoMargen)){
 
-			mg.compruebaEstadoMG(mcp.digitalRead(MG_SENSOR));
-			pir1.compruebaEstado(mcp.digitalRead(PIR_SENSOR_1));
-			pir2.compruebaEstado(mcp.digitalRead(PIR_SENSOR_2));
-			pir3.compruebaEstado(mcp.digitalRead(PIR_SENSOR_3));
+			comprobarSensoresCore();
 
-			if(mg.disparador()){
+			//Sensor MG
+			if(sensorCore.sensorMG){
 				Serial.println(F("\nDisparador:  MG"));
-				zona = MG;
 				respuestaTerminal.resumen = "PUERTA COCHERA ABIERTA";
+				respuestaTerminal.idTerminal = 0;
+				respuestaTerminal.idSensorDetonante = 3;
+				sensorCore.notificadoMG = 0;
 				setEstadoAlerta();
 				break;
 			}
 
-			if(pir1.disparador()){
-				Serial.println(F("\nDisparador: PIR1"));
-				zona = PIR_1;
-				respuestaTerminal.resumen = "COCHERA";
-				setEstadoAlerta();
-				break;
-			}
-
-			if(pir2.disparador()){
-				Serial.println(F("\nDisparador: PIR2"));
-				zona = PIR_2;
-				respuestaTerminal.resumen = "PORCHE";
-				Serial.print(respuestaTerminal.resumen);
-				setEstadoAlerta();
-				break;
-			}
-
-			if(pir3.disparador()){
-				Serial.println(F("\nDisparador: PIR3"));
-				zona = PIR_3;
-				respuestaTerminal.resumen = "ALMACEN";
-				setEstadoAlerta();
-				break;
-			}
-
+			//Terminales
 			for (int i = 0; i < N_TERMINALES_LINEA; i++) {
 				respuestaTerminal = T_LIST[i]->evaluarDatosTerminal();
 
@@ -353,8 +333,6 @@ void procesoAlarma(){
 
 					}else {
 						//Constitutivo de aviso
-						zona = PIR_1; //@PEND ADAPTAR
-
 						respuestaTerminal.resumen  = String(T_LIST[i]->getTerminalName()).substring(0, 4)  + "-" + respuestaTerminal.resumen;
 						Serial.println(respuestaTerminal.resumen);
 						setEstadoAlerta();
@@ -406,22 +384,21 @@ void procesoAlarma(){
 				if(configSystem.MODO_SENSIBLE){
 					setMargenTiempo(tiempoSensible,TIEMPO_MODO_SENSIBLE, TIEMPO_MODO_SENSIBLE_TEST);
 				}
+				sensorCore.notificadoMG = 0;
 				setEstadoGuardiaReactivacion();
 			}else {
 				//Cuando no queden reactivaciones hay que sacar a la alarma de aqui para que
 				//el SAAS continue recibiendo informes de situacion
+				sensorCore.notificadoMG = 0;
 				setEstadoInquieto();
 			}
 		}
 
 		if(INTENTOS_REACTIVACION < 3){
 			//Si la alarma aun tiene opciones de reinicio examinamos el phantom
-			mg.compruebaPhantom(mcp.digitalRead(MG_SENSOR),datosSensoresPhantom);
-			pir1.compruebaPhantom(mcp.digitalRead(PIR_SENSOR_1),datosSensoresPhantom);
-			pir2.compruebaPhantom(mcp.digitalRead(PIR_SENSOR_2),datosSensoresPhantom);
-			pir3.compruebaPhantom(mcp.digitalRead(PIR_SENSOR_3),datosSensoresPhantom);
+			comprobarSensoresCore();
 
-			//Linea
+			//Terminales
 			for (int i = 0; i < N_TERMINALES_LINEA; i++) {
 				T_LIST[i]->evaluarPhantomTerminal();
 			}
@@ -471,7 +448,7 @@ void setEstadoGuardia()
 	estadoAlarma = ESTADO_GUARDIA;
 	guardarFlagEE("ESTADO_GUARDIA", 1);
 
-	limpiarSensores();
+
 	//Eliminamos la informacion de los terminales
 	limpiarTerminalesLinea();
 
@@ -492,14 +469,13 @@ void setEstadoGuardiaReactivacion()
 	guardarFlagEE("F_REACTIVACION", 1);
 
 
-	limpiarSensores();
 	lcd_clave_tiempo = millis();
 
 	setMargenTiempo(tiempoBocina, (TIEMPO_BOCINA*0.5), TIEMPO_BOCINA_REACTIVACION_TEST);
 	setMargenTiempo(tiempoMargen,(TIEMPO_ON*0.01));
 
 	//Desabilitar puerta tras la reactivacion
-	if(configSystem.SENSORES_HABLITADOS[0] && zona == MG ){
+	if(configSystem.SENSORES_HABLITADOS[0] && (respuestaTerminal.idTerminal == 0 && respuestaTerminal.idSensorDetonante == 3) ){
 		flagPuertaAbierta = 1;
 		guardarFlagEE("PUERTA_ABIERTA", 1);
 
@@ -509,12 +485,10 @@ void setEstadoGuardiaReactivacion()
 	}
 
 	//Se envian los mensajes de reactivacion
-	mensaje.mensajeReactivacion(datosSensoresPhantom);
-	datosSensoresPhantom.borraDatos();
+	mensaje.mensajeReactivacion();
 
-	Serial.println("Datos phantom");
-	Serial.println(T_COCHERA.generarInformeDatos()); //@TEST ONLY
-
+	//Serial.println("Datos phantom");
+	//Serial.println(T_CORE.generarInformeDatos()); //@TEST ONLY
 
 	encolarNotificacionSaas(1, "Alarma reactivada con exito");
 	encolarEnvioModeloSaas(); //Encolamos otro modelo tras el envio de la alarma
@@ -532,7 +506,10 @@ void setEstadoGuardiaReactivacion()
 
 void setEstadoAlerta()
 {
-	Serial.println("\nIntrusismo detectado en " + nombreZonas[zona]);
+
+	Serial.print("\nIntrusismo detectado en ");
+	Serial.println(literalesZonas[respuestaTerminal.idTerminal][respuestaTerminal.idSensorDetonante]);
+
 	estadoAlarma = ESTADO_ALERTA;
 
 	ACCESO_LISTAS = 0; //Blindamos las listas de datos
@@ -542,12 +519,13 @@ void setEstadoAlerta()
 
 	char contenidoCola[200];
 
-	sprintf(contenidoCola, "\%s, %s",
+	sprintf(contenidoCola, "\%s, %s:%s",
 			(respuestaTerminal.interpretacion == DETECCION)? "Intrusismo":
 			(respuestaTerminal.interpretacion == DETECCION_FOTOSENIBLE)? "Luz detectada":
 			(respuestaTerminal.interpretacion == AVERIA)? "Averia":
 			(respuestaTerminal.interpretacion == SABOTAJE)? "Sabotaje": "Intrusismo",
-			 respuestaTerminal.resumen
+			 String(literalesZonas[respuestaTerminal.idTerminal][respuestaTerminal.idSensorDetonante]),
+			 respuestaTerminal.resumen //@FAIL
 	);
 
 	encolarNotificacionSaas(1, contenidoCola);
@@ -575,12 +553,15 @@ void setEstadoEnvio()
 	detenerEjecucionPila();
 
 	//Desde aqui se envian los correspondientes avisos
-	mensaje.mensajeAlerta(datosSensores);
+	mensaje.mensajeAlerta();
+
+
+	limpiarEstadoAlerta(); //Se limpia la memoria si la alerta ha sido restaurada
 	guardarFlagEE("ESTADO_ALERTA", 0);
 
 	//Liberamos el acceso cuando los mensajes esten enviados y limpiamos para el analisis phantom
 
-	Serial.println(T_COCHERA.generarInformeDatos()); //@TEST ONLY
+	//Serial.println(T_CORE.generarInformeDatos()); //@TEST ONLY
 
 	ACCESO_LISTAS = 1;
 	limpiarTerminalesLinea();
@@ -596,7 +577,6 @@ void setEstadoReposo()
 
 	INTENTOS_REACTIVACION = 0;
 	ACCESO_LISTAS = 1; //Habilita la escritura de la linea
-	limpiarSensores();
 	pararBocina();
 	tiempoSensible = millis();
 	estadoLlamada = TLF_1;
@@ -657,7 +637,6 @@ void setEstadoInquieto()
 	}
 
 	//Eliminamos la informacion de los terminales
-	limpiarSensores();
 	limpiarTerminalesLinea();
 
 	registro.registrarLogSistema("ALARMA DESACTIVADA AUTOMATICAMENTE");

@@ -8,10 +8,8 @@
 #ifndef SOURCE_COMANDOSERIE_H_
 #define SOURCE_COMANDOSERIE_H_
 #include "Arduino.h"
-#include "InterStrike.h"
 #include "Registro.h"
 #include "Macros.h"
-#include "Datos.h"
 #include "EventosJson.h"
 #include <HardwareSerial.h>
 #include "ComunicacionLinea.h"
@@ -27,15 +25,13 @@ extern void desactivarAlarma();
 extern byte MODO_DEFAULT;
 extern ProcesoCentral procesoCentral;
 extern ConfigSystem configSystem;
-extern InterStrike pir1, pir2, pir3, mg;
-extern Datos datosSensores;
 extern EventosJson eventosJson;
 extern HardwareSerial UART_RS;
 extern HardwareSerial UART_GSM;
 extern ComunicacionLinea linea;
 
 extern Terminal T_COCHERA;
-
+extern Terminal T_CORE;
 
 extern Registro registro;
 
@@ -64,6 +60,10 @@ extern void testTaskNodosRecuperarProcesable();
 
 extern void rehabilitarEjecucionPila();
 
+extern InterStrikeCore sensorCore;
+extern void guardarEstadoAlerta();
+extern void checkearAlertasDetenidas2();
+
 class ComandoSerie {
 
 private:
@@ -72,6 +72,7 @@ private:
 	void comprobarComando();
 	boolean compararCadena(const char* data, const char* cadena);
 	void nombreComando(const char* data);
+	void esperarRespuestaUart2();
 
 public:
 	ComandoSerie();

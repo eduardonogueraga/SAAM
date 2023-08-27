@@ -10,6 +10,8 @@
 
 #define TINY_GSM_MODEM_SIM800 //Definimos el modem
 
+
+
 #include "Arduino.h"
 #include <LiquidCrystal_I2C.h>
 #include <Keypad.h>
@@ -23,8 +25,6 @@
 #include "Autenticacion.h"
 #include "Pantalla.h"
 #include "ComandoSerie.h"
-#include "InterStrike.h"
-#include "Datos.h"
 #include "Bocina.h"
 #include "Teclado.h"
 #include "Env.h"
@@ -40,7 +40,7 @@
 
 
 //VERSION (VE -> Version Estable VD -> Version Desarrollo)
-const char* version[] = {"MUSIC VE21R0", "13/08/23"};
+const char* version[] = {"MUSIC VE21R0", "26/08/23"};
 
 //RTOS
 TaskHandle_t gestionLinea;
@@ -112,13 +112,13 @@ Autenticacion auth;
 Pantalla pantalla;
 ComandoSerie demonio;
 Bocina bocina;
-Datos datosSensores;
-Datos datosSensoresPhantom;
 
-InterStrike mg = InterStrike(0, 1, datosSensores);
-InterStrike pir1 = InterStrike(1, 1, datosSensores, 5000, 60000);
-InterStrike pir2 = InterStrike(2, 2, datosSensores, 7000, 20000);
-InterStrike pir3 = InterStrike(3, 2, datosSensores, 5000, 21000);
+InterStrikeCore sensorCore;
+
+//InterStrike mg = InterStrike(0, 1, datosSensores);
+//InterStrike pir1 = InterStrike(1, 1, datosSensores, 5000, 60000);
+//InterStrike pir2 = InterStrike(2, 2, datosSensores, 7000, 20000);
+//InterStrike pir3 = InterStrike(3, 2, datosSensores, 5000, 21000);
 Mensajes mensaje(UART_GSM/*, &modem, &client*/);
 Menu menu;
 Fecha fecha;
@@ -129,14 +129,21 @@ ComunicacionLinea linea;
 byte ACCESO_LISTAS = 1;
 
 //Terminales en linea
-Terminal T_COCHERA = Terminal(1,"CH");
-Terminal T_PORCHE = Terminal(2,"PC");
-//Terminal T_ALMACEN = Terminal("ALMACEN");
+Terminal T_CORE = Terminal(0,"TC", 0,0,3);
 
-Terminal* T_LIST[] = { &T_COCHERA };
+Terminal T_COCHERA = Terminal(1,"CH");
+//Terminal T_PORCHE = Terminal(2,"PC");
+//Terminal T_ALMACEN = Terminal(3,"AL");
+
+Terminal* T_LIST[] = { &T_CORE, /*&T_COCHERA, &T_ALMACEN*/ };
 
 //Terminal check
 RespuestaTerminal respuestaTerminal;
+
+const char* literalesZonas[2][MAX_DATOS_SUB_TRAMA] = {
+    {"COCHERA", "PORCHE", "ALMACEN", "PUERTA COCHERA", "", "", "", ""},
+    {"PORCHE A", "PORCHE B", "PORCHE C", "PATIO NORTE", "PATIO SUR", "TENDEDERO", "PUERTA A", "PUERTA B"}
+};
 
 int flagTest = 1; //@TEST ONLY
 
@@ -176,11 +183,6 @@ static byte alertInfoCached[NUMERO_ALERTAS];
 unsigned long lcd_info_tiempo;
 static byte tiempoFracccion;
 
-
-//ESTADO GUARDIA
- String nombreZonas[4] {"PUERTA COCHERA","COCHERA","PORCHE","ALMACEN"};
- byte zona;
-
 //DATOS SMS
  byte desactivaciones = 0;
  byte mensajesEnviados = 0;
@@ -190,6 +192,8 @@ static byte tiempoFracccion;
 
  //FLAG PUERTA
  byte flagPuertaAbierta = 0;
+//FLAG ALERTA RESTAURADA
+ byte flagAlertaRestaurada = 0;
 
  //FUNCIONES//
  Ticker blinker;
@@ -334,14 +338,7 @@ static byte tiempoFracccion;
 		tiempoBocina = 0;
 	}
 
-	void limpiarSensores(){
 
-		mg.setStart();
-		pir1.setStart();
-		pir2.setStart();
-		pir3.setStart();
-
-	}
 
 	void watchDog(){
 		mcp.digitalWrite(WATCHDOG, !mcp.digitalRead(WATCHDOG));
@@ -497,7 +494,8 @@ static byte tiempoFracccion;
 		   flagPuertaAbierta = leerFlagEEInt("PUERTA_ABIERTA") == 1;
 
 
-		if (leerFlagEEInt("ESTADO_GUARDIA") == 1 || leerFlagEEInt("ERR_INTERRUPT") == 0) {
+		if (leerFlagEEInt("ESTADO_GUARDIA") == 1 /*|| leerFlagEEInt("ERR_INTERRUPT") == 0*/) {
+			Serial.println("Estado de guardia restaurado");
 			estadoAlarma = ESTADO_GUARDIA;
 			registro.registrarLogSistema("CARGADO ESTADO GUARDIA PREVIO");
 			eventosJson.guardarLog(CARGADO_ESTADO_GUARDIA_PREVIO_LOG);
@@ -509,37 +507,64 @@ static byte tiempoFracccion;
 
 	}
 
-	void checkearAlertasDetenidas(){ //TODO choca con el blindaje de los terminales
+	void checkearAlertasDetenidas(){
 		if (leerFlagEEInt("ESTADO_ALERTA") == 1 && leerFlagEEInt("ERR_INTERRUPT") == 0) {
 
+			flagAlertaRestaurada =1;
 			eeDatosSalto = NVS_RestoreData<datos_saltos_t>("SALTO_DATA");
 
-			int* datos = datosSensores.getDatos();
-			arrCopy<int>(eeDatosSalto.DATOS_SENSOR,datos ,TOTAL_SENSORES); //Carga los datos EE
-			zona = eeDatosSalto.ZONA;
+			respuestaTerminal.idSensorDetonante = eeDatosSalto.ID_SENSOR;
+			respuestaTerminal.idTerminal = eeDatosSalto.ID_TERMINAL;
 			INTENTOS_REACTIVACION = eeDatosSalto.INTENTOS_REACTIVACION;
 
+			//Restauramos la lista de saltos
+			T_LIST[0]->deserializarListJson(eeDatosSalto.LISTADOS_TERMINALES.terminalCoreJson);
+
 			char registroConjunto[50];
-			snprintf(registroConjunto, sizeof(registroConjunto), "%s%s", "CARGADO ESTADO ALERTA EN ", nombreZonas[zona]);
+			snprintf(registroConjunto, sizeof(registroConjunto), "%s%s", "CARGADO ESTADO ALERTA EN ", String(literalesZonas[respuestaTerminal.idTerminal][respuestaTerminal.idSensorDetonante]));
 
 			registro.registrarLogSistema(registroConjunto);
 			eventosJson.guardarLog(INTRUSISMO_RESTAURADO_LOG);
 
-			Serial.println("\nIntrusismo restaurado en " + nombreZonas[zona]);
+			Serial.print("\nIntrusismo restaurado en ");
+			Serial.println(literalesZonas[respuestaTerminal.idTerminal][respuestaTerminal.idSensorDetonante]);
+
 			estadoAlarma = ESTADO_ALERTA;
 			sleepModeGSM = GSM_ON;
 			setMargenTiempo(tiempoMargen,15000);
 		}
 	}
 
+	void checkearAlertasDetenidas2(){
+			//Restauramos la lista de saltos
+			T_LIST[0]->deserializarListJson(eeDatosSalto.LISTADOS_TERMINALES.terminalCoreJson);
+	}
+
 	void guardarEstadoAlerta(){
-		int* datos = datosSensores.getDatos();
-		arrCopy<int>(datos, eeDatosSalto.DATOS_SENSOR,TOTAL_SENSORES);
-		eeDatosSalto.ZONA = zona;
+
+		eeDatosSalto.ID_SENSOR = respuestaTerminal.idSensorDetonante;
+		eeDatosSalto.ID_TERMINAL = respuestaTerminal.idTerminal;
 		eeDatosSalto.INTENTOS_REACTIVACION = INTENTOS_REACTIVACION;
 
+		//Guardar lista de nodos
+		char temp[2048];
+		T_LIST[0]->serializarListaJson().toCharArray(temp, 2048);
+		strcpy(eeDatosSalto.LISTADOS_TERMINALES.terminalCoreJson, temp);
+
+		NVS_SaveData<datos_saltos_t>("SALTO_DATA", eeDatosSalto);
+
+	}
+
+	void limpiarEstadoAlerta(){
+		if(!flagAlertaRestaurada){
+			return;
+		}
+
+		char temp[2048];
+		strcpy(eeDatosSalto.LISTADOS_TERMINALES.terminalCoreJson, temp);
 		NVS_SaveData<datos_saltos_t>("SALTO_DATA", eeDatosSalto);
 	}
+
 
 	void guardarEstadoInterrupcion(){
 
@@ -646,8 +671,8 @@ static byte tiempoFracccion;
 				Serial.println(F("Vuelve desde el principio"));
 
 				eeDatosSalto = NVS_RestoreData<datos_saltos_t>("SALTO_DATA");
-				int* datos = datosSensores.getDatos();
-				arrCopy<int>(eeDatosSalto.DATOS_SENSOR,datos ,TOTAL_SENSORES);
+				//int* datos = datosSensores.getDatos(); //@FAIL
+				//arrCopy<int>(eeDatosSalto.DATOS_SENSOR,datos ,TOTAL_SENSORES);
 
 				estadoError = COMPROBAR_DATOS;
 			}
@@ -724,7 +749,7 @@ static byte tiempoFracccion;
 				pantalla.lcdLoadView(&pantalla, &Pantalla::errorEmergencia);
 
 			if(checkearMargenTiempo(tiempoMargen)){
-				mensaje.mensajeError(datosSensores);
+				mensaje.mensajeError();
 				setEstadoErrorRealizarLlamadas();
 			}
 			desactivarEstadoDeError();
@@ -780,8 +805,79 @@ static byte tiempoFracccion;
 	}
 
 
+	void comprobarSensoresCore(){
+
+		bool sensor;
+		byte valoresSensoresCore[MAX_DATOS_SUB_TRAMA] = {0};
+		byte ctlLineas[2] = {0};
+
+
+		sensor = mcp.digitalRead(sensorCore.dirSensor[0]);
+		sensorCore.sensorMG = sensor;
+
+		//Comprobamos sensor puerta
+		if (sensor == HIGH && !sensorCore.notificadoMG) { // @develop("Cambiado a HIGH para evitar saltos en sensor MG")
+			Serial.println("Puerta abierta");
+			registro.registrarLogSistema("DETECCION ABERTURA DE PUERTA");
+			eventosJson.guardarDeteccion(1,
+					1,
+					(estadoAlarma ==ESTADO_GUARDIA)? P_MODO_NORMAL: P_MODO_PHANTOM,
+					0, //id terminal core
+					0, //id sensor
+					P_ESTADO_ONLINE);
+
+			sensorCore.notificadoMG = 1;
+		}
+
+		//Comprobamos sensores pir
+		for (int i = 1; i < 4; ++i) {
+
+			sensor = mcp.digitalRead(sensorCore.dirSensor[i]);
+
+			if (sensor && !sensorCore.pirSensorAnt[i]) {
+				if(configSystem.SENSORES_HABLITADOS[i]){
+					valoresSensoresCore[i-1] = 1;
+					Serial.print("Movimiento detectado ");
+					Serial.println(i);
+					Serial.print("Lectura: ");
+					Serial.println(sensor);
+					Serial.print("Lectura Anterior: ");
+					Serial.println(sensorCore.pirSensorAnt[i]);
+				}else {
+					Serial.print("Sensor: ");
+					Serial.print(i);
+					Serial.print("deshabilitado");
+				}
+
+			}
+
+			sensorCore.pirSensorAnt[i] = sensor;
+
+		}
+
+		if(arrSum<byte>(valoresSensoresCore, MAX_DATOS_SUB_TRAMA)){
+
+			Serial.println("Enviado al terminal:");
+
+			for (int i = 0; i < MAX_DATOS_SUB_TRAMA; i++) {
+				Serial.print(valoresSensoresCore[i]);
+				Serial.print(",");
+
+			}
+			Serial.println("\n");
+
+			T_CORE.guardarDatosTerminal(valoresSensoresCore, ctlLineas);
+			Serial.println(T_CORE.generarInformeDatos()); //@TEST ONLY
+
+		}
+
+
+
+
+	}
+
 	void limpiarTerminalesLinea(){
-		for (int i = 0; i < 1; i++) { //N_TERMINALES_LINEA
+		for (int i = 0; i < N_TERMINALES_LINEA; i++) {
 			T_LIST[i]->limpiarDatosTerminal();
 		}
 	}
@@ -803,11 +899,11 @@ static byte tiempoFracccion;
 				  configSystem.SENSORES_HABLITADOS[0], configSystem.SENSORES_HABLITADOS[1],
 				  configSystem.SENSORES_HABLITADOS[2], configSystem.SENSORES_HABLITADOS[3]);
 
-
+/*
 		Serial.printf("DATOS SENSORES = {%d, %d, %d, %d}\n",
 				eeDatosSalto.DATOS_SENSOR[0], eeDatosSalto.DATOS_SENSOR[1],
 				eeDatosSalto.DATOS_SENSOR[2], eeDatosSalto.DATOS_SENSOR[3]);
-
+*/
 		Serial.print("\n");
 
 		Serial.printf("FLAG GUARDIA = %d\n", leerFlagEEInt("ESTADO_GUARDIA"));

@@ -116,6 +116,14 @@ enum infoMapeoSensores {
 	C02_LINEA,
 };
 
+typedef struct  {
+	byte dirSensor[4] = {MG_SENSOR, PIR_SENSOR_1, PIR_SENSOR_2, PIR_SENSOR_3};
+	bool pirSensorAnt[4]= {true,true, true, true};
+	byte sensorMG = 0;
+	byte notificadoMG = 0; //Controla si se ha generado ya registro de MG
+} InterStrikeCore;
+
+
 //SAAS MODELO JSON
 #define MAX_REINTENTOS_ENVIO_MODELO 5
 #define MAX_REINTENTOS_ENVIO_NOTIFICACION 2
@@ -179,11 +187,17 @@ void encolarNotificacionSaas(byte tipo, const char* contenido);
 
 void pantallaDeError(String mensaje);
 //STRUCTS
+struct listas_terminales_json{
+	 char terminalCoreJson[2048];
+};
+
+typedef struct listas_terminales_json TerminalListJson;
 
 struct datos_saltos_t{
-	byte ZONA;
+	byte ID_SENSOR;
+	byte ID_TERMINAL;
 	byte INTENTOS_REACTIVACION = 0;
-	int DATOS_SENSOR[4];
+	TerminalListJson LISTADOS_TERMINALES;
 };
 
 typedef struct datos_saltos_t EE_DatosSalto;

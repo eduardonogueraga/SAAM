@@ -32,7 +32,7 @@
 
 extern Registro registro;
 extern EventosJson eventosJson;
-
+extern const char* literalesZonas[2][MAX_DATOS_SUB_TRAMA];
 class Terminal {
 
 private:
@@ -51,6 +51,7 @@ private:
 	int DATOS_FOTOSENSOR;
 	byte datosControlLineas[MAX_DATOS_CTL_LINEA];
 
+	int sampleSensoresCont[MAX_DATOS_SUB_TRAMA];
 	int sampleSensoresPhantom[MAX_DATOS_SUB_TRAMA];
 	unsigned long maxEjecucion = 0;
 
@@ -84,6 +85,7 @@ private:
 	double calcularPorcentaje(int nSaltos, int nMatch, int maxMatchConsecutivo);
 	double EvaluarSensor(Lista* lista, int numSensor);
 	void EvaluarSensorPhantom(Lista* lista);
+	void recalcularNumDeteciones(Lista* lista);
 	void purgarNodosViejos(Lista* lista);
 	void purgarLista();
 	void limpiarResultadoPhantom();
@@ -129,6 +131,12 @@ public:
 	void limpiarDatosTerminal();
 
 	String generarInformeDatos();
+
+	int getSampleSensores(int numSensor);
+
+	String  serializarListaJson();
+	void deserializarListJson(String listaSerializada);
+
 
 };
 

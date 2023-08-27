@@ -198,6 +198,7 @@ RespuestaTerminal Terminal::evaluarDatosTerminal(){
 	if(!listaVacia(&this->listaTerminal)){
 		//Se eliminan los nodos mayores
 		purgarNodosViejos(&this->listaTerminal);
+		recalcularNumDeteciones(&this->listaTerminal);
 
 		//Revisamos si hay nuevos nodos
 		if(nodosRevisados < listaLongitud(&this->listaTerminal)){
@@ -225,7 +226,7 @@ RespuestaTerminal Terminal::evaluarDatosTerminal(){
 				if(sensorPorcentaje >= UMBRAL_SENSOR_INDIVIDUAL){
 					flagDeteccion =1;
 					respuesta.resumen = "";
-					respuesta.resumen += "S" + String(i) + ":" + String(sensorPorcentaje) + "%";
+					respuesta.resumen += "S" + String(i+1) + ":" + String(sensorPorcentaje) + "%";
 
 					respuesta.idSensorDetonante = i;
 				}
@@ -275,6 +276,9 @@ void Terminal::limpiarDatosTerminal(){
 	for (int i = 0; i < MAX_DATOS_CTL_LINEA; i++) {
 		datosControlLineas[i] = 0;
 	}
+	//Eliminamos los datos de los contadores
+	recalcularNumDeteciones(&this->listaTerminal);
+
 	setDatosFotosensor(0);
 	limpiarResultadoPhantom();
 	limpiarStrikes();
@@ -290,8 +294,8 @@ String Terminal::generarInformeDatos(){
 
 	//Evalua los datos en la lista
 	if(!listaVacia(&this->listaTerminal)){
-		String t = std::string(62, '-').c_str();
-		salida += "Terminal ";
+		String t = std::string(((getNumSensores()*8)-2), '-').c_str(); //62
+		salida += "\n-Terminal: ";
 		salida += getTerminalName();
 		salida += "\n";
 
@@ -351,6 +355,10 @@ String Terminal::generarInformeDatos(){
 		}
 
 		salida += "\n";
+	}else {
+		salida += "No detectada presencia en el terminal ";
+		salida += getTerminalName();
+		salida += "\n";
 	}
 	return salida;
 }
@@ -364,12 +372,28 @@ void Terminal::limpiarResultadoPhantom(){
 
 String Terminal::generarCabecera(int numElementos) {
     String salida;
+
+    salida += '(';
+
     for (int i = 1; i <= numElementos; i++) {
-    	salida += "S0" + String(i) + "\t" ;
-    	salida += '\t';
+    	salida += String(literalesZonas[getTerminalId()][i-1]);
+
+    	if(i+1 <= numElementos)
+    	salida += ", ";
+    }
+
+	salida += ")\n";
+
+    for (int i = 1; i <= numElementos; i++) {
+    	salida += "S0" + String(i) +"\t";
+        salida += '\t';
     }
     salida += '\n';
     return salida;
+}
+
+ int Terminal::getSampleSensores(int numSensor) {
+	return sampleSensoresCont[numSensor];
 }
 
 void Terminal::purgarLista(){
@@ -422,6 +446,8 @@ double Terminal::EvaluarSensor(Lista* lista, int numSensor) {
         puntero = puntero->siguente;
     }
 
+    sampleSensoresCont[numSensor] = contadorSalto; //Controlamos el numero por salto
+
     return  calcularPorcentaje(contadorSalto, contadorMatch, FRACCION_SALTO);
 }
 
@@ -452,6 +478,37 @@ void Terminal::EvaluarSensorPhantom(Lista* lista){
                      sampleSensoresPhantom[i]++;
                 }
             }
+           maxEjecucion = puntero->data.marcaTiempo;
+        }
+        puntero = puntero->siguente;
+    }
+
+}
+
+
+void Terminal::recalcularNumDeteciones(Lista* lista){
+	/*Se recaulculan los saltos por sensor cuando un nodo se elimina de la lista*/
+    if (lista->cabeza == NULL) {
+    	for (int i = 0; i < getNumSensores(); i++) {
+    		if(sampleSensoresCont[i]){
+    			sampleSensoresCont[i] = 0;
+    		}
+    	}
+
+        return;
+    }
+
+    Nodo* puntero = lista->cabeza;
+
+    while (puntero) {
+        if(puntero->data.marcaTiempo > maxEjecucion){
+
+        	for (int i = 0; i < getNumSensores(); i++) {
+                 if(puntero->data.sampleSensores[i]){
+                	 sampleSensoresCont[i]++;
+                }
+            }
+
            maxEjecucion = puntero->data.marcaTiempo;
         }
         puntero = puntero->siguente;
@@ -590,5 +647,89 @@ void Terminal::EliminarUltimo(Lista* lista){
 
 			lista->longitud--;
 		}
+	}
+}
+
+String Terminal::serializarListaJson() {
+    DynamicJsonDocument doc(1024*2); // Tamaño del buffer para el documento JSON
+
+    // Crear un objeto JSON con la información de la lista
+    JsonObject listaJson = doc.to<JsonObject>();
+    //listaJson["longitud"] = listaTerminal.longitud;
+      listaJson["longitud"] = min(listaTerminal.longitud, 10); // Limitar a 10 elementos
+
+    JsonArray nodosJson = listaJson.createNestedArray("nodos");
+
+    Nodo* nodoActual = listaTerminal.cabeza;
+    byte contador = 0;
+
+    while (nodoActual != nullptr && contador < 10) { // Limitar a 10 elementos
+        JsonObject nodoJson = nodosJson.createNestedObject();
+        nodoJson["marcaTiempo"] = nodoActual->data.marcaTiempo;
+
+        JsonArray sensoresJson = nodoJson.createNestedArray("sampleSensores");
+        for (int i = 0; i < 8; i++) {
+            sensoresJson.add(nodoActual->data.sampleSensores[i]);
+        }
+
+        nodoActual = nodoActual->siguente;
+        contador++;
+    }
+
+    Serial.print("Memoria: ");
+    Serial.println(doc.memoryUsage());
+
+    // Serializar el documento JSON en una cadena
+    String jsonStr;
+    serializeJson(doc, jsonStr);
+
+    return jsonStr;
+
+    Serial.println(jsonStr);
+
+}
+
+
+void Terminal::deserializarListJson(String jsonStr) {
+
+	  Serial.println(jsonStr);
+
+	if (jsonStr.isEmpty()) {
+		Serial.println("No hay datos en la memoria NVS.");
+		return;
+	}
+
+	DynamicJsonDocument doc(1024*2); // Tamaño del buffer para el documento JSON
+
+	// Deserializar el documento JSON desde la cadena
+	DeserializationError error = deserializeJson(doc, jsonStr);
+	if (error) {
+		Serial.println("Error al deserializar JSON en pila de terminal.");
+		return;
+	}
+
+	Serial.print("Memoria: ");
+	Serial.println(doc.memoryUsage());
+
+	// Acceder a los datos deserializados y reconstruir la lista enlazada
+	JsonObject listaJson = doc.as<JsonObject>();
+	listaTerminal.longitud = listaJson["longitud"];
+
+	JsonArray nodosJson = listaJson["nodos"];
+
+	for (int i = nodosJson.size() - 1; i >= 0; i--){
+		JsonObject nodoJson = nodosJson[i];
+		Nodo* nuevoNodo = (Nodo*) malloc(sizeof(Nodo));
+		nuevoNodo->siguente = NULL; //Apunta por defecto
+
+		nuevoNodo->data.marcaTiempo = nodoJson["marcaTiempo"];
+
+		JsonArray sensoresJson = nodoJson["sampleSensores"];
+		for (int j = 0; j < 8; j++) {
+			nuevoNodo->data.sampleSensores[j] = sensoresJson[j];
+		}
+
+		nuevoNodo->siguente = listaTerminal.cabeza;
+		listaTerminal.cabeza = nuevoNodo;
 	}
 }

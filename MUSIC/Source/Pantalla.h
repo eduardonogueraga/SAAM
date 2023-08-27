@@ -11,9 +11,9 @@
 #include <LiquidCrystal_I2C.h>
 #include <Wire.h>
 #include "Autenticacion.h"
-#include "InterStrike.h"
 #include "Macros.h"
 #include "Fecha.h"
+#include "Terminal.h"
 
 
 
@@ -21,16 +21,17 @@
 extern byte MODO_DEFAULT;
 extern const char* version[];
 extern unsigned long tiempoMargen;
-extern InterStrike pir1, pir2, pir3;
 extern Autenticacion auth;
 extern Fecha fecha;
 extern RespuestaTerminal respuestaTerminal;
+extern const char* literalesZonas[2][MAX_DATOS_SUB_TRAMA];
 extern byte desactivaciones, mensajesEnviados;
 extern ConfigSystem configSystem;
 extern ProveedorEstado coberturaRed();
 extern String fixedLengthString(String& original, size_t fixedLength);
 extern PilaTareaEstado estadoPila;
 
+extern Terminal T_CORE;
 
 class Pantalla {
 private:

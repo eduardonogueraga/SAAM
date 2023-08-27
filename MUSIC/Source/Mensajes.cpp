@@ -23,31 +23,28 @@ void Mensajes::inicioGSM(){
 }
 
 
-void Mensajes::mensajeAlerta(Datos &datos)  {
+void Mensajes::mensajeAlerta()  {
 
 	this->tipoMensaje = SMS_TIPO_SALTO;
-	//this->asuntoMensaje = this->asuntoAlerta(datos);
-	//this->cuerpoMensaje = datos.imprimeDatos();
-
-	//Preparamos el asunto
+	//Preparamos el asunto del mensaje
 	asuntoAlerta();
 
-	Serial.println("ASUNTO:");
-	Serial.println(this->asuntoMensaje);
+	this->cuerpoMensaje += "Informacion sobre la deteccion: \n";
 
-	//Datos sensores core
-	this->cuerpoMensaje = datos.imprimeDatos();
+	//Datos puerta
+	if(respuestaTerminal.idTerminal == 0 && respuestaTerminal.idSensorDetonante == 3){
+		this->cuerpoMensaje += "Puerta de la cochera abierta.\n";
+	}
 
-	//Datos terminal
+	//Datos terminales
 	for (int i = 0; i < N_TERMINALES_LINEA; i++) {
 		this->cuerpoMensaje += T_LIST[i]->generarInformeDatos();
 	}
 
-	this->pieMensaje = "Intentos restantes: "+ (String)(3-INTENTOS_REACTIVACION);
-	if(flagPuertaAbierta)
-		this->pieMensaje += "\nLa puerta esta abierta";
+	this->pieMensaje = "\nIntentos restantes: "+ (String)(3-INTENTOS_REACTIVACION);
 
 	//pieFechaBateria(); //Incompatibilidad hardware
+
 	this->enviarSMS();
 
 	char registroConjunto[50];
@@ -57,24 +54,22 @@ void Mensajes::mensajeAlerta(Datos &datos)  {
 
 }
 
-void Mensajes::mensajeReactivacion(Datos &datos){
+void Mensajes::mensajeReactivacion(){
 
 	this->tipoMensaje = SMS_TIPO_INFO;
 	this->asuntoMensaje = "ALARMA REACTIVADA CON EXITO";
-	//this->cuerpoMensaje = datos.imprimeDatos();
 
-	//Datos sensores core
-	this->cuerpoMensaje = datos.imprimeDatos();
+	this->cuerpoMensaje += "Informe de movimientos: \n";
 
 	//Datos terminal
 	for (int i = 0; i < N_TERMINALES_LINEA; i++) {
 		this->cuerpoMensaje += T_LIST[i]->generarInformeDatos();
 	}
 
+	if(flagPuertaAbierta)
+		this->pieMensaje += "\nLa puerta esta abierta";
 
-	this->pieMensaje = "";
-
-	pieFechaBateria();
+	//pieFechaBateria(); //Incompatibilidad hardware
 
 	this->enviarSMS();
 	registro.registrarLogSistema("ALARMA REACTIVADA MENSAJE ENVIADO");
@@ -82,14 +77,15 @@ void Mensajes::mensajeReactivacion(Datos &datos){
 }
 
 
-void Mensajes::mensajeError(Datos &datos){
+
+void Mensajes::mensajeError(){
 
 	this->tipoMensaje = SMS_TIPO_ERROR;
 	switch(codigoError){
 
 	case ERR_FALLO_ALIMENTACION:
 
-		if(datos.comprobarDatos()){
+		if(respuestaTerminal.interpretacion == SABOTAJE){
 			this->asuntoMensaje = "MOVIMIENTO DETECTADO Y SABOTAJE EN LA ALIMENTACION";
 			this->literalAsuntoSaas = MOVIMIENTO_DETEC_SABOTAJE_ALIMENTACION;
 		}else{
@@ -104,15 +100,15 @@ void Mensajes::mensajeError(Datos &datos){
 		break;
 	}
 
-	//Datos sensores core
-	this->cuerpoMensaje = datos.imprimeDatos();
-
 	//Datos terminal
 	for (int i = 0; i < N_TERMINALES_LINEA; i++) {
 		this->cuerpoMensaje += T_LIST[i]->generarInformeDatos();
 	}
 
-	pieFechaBateria();
+	if(flagPuertaAbierta)
+		this->pieMensaje += "\nLa puerta esta abierta";
+
+	//pieFechaBateria(); //Incompatibilidad hardware
 
 	this->enviarSMSEmergencia();
 	char registroConjunto[50];
@@ -133,6 +129,8 @@ void Mensajes::enviarSMS(){
 	char registroConjunto[50];
 	snprintf(registroConjunto, sizeof(registroConjunto), "%s%d", "SMS ENVIADO NUMERO:",leerFlagEEInt("N_SMS_ENVIADOS"));
 	registro.registrarLogSistema(registroConjunto);
+
+	limpiarContenido();
 
 }
 
@@ -163,20 +161,21 @@ void Mensajes::procesarSMS(){
 
 		return;
 	}
+	//UART_GSM
 
-	UART_GSM.println("AT+CMGF=1");
+	Serial.println("AT+CMGF=1");
 	delay(200);
-	UART_GSM.println("AT+CMGS=\"+34"+(String)telefonoPrincipal+"\"");
+	Serial.println("AT+CMGS=\"+34"+(String)telefonoPrincipal+"\"");
 	delay(200);
 
-	UART_GSM.print(this->asuntoMensaje+"\n");
-	UART_GSM.println(this->cuerpoMensaje);
-	UART_GSM.println(this->pieMensaje);
+	Serial.print(this->asuntoMensaje+"\n");
+	Serial.println(this->cuerpoMensaje);
+	Serial.println(this->pieMensaje);
 
 	delay(200);
-	UART_GSM.print((char)26);
+	Serial.print((char)26);
 	delay(200);
-	UART_GSM.println("");
+	Serial.println("");
 	delay(200);
 
 	mensajesEnviados++;
@@ -210,56 +209,18 @@ void Mensajes::colgarLlamada(){
 
 }
 
-String Mensajes::asuntoAlerta(Datos &datos){
-
-	int* mapSensor= datos.getDatos();
-	cont=0; //Reinicia el contador
-
-	for (int i = 0; i < 4; i++) { //TODO enlaza con tam el tamano de los array
-
-		if(mapSensor[i] == MAX_SALTO[i]) {
-			//Salto principal
-			asuntoMensaje = "AVISO ALARMA:";
-			if(nombreZonas[i] == ("PUERTA COCHERA")) {
-				asuntoMensaje += " PUERTA ABIERTA EN COCHERA";
-				this->literalAsuntoSaas = AVISO_ALARMA_PUERTA_COCHERA_ABIERTA;
-
-			}else {
-				asuntoMensaje += " MOVIMIENTO DETECTADO EN "+nombreZonas[i];
-				this->literalAsuntoSaas = nombreZonasSaas[i];
-			}
-
-			for (int j= 0; j < 4; j++) {
-				if((mapSensor[j] != 0)&&(mapSensor[j] != MAX_SALTO[j])) {
-					//Saltos secundarios
-
-					if(cont == 0) {
-						asuntoMensaje += " JUNTO CON MOVIMIENTO EN "+nombreZonas[j];
-						cont++;
-
-					}else {
-						asuntoMensaje += " Y "+nombreZonas[j];
-					}
-				}
-			}
-		}
-	}
-
-	return asuntoMensaje;
-}
-
 void Mensajes::asuntoAlerta(){
 
 	if(respuestaTerminal.interpretacion == DETECCION){
-		this->asuntoMensaje += "INTRUSISMO DETECTADO " + respuestaTerminal.resumen;
+		this->asuntoMensaje += "INTRUSISMO DETECTADO EN " + String(literalesZonas[respuestaTerminal.idTerminal][respuestaTerminal.idSensorDetonante]);
 	}else if(respuestaTerminal.interpretacion == DETECCION_FOTOSENIBLE){
-		this->asuntoMensaje += "LUZ DETECTADA EN " + respuestaTerminal.idTerminal;
+		this->asuntoMensaje += "LUZ DETECTADA EN " + String(literalesZonas[respuestaTerminal.idTerminal][respuestaTerminal.idSensorDetonante]);
 	}else if(respuestaTerminal.interpretacion == AVERIA){
-		this->asuntoMensaje += "AVERIA: " + respuestaTerminal.resumen;
+		this->asuntoMensaje += "AVERIA: " + String(literalesZonas[respuestaTerminal.idTerminal][respuestaTerminal.idSensorDetonante]);
 	}else if(respuestaTerminal.interpretacion == SABOTAJE){
-		this->asuntoMensaje += "SABOTAJE EN " + respuestaTerminal.resumen;
+		this->asuntoMensaje += "SABOTAJE EN " + String(literalesZonas[respuestaTerminal.idTerminal][respuestaTerminal.idSensorDetonante]);
 	}else {
-		this->asuntoMensaje += "INTRUSISMO DETECTADO " + respuestaTerminal.resumen;
+		this->asuntoMensaje += "INTRUSISMO DETECTADO EN " + String(literalesZonas[respuestaTerminal.idTerminal][respuestaTerminal.idSensorDetonante]);
 	}
 
 }
@@ -283,7 +244,7 @@ const String& Mensajes::getCuerpoMensaje() const {
 }
 
 
-byte  Mensajes::getTipoMensaje() const {
+byte Mensajes::getTipoMensaje() const {
 		return tipoMensaje;
 	}
 
@@ -300,3 +261,9 @@ byte  Mensajes::getTipoMensaje() const {
 	    return charArray;
 
 }
+
+ void Mensajes::limpiarContenido(){
+	 this->cuerpoMensaje = "";
+	 this->asuntoMensaje = "";
+	 this->pieMensaje = "";
+ }

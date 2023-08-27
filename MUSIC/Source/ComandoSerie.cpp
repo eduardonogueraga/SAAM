@@ -35,6 +35,24 @@ void ComandoSerie::nombreComando(const char* data){
 	Serial.println(data);
 }
 
+
+void ComandoSerie::esperarRespuestaUart2(){
+	for (int i = 0; i < 10; i++)
+	{
+		// Verificamos si hay datos disponibles para leer
+
+		char tramaRecibida[200] = "";
+		size_t byteCount = UART_GSM.readBytesUntil('\n', tramaRecibida, sizeof(tramaRecibida) - 1); //read in data to buffer
+		tramaRecibida[byteCount] = NULL;	//put an end character on the data
+
+
+		Serial.print("UART@GSM-> ");
+		Serial.println(tramaRecibida);
+		UART_GSM.flush();
+		i++;
+	}
+}
+
 void ComandoSerie::comprobarComando() {
 
 
@@ -79,23 +97,38 @@ void ComandoSerie::comprobarComando() {
 
 	if (compararCadena(data, "pir1")) {
 		nombreComando(data);
-		pir1.pingSensor();
+		byte myArray[] = {1, 0, 0, 0, 0, 0, 0, 0};
+		byte myArray2[] = {0, 0};
+		T_CORE.guardarDatosTerminal(myArray, myArray2);
 	}
 
 	if (compararCadena(data, "pir2")) {
 		nombreComando(data);
-		pir2.pingSensor();
+		byte myArray[] = {0, 1, 0, 0, 0, 0, 0, 0};
+		byte myArray2[] = {0, 0};
+		T_CORE.guardarDatosTerminal(myArray, myArray2);
 	}
 
 	if (compararCadena(data, "pir3")) {
 		nombreComando(data);
-		pir3.pingSensor();
+		byte myArray[] = {0, 0, 1, 0, 0, 0, 0, 0};
+		byte myArray2[] = {0, 0};
+		T_CORE.guardarDatosTerminal(myArray, myArray2);
 	}
 
 	if (compararCadena(data, "mg")) {
 		nombreComando(data);
-		mg.pingSensor();
+		sensorCore.sensorMG = 1;
+		Serial.println("Comando pendiente de adpatacion");
 	}
+
+	//Sensores core
+
+	if (compararCadena(data, "core -p")){
+		nombreComando(data);
+		Serial.println(T_CORE.generarInformeDatos());
+	}
+
 
 	if (compararCadena(data, "ch puerta")) {
 		nombreComando(data);
@@ -417,7 +450,7 @@ void ComandoSerie::comprobarComando() {
 
 	if (compararCadena(data, "t -show")){
 		nombreComando(data);
-		T_COCHERA.recorrerDatosTerminal();
+		T_CORE.recorrerDatosTerminal();
 
 		Serial.println(T_COCHERA.getDatosFotosensor());
 /*
@@ -431,18 +464,37 @@ void ComandoSerie::comprobarComando() {
 
 	if (compararCadena(data, "t -df")){
 		nombreComando(data);
-		T_COCHERA.borrarPrimerElemento();
+		T_CORE.borrarPrimerElemento();
 	}
 
 
 	if (compararCadena(data, "t -dl")){
 		nombreComando(data);
-		T_COCHERA.borrarUltimoElemento();
+		T_CORE.borrarUltimoElemento();
 	}
 
 	if (compararCadena(data, "t -purge")){
 		nombreComando(data);
-		T_COCHERA.limpiarDatosTerminal();
+		T_CORE.limpiarDatosTerminal();
+	}
+
+
+	if (compararCadena(data, "t -save")){
+		nombreComando(data);
+		guardarEstadoAlerta();
+	}
+
+	if (compararCadena(data, "t -load")){
+		nombreComando(data);
+		checkearAlertasDetenidas2();
+	}
+
+	if (compararCadena(data, "iterrupcion -r")){
+		nombreComando(data);
+
+		guardarFlagEE("ERR_INTERRUPT", 0);
+		guardarFlagEE("MENSAJE_EMERGEN", 0);
+		guardarFlagEE("LLAMADA_EMERGEN", 0);
 	}
 
 
@@ -450,6 +502,24 @@ void ComandoSerie::comprobarComando() {
 		nombreComando(data);
 		UART_GSM.println("AT");
 		UART_GSM.println("AT+COPS?");
+
+		esperarRespuestaUart2();
+	}
+
+	if(compararCadena(data, "echo ?")){
+		nombreComando(data);
+		UART_GSM.println("ATE?");
+
+		esperarRespuestaUart2();
+	}
+
+
+	if(compararCadena(data, "speed ?")){
+		nombreComando(data);
+		UART_GSM.println("AT+IPR?");
+
+		esperarRespuestaUart2();
+
 	}
 
 
@@ -515,11 +585,6 @@ void ComandoSerie::comprobarComando() {
 	if(compararCadena(data, "power")){
 		nombreComando(data);
 		interrupcionFalloAlimentacion();
-	}
-
-	if(compararCadena(data, "d")){
-		nombreComando(data);
-		Serial.println(datosSensores.imprimeDatos());
 	}
 
 	if (compararCadena(data, "gsm -r")){

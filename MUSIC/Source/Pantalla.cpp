@@ -161,7 +161,7 @@ void Pantalla::lcdGuardia(){
 	lcd.setCursor(2,1);
 
 	if(configSystem.SENSORES_HABLITADOS[1]){
-		lcd.print(pir1.getStrike());
+		lcd.print(T_CORE.getSampleSensores(0));
 	}else{
 		lcd.print(F("X"));
 	}
@@ -171,7 +171,7 @@ void Pantalla::lcdGuardia(){
 	lcd.setCursor(6,1);
 
 	if(configSystem.SENSORES_HABLITADOS[2]){
-		lcd.print(pir2.getStrike());
+		lcd.print(T_CORE.getSampleSensores(1));
 	}else{
 		lcd.print(F("X"));
 	}
@@ -181,7 +181,7 @@ void Pantalla::lcdGuardia(){
 	lcd.setCursor(10,1);
 
 	if(configSystem.SENSORES_HABLITADOS[3]){
-		lcd.print(pir3.getStrike());
+		lcd.print(T_CORE.getSampleSensores(2));
 	}else{
 		lcd.print(F("X"));
 	}
@@ -206,15 +206,23 @@ void Pantalla::lcdGuardia(){
 
 		if(respuestaTerminal.interpretacion == DETECCION_FOTOSENIBLE){
 			lcd.print(F("LUZ DETECTADA"));
+			lcd.setCursor(0,1);
+			lcd.print(literalesZonas[respuestaTerminal.idTerminal][respuestaTerminal.idSensorDetonante]);
 		}else if(respuestaTerminal.interpretacion == AVERIA){
 			lcd.print(F("AVERIA"));
+			lcd.setCursor(0,1);
+			lcd.print(respuestaTerminal.resumen);
+
 		}else if(respuestaTerminal.interpretacion == SABOTAJE){
 			lcd.print(F("SABOTAJE"));
+			lcd.setCursor(0,1);
+			lcd.print(respuestaTerminal.resumen);
 		}else {
 			lcd.print(F("INTRUSISMO"));
+			lcd.setCursor(0,1);
+			lcd.print(literalesZonas[respuestaTerminal.idTerminal][respuestaTerminal.idSensorDetonante]);
 		}
-		lcd.setCursor(0,1);
-		lcd.print(respuestaTerminal.resumen);
+
 	}
 
 	void Pantalla::lcdAvisoEnviado(){

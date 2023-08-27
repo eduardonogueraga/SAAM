@@ -66,7 +66,8 @@ if(flagTest){
 		return;
 	}
 */
-	for (int i = 0; i < N_TERMINALES_LINEA; i++) {
+	for (int i = 1; i < N_TERMINALES_LINEA; i++) {
+		//El terminal core no se interroga comienza desde id 1
 		while (!this->flagSalidaComposer) {
 			this->interrogarTerminal(*T_LIST[i]);
 			//vTaskDelay(100);

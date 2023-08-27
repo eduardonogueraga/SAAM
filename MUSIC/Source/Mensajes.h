@@ -12,7 +12,6 @@
 #define TINY_GSM_MODEM_SIM800
 
 #include "Arduino.h"
-#include "Datos.h"
 #include <HardwareSerial.h>
 #include "EventosJson.h"
 #include "Registro.h"
@@ -27,13 +26,12 @@ extern EventosJson eventosJson;
 extern Adafruit_MCP23X17 mcp;
 extern byte INTENTOS_REACTIVACION;
 extern byte MODO_DEFAULT;
-extern String nombreZonas[4];
-extern byte zona;
 extern byte mensajesEnviados;
 extern ConfigSystem configSystem;
 extern Fecha fecha;
 extern CODIGO_ERROR codigoError;
 extern byte flagPuertaAbierta;
+extern const char* literalesZonas[2][MAX_DATOS_SUB_TRAMA];
 
 extern RespuestaTerminal respuestaTerminal;
 extern Terminal* T_LIST[];
@@ -52,11 +50,10 @@ private:
 	String asuntoMensaje = "";
 	String cuerpoMensaje = "";
 	String pieMensaje = "";
-
-	String asuntoAlerta(Datos &datos);
 	const byte LIMITE_MAXIMO_SMS = 15;
 	void procesarSMS();
 	void asuntoAlerta();
+	void limpiarContenido();
 
 	SAAS_LITERAL_NOTIFICACIONES saasNotificaciones;
 	SAAS_LITERAL_NOTIFICACIONES_TLF saaNotificacionesTlf;
@@ -75,9 +72,9 @@ public:
 	void inicioGSM();
 	void enviarSMS();
 	void enviarSMSEmergencia();
-	void mensajeAlerta(Datos &datos);
-	void mensajeReactivacion(Datos &datos);
-	void mensajeError(Datos &datos);
+	void mensajeAlerta();
+	void mensajeReactivacion();
+	void mensajeError();
 	void llamarTlf(char* tlf);
 	void colgarLlamada();
 	void pieFechaBateria();
