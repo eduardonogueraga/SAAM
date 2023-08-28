@@ -5,11 +5,10 @@
  *
  * POR HACER:
  *
+ * * -Echar un ojo a las notificaciones / envios saas
  * -Revisar el funcionamiento del terminal
  * -Remplazar todas las fechas por fecha local
- * -Modo inquieto
  * -Probar que en caso de necesitar tlf y sms las tareas en segundo plano finalizan OK
- * -Echar un ojo a las notificaciones / envios saas
  * -Controlar a futuro el impacto entre terminales core
  * -Enriquecer el log con dia de la semana o temperatura
  */
@@ -152,7 +151,6 @@ void setup()
 	    //comprobarConexionGSM(10000L);
 
 
-
 }
 
 
@@ -234,7 +232,7 @@ void procesosSistema(){
 	//Quitadas por pruebas
 
 	//gestionarPilaDeTareas();
-	//checkearEnvioSaas();
+	checkearEnvioSaas();
 	//checkearColaLogsSubtareas();
 }
 
@@ -372,7 +370,7 @@ void procesoAlarma(){
 
 		if(checkearMargenTiempo(tiempoMargen)){
 
-			if(INTENTOS_REACTIVACION < 3){
+			if(INTENTOS_REACTIVACION < 1){
 
 				INTENTOS_REACTIVACION++;
 				if(configSystem.MODO_SENSIBLE){
@@ -385,10 +383,11 @@ void procesoAlarma(){
 				//el SAAS continue recibiendo informes de situacion
 				sensorCore.notificadoMG = 0;
 				setEstadoInquieto();
+				break;
 			}
 		}
 
-		if(INTENTOS_REACTIVACION < 3){
+		if(INTENTOS_REACTIVACION < 1){
 			//Si la alarma aun tiene opciones de reinicio examinamos el phantom
 			comprobarSensoresCore();
 
@@ -407,26 +406,41 @@ void procesoAlarma(){
 	case ESTADO_INQUIETO:
 
 		if(!isLcdInfo())
-		pantalla.lcdLoadView(&pantalla, &Pantalla::lcdInquieto);
+			pantalla.lcdLoadView(&pantalla, &Pantalla::lcdInquieto);
 
-		//TODO Evaluacion de datos y uso de bocina sin avisos
-		/*
+		comprobarSensoresCore();
+
 		for (int i = 0; i < N_TERMINALES_LINEA; i++) {
 			respuestaTerminal = T_LIST[i]->evaluarDatosTerminal();
 
 			if(respuestaTerminal.interpretacion != TERMINAL_OK){
-
 				if(respuestaTerminal.interpretacion != BAD_COMM
 						|| respuestaTerminal.interpretacion != BAD_REPLY
 						|| respuestaTerminal.interpretacion != NO_REPLY){
 
 					//Constitutivo de aviso
-					Serial.println(respuestaTerminal.resumen);
 					Serial.println("Aviso inquieto accionando bocina");
-				}
+					encolarNotifiacionIntrusismo();
 
+					if(checkearMargenTiempo(tiempoBocina)){
+						//Si la bocina anterior ha terminado sirvo otra racion
+						Serial.println("Mas tiempo bocina");
+						int intentosRestantes = leerFlagEEInt("TICKET_BOCINA");
+
+						if(intentosRestantes <= MAX_TOQUES_BOCINA_RESTANTES){
+							setMargenTiempo(tiempoBocina, 120000, 0.15);
+							intentosRestantes++;
+							guardarFlagEE("TICKET_BOCINA", intentosRestantes);
+						}
+
+					}
+
+					//Volvemos al estado anterior
+					respuestaTerminal.interpretacion == TERMINAL_OK;
+					limpiarTerminalesLinea();
+				}
 			}
-		}*/
+		}
 
 		desactivarAlarma();
 		sonarBocina();
@@ -509,22 +523,7 @@ void setEstadoAlerta()
 	ACCESO_LISTAS = 0; //Blindamos las listas de datos
 	guardarFlagEE("ESTADO_ALERTA", 1);
 	guardarEstadoAlerta();
-
-
-	char contenidoCola[200];
-	char resumenTerminal[50];
-	respuestaTerminal.resumen.toCharArray(resumenTerminal, 50);
-
-	sprintf(contenidoCola, "\%s, %s:%s",
-			(respuestaTerminal.interpretacion == DETECCION)? "Intrusismo":
-			(respuestaTerminal.interpretacion == DETECCION_FOTOSENIBLE)? "Luz detectada":
-			(respuestaTerminal.interpretacion == AVERIA)? "Averia":
-			(respuestaTerminal.interpretacion == SABOTAJE)? "Sabotaje": "Intrusismo",
-			 String(literalesZonas[respuestaTerminal.idTerminal][respuestaTerminal.idSensorDetonante]),
-			 resumenTerminal
-	);
-
-	encolarNotificacionSaas(1, contenidoCola);
+	encolarNotifiacionIntrusismo();
 
 	lcd_clave_tiempo = millis();
 
@@ -582,6 +581,7 @@ void setEstadoReposo()
 
 	guardarFlagEE("F_RESTAURADO", 0);
 	guardarFlagEE("F_REACTIVACION", 0);
+	guardarFlagEE("TICKET_BOCINA", 0);
 
 	rehabilitarEjecucionPila();
 

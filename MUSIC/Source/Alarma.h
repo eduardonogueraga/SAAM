@@ -804,17 +804,13 @@ static byte tiempoFracccion;
 				  configSystem.SENSORES_HABLITADOS[0], configSystem.SENSORES_HABLITADOS[1],
 				  configSystem.SENSORES_HABLITADOS[2], configSystem.SENSORES_HABLITADOS[3]);
 
-/*
-		Serial.printf("DATOS SENSORES = {%d, %d, %d, %d}\n",
-				eeDatosSalto.DATOS_SENSOR[0], eeDatosSalto.DATOS_SENSOR[1],
-				eeDatosSalto.DATOS_SENSOR[2], eeDatosSalto.DATOS_SENSOR[3]);
-*/
 		Serial.print("\n");
 
 		Serial.printf("FLAG GUARDIA = %d\n", leerFlagEEInt("ESTADO_GUARDIA"));
 		Serial.printf("FLAG ALERTA = %d\n", leerFlagEEInt("ESTADO_ALERTA"));
 		Serial.printf("FLAG PUERTA ABIERTA = %d\n", leerFlagEEInt("PUERTA_ABIERTA"));
 		Serial.printf("NUM SMS ENVIADOS = %d\n", leerFlagEEInt("N_SMS_ENVIADOS"));
+		Serial.printf("NUM TOQUES BOCINA = %d\n", leerFlagEEInt("TICKET_BOCINA"));
 
 		Serial.printf("NUM NOT SYS ENVIADOS = %d\n", leerFlagEEInt("N_SYS_SEND"));
 		Serial.printf("NUM NOT ALR ENVIADOS = %d\n", leerFlagEEInt("N_ALR_SEND"));
@@ -1449,6 +1445,22 @@ static byte tiempoFracccion;
 		}
 	}
 
+	void encolarNotifiacionIntrusismo(){
+		char contenidoCola[200];
+		char resumenTerminal[50];
+		respuestaTerminal.resumen.toCharArray(resumenTerminal, 50);
+
+		sprintf(contenidoCola, "\%s, %s:%s",
+				(respuestaTerminal.interpretacion == DETECCION)? "Intrusismo":
+				(respuestaTerminal.interpretacion == DETECCION_FOTOSENIBLE)? "Luz detectada":
+				(respuestaTerminal.interpretacion == AVERIA)? "Averia":
+				(respuestaTerminal.interpretacion == SABOTAJE)? "Sabotaje": "Intrusismo",
+				 String(literalesZonas[respuestaTerminal.idTerminal][respuestaTerminal.idSensorDetonante]),
+				 resumenTerminal
+		);
+
+		encolarNotificacionSaas(1, contenidoCola);
+	}
 
 	void setEstadoErrorComprobarDatos(){
 		Serial.println(F("Guardando datos "));

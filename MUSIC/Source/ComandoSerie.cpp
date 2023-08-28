@@ -67,6 +67,12 @@ void ComandoSerie::comprobarComando() {
 		//desactivarAlarma();
 	}
 
+	if (compararCadena(data, "set in")) {
+		nombreComando(data);
+		setEstadoInquieto();
+	}
+
+
 	if (compararCadena(data, "set mode")) {
 		nombreComando(data);
 
