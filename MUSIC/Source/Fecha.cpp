@@ -24,21 +24,20 @@ void Fecha::iniciarRTC(){
 
 		//Sincronizamos el tiempo con el RTC local
 		rtcLocal.setTime(rtc.now().unixtime());
-
 	}
-
 
 }
 
 
 DateTime Fecha::obtenerTiempoActual(){
-	return rtc.now();
+	  DateTime dateTime = DateTime(rtcLocal.getEpoch());
+	  return dateTime;
 }
 
 String Fecha::imprimeFecha(byte local, DateTime paramFecha){
 
 	if(!configSystem.MODULO_RTC)
-		return "XX/XX/20XX 00:00:00";
+		return "01/01/2099 00:00:00";
 
 	if(local)
 	 return rtcLocal.getTime("%d-%m-%Y %H:%M:%S");
@@ -51,7 +50,7 @@ String Fecha::imprimeFecha(byte local, DateTime paramFecha){
 String Fecha::imprimeFechaSimple(DateTime paramFecha){
 
 	if(!configSystem.MODULO_RTC)
-		return "XX/XX/20XX";
+		return "01/01/2099";
 
 	(paramFecha > 0)? fecha = paramFecha : fecha = obtenerTiempoActual();
 	char buffer[] = "DD/MM/YYYY";
@@ -60,10 +59,7 @@ String Fecha::imprimeFechaSimple(DateTime paramFecha){
 }
 
 String Fecha::imprimeFechaSQL(){
-	fecha = obtenerTiempoActual();
-	char buffer[] = "YYYY-MM-DD hh:mm:ss";
-
-	return fecha.toString(buffer);
+	return rtcLocal.getTime("%Y-%m-%d %H:%M:%S");
 }
 
 
@@ -73,7 +69,7 @@ String Fecha::imprimeFechaJSON(byte local, DateTime paramFecha){
 		return "2099-01-01T00:00:00";
 
 	if(local)
-		return rtcLocal.getTime("%Y-%m-%dT%H:%M:%S");
+	return rtcLocal.getTime("%Y-%m-%dT%H:%M:%S");
 
 
 	(paramFecha > 0)? fecha = paramFecha : fecha = obtenerTiempoActual();
@@ -104,14 +100,10 @@ const char* Fecha::imprimeFechaFichero(byte local){
 }
 
 String Fecha::imprimeHora(){
-	fecha = obtenerTiempoActual();
-
-	char buffer[] = "hh:mm";
-	return fecha.toString(buffer);
+	return rtcLocal.getTime("%H:%M");
 }
 
 void Fecha::establecerFechaReset(byte dia, byte hora, byte minuto, byte segundo){
-
 	DateTime fechaFutura (obtenerTiempoActual() + TimeSpan(dia,hora,minuto,segundo));
 	fechaReset = fechaFutura;
 
@@ -134,9 +126,9 @@ bool Fecha::comprobarFecha(DateTime paramFecha){
 bool Fecha::comprobarHora(byte horas, byte minutos){ //Hora concreta
 
 	fecha = obtenerTiempoActual();
-	if(horas == fecha.hour()){
+	if(horas == rtcLocal.getHour(true)){
 
-		if (minutos == fecha.minute()){
+		if (minutos == rtcLocal.getMinute()){
 			return true;
 		}else {
 			return false;
@@ -156,13 +148,13 @@ bool Fecha::comprobarRangoHorario(byte hora_inicio, byte hora_fin,  byte min_ini
 
 	if(hora_inicio > hora_fin) { //Si hay diferencia entre dias entrara aqui
 
-		if((int)fecha.hour() >= hora_inicio) {
+		if((int)rtcLocal.getHour(true) >= hora_inicio) {
 
 			hora_fin = hora_fin +24; //Hasta las 12 contempla horas posteriores como mayores(+24 horas)
 
 		}
 
-		if((int)fecha.hour() <= 23){ //Cuando son menos de las 12 contempla la hora de inicio como inferior (-24 horas)
+		if((int)rtcLocal.getHour(true) <= 23){ //Cuando son menos de las 12 contempla la hora de inicio como inferior (-24 horas)
 
 			hora_inicio = hora_inicio - 24;
 
@@ -174,28 +166,28 @@ bool Fecha::comprobarRangoHorario(byte hora_inicio, byte hora_fin,  byte min_ini
 	}
 
 
-	if((int)fecha.hour() == hora_inicio+aux) {
+	if((int)rtcLocal.getHour(true) == hora_inicio+aux) {
 
-		if(((int)fecha.hour() >= hora_inicio && (int)fecha.minute() >= min_inicio) && (hora_fin > (int)fecha.hour())) {
-
-			return true;
-		}else {
-			return false;
-		}
-
-
-	}else if((int)fecha.hour() == hora_fin) {
-
-		if(((int)fecha.hour() >= hora_inicio) && (hora_fin >= (int)fecha.hour() && (int)fecha.minute() < min_fin )) {
+		if(((int)rtcLocal.getHour(true) >= hora_inicio && (int)rtcLocal.getMinute() >= min_inicio) && (hora_fin > (int)rtcLocal.getHour(true))) {
 
 			return true;
 		}else {
 			return false;
 		}
 
-	}else if ((int)fecha.hour() != hora_inicio && (int)fecha.hour() != hora_fin){
 
-		if(((int)fecha.hour() >= hora_inicio ) && (hora_fin > (int)fecha.hour())) {
+	}else if((int)rtcLocal.getHour(true) == hora_fin) {
+
+		if(((int)rtcLocal.getHour(true) >= hora_inicio) && (hora_fin >= (int)rtcLocal.getHour(true) && (int)rtcLocal.getMinute() < min_fin )) {
+
+			return true;
+		}else {
+			return false;
+		}
+
+	}else if ((int)rtcLocal.getHour(true) != hora_inicio && (int)rtcLocal.getHour(true) != hora_fin){
+
+		if(((int)rtcLocal.getHour(true) >= hora_inicio ) && (hora_fin > (int)rtcLocal.getHour(true))) {
 
 			return true;
 		}else {

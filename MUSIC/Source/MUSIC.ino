@@ -5,9 +5,7 @@
  *
  * POR HACER:
  *
- * * -Echar un ojo a las notificaciones / envios saas
  * -Revisar el funcionamiento del terminal
- * -Remplazar todas las fechas por fecha local
  * -Probar que en caso de necesitar tlf y sms las tareas en segundo plano finalizan OK
  * -Controlar a futuro el impacto entre terminales core
  * -Enriquecer el log con dia de la semana o temperatura
@@ -149,7 +147,6 @@ void setup()
 
 	    //SIM800L
 	    //comprobarConexionGSM(10000L);
-
 
 }
 
