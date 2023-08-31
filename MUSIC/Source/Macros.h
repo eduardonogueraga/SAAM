@@ -86,7 +86,7 @@
 #define TOTAL_SENSORES 4 //EL numero de sensores activos
 #define MAX_SIZE_JSON 3584 //Bytes maximos del modelo JSON 3.5K
 #define MAX_TOQUES_BOCINA_RESTANTES 15 //Intentos en modo inquieto
-
+#define MAX_INTENTOS_REACTIVACION 3
 //COMUNICACION LINEA
 enum infoTrazas{DESTINATARIO, AUTOR, METODO, METODO_DESC, ESTADO_SERVICIO, FOTOSENSOR};
 

@@ -215,8 +215,10 @@ RespuestaTerminal Terminal::evaluarDatosTerminal(){
 		if(nodosRevisados < listaLongitud(&this->listaTerminal)){
 			//Se itera por cada sensor el contenido de la lista
 			 porcentajeDeteccion = 0.0;
+			 //recalcularNumDeteciones(&this->listaTerminal);
 
 			for (int i = 0; i < getNumSensores(); i++) {
+				sampleSensoresCont[i] = 0;
 				double sensorPorcentaje = EvaluarSensor(&listaTerminal, i);
 
 				if(sensorPorcentaje>0){
@@ -245,13 +247,16 @@ RespuestaTerminal Terminal::evaluarDatosTerminal(){
 					respuesta.idSensorDetonante = i;
 				}
 				porcentajeDeteccion += sensorPorcentaje;
-			}
 
-			if(porcentajeDeteccion >= UMBRAL_SENSOR_TOTAL){
-				flagDeteccion =1;
-				Serial.println("Umbral de salto total del terminal");
-				respuesta.resumen = "";
-				respuesta.resumen += "T" + String(porcentajeDeteccion) + "%";
+				if(porcentajeDeteccion >= UMBRAL_SENSOR_TOTAL){
+					flagDeteccion =1;
+					Serial.println("Umbral de salto total del terminal");
+					respuesta.resumen = "";
+					respuesta.resumen += "TS"+ String(i+1) +"-"+ String(porcentajeDeteccion) + "%";
+
+					respuesta.idSensorDetonante = i;
+				}
+
 			}
 
 			nodosRevisados = listaLongitud(&this->listaTerminal);
@@ -459,18 +464,19 @@ double Terminal::EvaluarSensor(Lista* lista, int numSensor) {
                 if (diferenciaTiempo <= TIEMPO_COMBO) {
                     contadorMatch++;
                 } else {
-                    contadorMatch = 0;
+                	if(contadorMatch >0)
+                	   contadorMatch--;
                 }
             }
         }else {
-        	//COMO GESTIONAMOS ESTO?
-          if((puntero->data.marcaTiempo - diferenciaTiempo) > TIEMPO_COMBO)
-           contadorMatch = 0;
+          if((puntero->data.marcaTiempo - diferenciaTiempoAux) > TIEMPO_COMBO)
+        	  if(contadorMatch >0)
+        	     contadorMatch--;
         }
         puntero = puntero->siguente;
     }
 
-    sampleSensoresCont[numSensor] = contadorSalto; //Controlamos el numero por salto
+    sampleSensoresCont[numSensor] = contadorMatch; //Controlamos los combos por salto
 
     return  calcularPorcentaje(contadorSalto, contadorMatch, dimensionSamplesMapeo[numSensor]);
 }
@@ -521,18 +527,8 @@ void Terminal::recalcularNumDeteciones(Lista* lista){
 		//Refresco contador
 		for (int i = 0; i < getNumSensores(); i++) {
 			sampleSensoresCont[i] = 0;
+			EvaluarSensor(&listaTerminal, i);
 		}
-
-		while (puntero) {
-			for (int i = 0; i < getNumSensores(); i++) {
-				if(puntero->data.sampleSensores[i]){
-					sampleSensoresCont[i]++;
-				}
-			}
-
-			puntero = puntero->siguente;
-		}
-
 	}
 }
 

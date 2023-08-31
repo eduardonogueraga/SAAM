@@ -5,10 +5,9 @@
  *
  * POR HACER:
  *
- * -Revisar el funcionamiento del terminal
+ * -Enriquecer el log con dia de la semana o temperatura
  * -Probar que en caso de necesitar tlf y sms las tareas en segundo plano finalizan OK
  * -Controlar a futuro el impacto entre terminales core
- * -Enriquecer el log con dia de la semana o temperatura
  */
 
 
@@ -384,7 +383,7 @@ void procesoAlarma(){
 			}
 		}
 
-		if(INTENTOS_REACTIVACION < 1){
+		if(INTENTOS_REACTIVACION < MAX_INTENTOS_REACTIVACION){
 			//Si la alarma aun tiene opciones de reinicio examinamos el phantom
 			comprobarSensoresCore();
 
