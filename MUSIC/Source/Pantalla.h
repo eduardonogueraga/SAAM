@@ -80,6 +80,7 @@ public:
 	void menuInfoBluetoohAviso();
 	void menuConfigSaas();
 	void menuConfigSaasConf();
+	void menuConfigSaasActivacion();
 	void menuConfigSaasConfTiempo();
 	void menuConfigSaasConfSyncId();
 	void menuConfigSaasConfSyncToken();

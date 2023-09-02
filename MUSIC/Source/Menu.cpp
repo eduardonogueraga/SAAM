@@ -321,16 +321,7 @@ void Menu::configSaas(){
 		break;
 
 	case CH_ACTIVACION:
-
-		pantalla.lcdLoadView(&pantalla, &Pantalla::menuConfigChangeMode, &configSystem.ENVIO_SAAS, (char*)"SAAS");
-
-		if(key == '1'){
-			configSystem.ENVIO_SAAS = !configSystem.ENVIO_SAAS;
-			NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
-		}
-		if(key == '#')
-			menuSaas = SAAS_SELECT;
-
+		configSaasActivacion();
 		break;
 
 	case SAAS_CONF:
@@ -340,6 +331,52 @@ void Menu::configSaas(){
 	}
 }
 
+void Menu::configSaasActivacion(){
+	switch(menuSaasActivacion){
+
+	case ACTIVAR_SELECT:
+		pantalla.lcdLoadView(&pantalla, &Pantalla::menuConfigSaasActivacion);
+
+		if(key == '1')
+			menuSaasActivacion = ACTIVAR_MODELO;
+
+		if(key == '2')
+			menuSaasActivacion = ACTIVAR_NOTIFICACIONES;
+
+
+		if(key == '#')
+			menuSaas = SAAS_SELECT;
+
+		break;
+
+	case ACTIVAR_MODELO:
+
+		pantalla.lcdLoadView(&pantalla, &Pantalla::menuConfigChangeMode, &configSystem.ENVIO_SAAS, (char*)"SAAS");
+
+		if(key == '1'){
+			configSystem.ENVIO_SAAS = !configSystem.ENVIO_SAAS;
+			NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
+		}
+		if(key == '#')
+			menuSaasActivacion = ACTIVAR_SELECT;
+
+		break;
+
+	case ACTIVAR_NOTIFICACIONES:
+
+		pantalla.lcdLoadView(&pantalla, &Pantalla::menuConfigChangeMode, &configSystem.ENVIO_SAAS_NOTIFICACION, (char*)"NOTIF");
+
+		if(key == '1'){
+			configSystem.ENVIO_SAAS_NOTIFICACION = !configSystem.ENVIO_SAAS_NOTIFICACION;
+			NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
+		}
+		if(key == '#')
+			menuSaasActivacion = ACTIVAR_SELECT;
+
+		break;
+
+	}
+}
 
 void Menu::configSaasConf(){
 

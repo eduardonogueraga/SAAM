@@ -504,6 +504,14 @@ void Pantalla::lcdGuardia(){
 		lcd.print(F("<Server  ATRAS>#"));
 	}
 
+	void Pantalla::menuConfigSaasActivacion(){
+		lcd.setCursor(0,0);
+		lcd.print(F("MODELO>1 NOTIF>2"));
+		lcd.setCursor(0,1);
+		lcd.print(F("<Envios  ATRAS>#"));
+	}
+
+
 	void Pantalla::menuConfigSaasConf(){
 		lcd.setCursor(0,0);
 		lcd.print(F("T-ESPERA>1  ID>2"));

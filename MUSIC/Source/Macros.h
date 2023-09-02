@@ -210,6 +210,7 @@ struct configuracion_sistema_t {
 	byte MODULO_SD = 1;
 	byte MODULO_RTC = 1;
 	byte ENVIO_SAAS = 1;
+	byte ENVIO_SAAS_NOTIFICACION = 1;
 	byte ESPERA_SAAS_MULTIPLICADOR = 0;
 	byte ESCUCHAR_LINEA = 1;
 	byte SENSORES_HABLITADOS[4] = {1,1,1,1};
@@ -455,6 +456,12 @@ typedef enum {
 	CH_ACTIVACION,
 	SAAS_CONF
 } MENU_CONFIG_SAAS;
+
+typedef enum {
+	ACTIVAR_SELECT,
+	ACTIVAR_MODELO,
+	ACTIVAR_NOTIFICACIONES
+} MENU_CONFIG_SAAS_ACTIVACION;
 
 typedef enum {
 	SAAS_SELECT_CONF,

@@ -798,6 +798,10 @@ static byte tiempoFracccion;
 		Serial.printf("SMS HISTORICO = %d\n", configSystem.SMS_HISTORICO);
 		Serial.printf("FECHA_SMS_HISTORICO = %s\n", configSystem.FECHA_SMS_HITORICO);
 
+		Serial.print("\nEnvios al servidor SAAS\n");
+		Serial.printf("ENVIO DE MODELO PERIODICO = %d\n", configSystem.ENVIO_SAAS);
+		Serial.printf("ENVIO DE NOTIFICACIONES = %d\n", configSystem.ENVIO_SAAS_NOTIFICACION);
+
 		Serial.print("\n");
 
 		Serial.printf("SENSORES_HABILITADOS = {%d, %d, %d, %d}\n",
@@ -958,6 +962,10 @@ static byte tiempoFracccion;
 	}
 
 	void encolarNotificacionSaas(byte tipo, const char* contenido){
+
+		if(!configSystem.ENVIO_SAAS_NOTIFICACION)
+			return;
+
 		//Se guarda en la cola la notificacion para ser procesada
 		DatosTarea datosNodo;
 
