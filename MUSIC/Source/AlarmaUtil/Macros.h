@@ -34,26 +34,25 @@
 #define CODEC_LCD 0x25 //  0x3F 0x27
 
 //SENSORES
-#define PIR_SENSOR_1 5//P0
-#define PIR_SENSOR_2 7//P1
-#define PIR_SENSOR_3 6//P2
-#define MG_SENSOR 	 4//P3
+#define PIR_SENSOR_1 5
+#define PIR_SENSOR_2 7
+#define PIR_SENSOR_3 6
+#define MG_SENSOR 	 4
 
 //BOCINA
-#define BOCINA_PIN 0//P7
+#define BOCINA_PIN 0
 
 //WATCHDOG
-#define WATCHDOG 3//P4 // @develop ('Pines adaptados')
+#define WATCHDOG 3
 
 //RS485
-//#define RS_CTL 1//P6 @MCP
 #define RS_CTL 13
 
 //CONTROL RELES 12V
 #define RELE_AUXILIAR 10
 
 //SLEEPMODE
-#define GSM_PIN 2//P5
+#define GSM_PIN 2
 #define BT_PIN 12
 
 //COMUNICACIONES
@@ -69,10 +68,10 @@
 #define REGISTRO_SS_PIN 53
 
 //RESET
-#define RESETEAR 9//P9
+#define RESETEAR 9
 
 //LED PUERTA
-#define LED_COCHERA 8//P8
+#define LED_COCHERA 8
 
 //DIR I2C
 #define MCP_ADDR 0x27  // mcp23017 address
@@ -181,6 +180,7 @@ uint8_t leerFlagEE(const char* key);
 int leerFlagEEInt(const char* key);
 String leerCadenaEE(const char* key);
 void guardarCadenaEE(const char* key, String* value);
+void guardarEstadoInterrupcion();
 
 template <typename T> void NVS_SaveData(const char* key, T value);
 template <typename T> T NVS_RestoreData(const char* key);

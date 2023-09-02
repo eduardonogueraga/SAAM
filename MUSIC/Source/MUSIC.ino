@@ -26,13 +26,10 @@ void EstadoInicio(){
 	//Acutalizamos el secuencial de los logs para esta ejecucion
 	guardarFlagEE("LOG_SEQ", (leerFlagEEInt("LOG_SEQ")+1));
 
-	//Actualizamos los intentos
-	//guardarFlagEE("JSON_RETRY", 0);
-	//guardarFlagEE("PACKAGE_ID", 1);
 
-	//if(!MODO_DEFAULT)
-	//printSystemInfo();
-
+#ifdef ALARMA_EN_MODO_DEBUG
+	printSystemInfo();
+#endif
 
 	if(configSystem.MODULO_RTC){
 		fecha.establecerFechaReset(10);

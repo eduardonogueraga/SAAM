@@ -209,7 +209,342 @@ void finalizarTareaEnCurso(PilaTareas* lista){
 }
 
 //----------------------------------------------------------
+// Creacion y encolado de tareas
 
+
+void encolarEnvioModeloSaas(){
+	//Se guarda en la cola el envio periodico al saas
+	DatosTarea datosNodo;
+	datosNodo.tipoPeticion = PAQUETE;
+
+	//Comprobamos si quedan envios
+	if(leerFlagEEInt("N_MOD_SEND") >= MAX_MODELO_JSON_DIARIOS){
+		registro.registrarLogSistema("SUPERADO MAXIMO ENVIOS MODELO DIARIOS");
+		return;
+	}
+
+	InsertarFinal(&listaTareas, datosNodo);
+
+	guardarFlagEE("N_MOD_SEND", (leerFlagEEInt("N_MOD_SEND")+1));
+}
+
+
+void crearTareaEnvioModeloSaas(){
+	xTaskCreatePinnedToCore(
+			tareaSaas,
+			"tareaSaas",
+			(1024*10), //Buffer
+			NULL, //Param
+			1, //Prioridad
+			&envioServidorSaas, //Task
+			0);
+}
+
+byte enviarEnvioModeloSaas(){
+	byte executionResult;
+
+
+#ifdef ALARMA_EN_MODO_DEBUG
+	if(modem.waitForNetwork(2000, true)){ //@develop NO NEGAR EN PROD
+#else
+	if(!modem.waitForNetwork(2000, true)){
+#endif
+		Serial.println(F("Hay cobertura se procede al envio"));
+		executionResult = eventosJson.enviarInformeSaas();
+	}else {
+		Serial.println(F("No hay cobertura se aborta el envio"));
+		executionResult = 0;
+		//Refresco el modulo
+		refrescarModuloGSM();
+	}
+
+	return executionResult;
+}
+
+void encolarNotificacionSaas(byte tipo, const char* contenido){
+
+	if(!configSystem.ENVIO_SAAS_NOTIFICACION)
+		return;
+
+	//Se guarda en la cola la notificacion para ser procesada
+	DatosTarea datosNodo;
+
+	datosNodo.tipoPeticion = NOTIFICACION;
+	datosNodo.notificacion.tipo = tipo;
+	strcpy(datosNodo.notificacion.contenido, contenido);
+
+	//Comprobamos si quedan envios
+	if(leerFlagEEInt("N_SYS_SEND") >= MAX_NOTIFICACIONES_SYS_DIARIAS && datosNodo.notificacion.tipo == 0){
+		registro.registrarLogSistema("SUPERADO MAXIMO NOTIFICACIONES_SYS_DIARIAS");
+		return;
+	}
+
+	if(leerFlagEEInt("N_ALR_SEND") >= MAX_NOTIFICACIONES_ALARM_DIARIAS && datosNodo.notificacion.tipo == 1){
+		registro.registrarLogSistema("SUPERADO MAXIMO NOTIFICACIONES_ALR_DIARIAS");
+		return;
+	}
+
+	InsertarFinal(&listaTareas, datosNodo);
+
+	if(datosNodo.notificacion.tipo == 1){
+		guardarFlagEE("N_ALR_SEND", (leerFlagEEInt("N_ALR_SEND")+1));
+	}else {
+		guardarFlagEE("N_SYS_SEND", (leerFlagEEInt("N_SYS_SEND")+1));
+	}
+}
+
+void crearTareaNotificacionSaas(byte tipo, const char* contenido){
+	//Se definen los datos de la notificacion y se crea una tarea en segundo plano
+	 datosNotificacionSaas.tipo = tipo;
+	 strcpy(datosNotificacionSaas.contenido, contenido);
+
+		xTaskCreatePinnedToCore(
+				tareaNotificacionSaas,
+				"tareaNotificacionSaas",
+				(1024*10), //Buffer
+				&datosNotificacionSaas, //Param
+				1, //Prioridad
+				&envioNotificacionSaas, //Task
+				0);
+}
+
+byte enviarNotificacionesSaas(byte tipo, const char* contenido){
+
+	byte resultado;
+
+#ifdef ALARMA_EN_MODO_DEBUG
+	if(modem.waitForNetwork(2000, true)){ //@develop NO NEGAR EN PROD
+#else
+	if(!modem.waitForNetwork(2000, true)){
+#endif
+		Serial.println(F("Hay cobertura se procede al envio"));
+		resultado = eventosJson.enviarNotificacionSaas(tipo, contenido);
+	}else {
+		Serial.println(F("No hay cobertura se aborta el intento"));
+		resultado = 0;
+		//Refresco el modulo
+		refrescarModuloGSM();
+	}
+
+	if (resultado == 1) {
+		Serial.println(F("Notificacion enviada exitosamente."));
+	} else {
+		Serial.println(F("Fallo al enviar notificacion."));
+	}
+
+	return resultado;
+}
+
+
+void encolarNotifiacionIntrusismo(){
+	char contenidoCola[200];
+	char resumenTerminal[50];
+	respuestaTerminal.resumen.toCharArray(resumenTerminal, 50);
+
+	sprintf(contenidoCola, "\%s, %s:%s",
+			(respuestaTerminal.interpretacion == DETECCION)? "Intrusismo":
+			(respuestaTerminal.interpretacion == DETECCION_FOTOSENIBLE)? "Luz detectada":
+			(respuestaTerminal.interpretacion == AVERIA)? "Averia":
+			(respuestaTerminal.interpretacion == SABOTAJE)? "Sabotaje": "Intrusismo",
+			 String(literalesZonas[respuestaTerminal.idTerminal][respuestaTerminal.idSensorDetonante]),
+			 resumenTerminal
+	);
+
+	encolarNotificacionSaas(1, contenidoCola);
+}
+
+void gestionarPilaDeTareas(){
+	//Compruebo si se ha habilitado la gestion de tareas
+	if(!accesoGestorPila)
+		return;
+
+	if(!checkearMargenTiempo(tiempoReinicioPila))
+		return;
+
+	//Compruebo si la lista esta vacia
+	if(listaTareas.cabeza == NULL){
+		//Serial.println("Pila vacia");
+		return;
+	}
+
+	//Se controla que no pueda haber un desbordamiento
+	if (listaLongitud(&listaTareas) > MAX_NODOS_EN_EJECUCION) {
+		Serial.println("Overload en pila de tareas");
+		EliminarPrincipio(&listaTareas);
+	}
+
+	TaskNodo* tarea;
+	TaskHandle_t manejador;
+	unsigned long tiempoReintento;
+
+	//Comprobamos si hay alguna tarea en curso
+	tarea = tareaEnCurso(&listaTareas);
+
+	if(tarea == NULL){
+		//Serial.println("No hay tareas en curso buscamos una nueva");
+		//Comprobar si alguno de los elementos de la lista esta ya listo para procesarse
+		tarea = recuperarTareaProcesable(&listaTareas);
+
+		if(tarea == NULL){
+			//Serial.println("No hay nada en la pila listo para procesar");
+			//Si ninguna de las tareas esta lista volvemos
+			return;
+		}
+	}
+
+
+	if(tarea->data.tipoPeticion == NOTIFICACION){
+		manejador = envioNotificacionSaas;
+	}else if(tarea->data.tipoPeticion == PAQUETE) {
+		manejador = envioServidorSaas;
+	}else {
+		manejador = NULL;
+	}
+
+	//Definimos el tiempo de los reintentos
+	tiempoReintento = TIEMPO_ESPERA_REINTENTO_TAREA;
+
+	if(estadoAlarma == ESTADO_ALERTA){
+		tiempoReintento = (TIEMPO_ESPERA_REINTENTO_TAREA*0.5);
+	}
+
+
+	//Si hay una tarea en cola compruebo si esta en ejecucion
+	if(manejador == NULL){
+		Serial.print("Tarea no creada, Reintentos: ");
+		Serial.println(tarea->reintentos);
+
+		//Creo la tarea conveniente en funcion del ipo de peticion
+		if(tarea->data.tipoPeticion == NOTIFICACION){
+			//Creo la tarea para notificaciones
+			Serial.println("Creando tarea notificacion");
+			crearTareaNotificacionSaas(tarea->data.notificacion.tipo, tarea->data.notificacion.contenido);
+		}
+
+		if(tarea->data.tipoPeticion == PAQUETE){
+			//Creo la tarea para el envio de paquetes
+			Serial.println("Creando tarea envio modelo json");
+			crearTareaEnvioModeloSaas();
+		}
+
+
+		if(estadoAlarma == ESTADO_ALERTA || estadoAlarma == ESTADO_ENVIO){
+			setMargenTiempo(tiempoTareaEnEjecucion,TIEMPO_MAX_TAREA);
+		}else {
+			setMargenTiempo(tiempoTareaEnEjecucion,(TIEMPO_MAX_TAREA*2));
+		}
+
+		estadoPila = PROCESANDO;
+
+	}else {
+		//La tarea existe compruebo su estado
+		eTaskState estadoTarea = eTaskGetState(manejador);
+
+		//Serial.print("Estado de la tarea eTaskState: ");
+		//Serial.println(estadoTarea);
+
+		if(estadoTarea == eSuspended){
+			//Suspendemos cuando termina OK
+			Serial.println("Tarea finalizada");
+			//Libero la tarea para que ella sola se diriga hacia su irremediable final
+			vTaskResume(manejador);
+
+			//Compruebo el flag global de la tarea http
+			byte resultadoTarea;
+
+			if(tarea->data.tipoPeticion == NOTIFICACION){
+				resultadoTarea = resultadoEnvioNotificacionSaas;
+			}
+
+			if(tarea->data.tipoPeticion == PAQUETE) {
+				resultadoTarea = resultadoEnvioServidorSaas;
+			}
+
+			if(resultadoTarea){
+				//Elimino el nodo
+				Serial.println("Resultado OK borro la tarea");
+				EliminarTareaEnPosicion(&listaTareas,tarea->posicion);
+			}else {
+
+				if(tarea->reintentos == MAX_REINTENTOS_REPROCESO_TAREA){
+					Serial.println("Tarea ko supera los reintnetos");
+					EliminarTareaEnPosicion(&listaTareas,tarea->posicion);
+				}else {
+					//Si no ha sido exitosa movemos al final con timeout
+					Serial.println("Tarea ko reintento con timeout");
+					tarea->reintentos++;
+					EliminarTareaEnPosicion(&listaTareas,tarea->posicion);
+					InsertarFinal(&listaTareas, tarea->data, tarea->reintentos, (millis()+tiempoReintento));
+				}
+
+			}
+
+			estadoPila = LIBRE;
+			finalizarTareaEnCurso(&listaTareas);
+
+		}else {
+			//Dejamos trabajar a la tarea y controlamos el tiempo
+
+			if(checkearMargenTiempo(tiempoTareaEnEjecucion)){
+				Serial.println("Se supera el tiempo de ejecucion");
+
+				//Cerramos la tareas directamente
+				//eRunning 0 , eReady 1 , eBlocked 2, eSuspended 3, etc.
+				if(tarea->data.tipoPeticion == NOTIFICACION){
+					vTaskSuspend(envioNotificacionSaas);
+					//Elimino la tarea
+					vTaskDelete(envioNotificacionSaas);
+					envioNotificacionSaas = NULL;
+
+				}else if(tarea->data.tipoPeticion == PAQUETE) {
+					vTaskSuspend(envioServidorSaas);
+					//Elimino la tarea
+					vTaskDelete(envioServidorSaas);
+					envioServidorSaas = NULL;
+				}
+
+				if(tarea->reintentos == MAX_REINTENTOS_REPROCESO_TAREA){
+					//Elimino la tarea
+					Serial.println("Eliminando tarea por exceso de intentos");
+					EliminarTareaEnPosicion(&listaTareas, tarea->posicion);
+				}else {
+					tarea->reintentos++;
+					//Muevo la tarea al final
+					Serial.println("Tarea pospuesta");
+					EliminarTareaEnPosicion(&listaTareas,tarea->posicion);
+					InsertarFinal(&listaTareas, tarea->data, tarea->reintentos, (millis()+tiempoReintento));
+				}
+
+				estadoPila = LIBRE;
+				finalizarTareaEnCurso(&listaTareas);
+			}
+
+		}
+	}
+}
+
+void rehabilitarEjecucionPila(){
+	accesoGestorPila = 1; //Acceso a pila con tiempo de espera
+	setMargenTiempo(tiempoReinicioPila,(TIEMPO_REINCIO_PILA));
+}
+
+void detenerEjecucionPila(){
+	accesoGestorPila = 0;
+
+	if(envioNotificacionSaas != NULL){
+		vTaskDelete(envioNotificacionSaas);
+		envioNotificacionSaas = NULL;
+	}
+
+	if(envioServidorSaas != NULL){
+		vTaskDelete(envioServidorSaas);
+		envioServidorSaas = NULL;
+	}
+}
+
+
+
+//----------------------------------------------------------
 
 void testTaskNodos(){
 
