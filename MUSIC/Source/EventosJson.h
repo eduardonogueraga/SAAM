@@ -13,7 +13,7 @@
 #include <ArduinoJson.h>
 #include <Preferences.h>
 #include "Fecha.h"
-#include "Macros.h"
+#include "AlarmaUtil/Macros.h"
 
 
 
@@ -70,15 +70,6 @@ public:
 	void actualizarCabecera();
 	byte enviarInformeSaas();
 	byte enviarNotificacionSaas(byte tipo, const char* contenido);
-
-	String* getSalidaJsonPointer() { //@TEST ONLY
-
-		SALIDA_JSON.clear();
-		serializeJsonPretty(JSON_DOC, SALIDA_JSON);
-
-		return &SALIDA_JSON;
-	}
-
 };
 
 #endif /* SOURCE_EVENTOSJSON_H_ */

@@ -9,7 +9,7 @@
 #define PROYECTO_BOCINA_H_
 
 #include "Arduino.h"
-#include "Macros.h"
+#include "AlarmaUtil/Macros.h"
 #include <Adafruit_MCP23X17.h>
 extern Adafruit_MCP23X17 mcp;
 

@@ -9,9 +9,9 @@
 #define AUTENTICACION_H_
 
 #include "Arduino.h"
-#include "Macros.h"
+#include "AlarmaUtil/Macros.h"
 #include <Keypad.h>
-#include "Env.h"
+#include "AlarmaUtil/Env.h"
 
 extern unsigned long lcd_clave_tiempo;
 extern unsigned long lcd_info_tiempo;

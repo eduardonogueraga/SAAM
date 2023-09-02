@@ -25,7 +25,7 @@
 #define FRACCION_SALTO 3
 
 #include "Arduino.h"
-#include "Macros.h"
+#include "AlarmaUtil/Macros.h"
 #include "EventosJson.h"
 #include "Registro.h"
 

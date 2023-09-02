@@ -9,7 +9,7 @@
 #define SOURCE_COMUNICACIONLINEA_H_
 
 #include "Arduino.h"
-#include "Macros.h"
+#include "AlarmaUtil/Macros.h"
 #include <HardwareSerial.h>
 #include "Terminal.h"
 #include <Adafruit_MCP23X17.h>

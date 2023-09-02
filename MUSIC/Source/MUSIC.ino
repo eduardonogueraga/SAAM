@@ -61,7 +61,7 @@ void setup()
 	  //Iniciar multiplexor
 	  if (!mcp.begin_I2C(MCP_ADDR)) {
 	    Serial.println("Error MUX MCP23017");
-	    //while (1);
+	    pantallaDeError(F("  SYSTM ERROR!  ERROR MUX INICIO"));
 	  }
 
 	  //Asignar el semaforo
@@ -88,7 +88,6 @@ void setup()
 	    mcp.pinMode(GSM_PIN, OUTPUT);
 
 		//MODULO RS485
-	    //mcp.pinMode(RS_CTL, OUTPUT);
 	    pinMode(RS_CTL, OUTPUT);
 
 
@@ -102,9 +101,7 @@ void setup()
 	    //mcp.pinMode(SENSOR_BATERIA_RESPALDO, INPUT); //No soportado por hardware
 
 	    //Configuracion de los puertos
-
 	    mcp.digitalWrite(LED_COCHERA, LOW);
-	    //mcp.digitalWrite(RS_CTL,LOW);
 	    digitalWrite(RS_CTL,LOW);
 
 
@@ -122,10 +119,8 @@ void setup()
 	    registro.registrarLogSistema("ALARMA INICIADA");
 	    eventosJson.guardarLog(ALARMA_INICIADA_LOG);
 
-	    //Serial.println(xPortGetCoreID());
+
 	    //Hilo 0
-
-
 	    xTaskCreatePinnedToCore(
 	    		tareaLinea,
 				"tareaLinea",
@@ -135,20 +130,15 @@ void setup()
 				&gestionLinea,
 				1);
 
-
 	    disableCore0WDT(); //Quito el watchdog en 0 que Dios me perdone
-
 	    colaRegistros = xQueueCreate(10, sizeof(RegistroLogTarea));
 
-	    // Iniciar el planificador de tareas
-	    //vTaskStartScheduler();
-
-
+#ifndef ALARMA_EN_MODO_DEBUG
 	    //SIM800L
-	    //comprobarConexionGSM(10000L);
+	    comprobarConexionGSM(10000L);
+#endif
 
 }
-
 
 void loop()
 {
@@ -167,12 +157,7 @@ void tareaSaas(void *pvParameters) {
 	resultadoEnvioServidorSaas = 0;
 	resultadoEnvioServidorSaas = enviarEnvioModeloSaas();
 	vTaskDelay(100);
-/*
-	for (int i = 0; i < 10; i++) {//@TEST ONLY
-		Serial.println("Tarea paquete trabajando...");
-		vTaskDelay(800);
-	}
-*/
+
 	//Pendiente de cierre
 	vTaskSuspend(NULL);
 	vTaskDelay(100);
@@ -189,12 +174,6 @@ void tareaNotificacionSaas(void *pvParameters){
 	resultadoEnvioNotificacionSaas = enviarNotificacionesSaas(datos->tipo, datos->contenido);
 	vTaskDelay(100);
 
-/*
-	for (int i = 0; i < 10; i++) { //@TEST ONLY
-		Serial.println("Tarea notificacion trabajando...");
-	  vTaskDelay(800);
-	}
-*/
 	//Pendiente de cierre
 	vTaskSuspend(NULL);
 	vTaskDelay(100);
@@ -344,12 +323,6 @@ void procesoAlarma(){
 		if(!isLcdInfo())
 		pantalla.lcdLoadView(&pantalla, &Pantalla::lcdAlerta);
 
-		/*//PENDIENTE DE PROBAR
-		if(checkearMargenTiempo(tiempoMargen-10000) && accesoGestorPila == 1){
-			//Cerramos la pila de tareas y terminamos la ejecucion si quedase alguna tarea ejecutandose
-			detenerEjecucionPila();
-		}
-		*/
 		if(checkearMargenTiempo(tiempoMargen)){
 
 			setEstadoEnvio();
@@ -491,9 +464,6 @@ void setEstadoGuardiaReactivacion()
 	//Se envian los mensajes de reactivacion
 	mensaje.mensajeReactivacion();
 
-	//Serial.println("Datos phantom");
-	//Serial.println(T_CORE.generarInformeDatos()); //@TEST ONLY
-
 	encolarNotificacionSaas(1, "Alarma reactivada con exito");
 	encolarEnvioModeloSaas(); //Encolamos otro modelo tras el envio de la alarma
 
@@ -551,9 +521,6 @@ void setEstadoEnvio()
 	guardarFlagEE("ESTADO_ALERTA", 0);
 
 	//Liberamos el acceso cuando los mensajes esten enviados y limpiamos para el analisis phantom
-
-	//Serial.println(T_CORE.generarInformeDatos()); //@TEST ONLY
-
 	ACCESO_LISTAS = 1;
 	limpiarTerminalesLinea();
 }

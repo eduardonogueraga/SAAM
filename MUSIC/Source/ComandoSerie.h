@@ -9,7 +9,7 @@
 #define SOURCE_COMANDOSERIE_H_
 #include "Arduino.h"
 #include "Registro.h"
-#include "Macros.h"
+#include "AlarmaUtil/Macros.h"
 #include "EventosJson.h"
 #include <HardwareSerial.h>
 #include "ComunicacionLinea.h"

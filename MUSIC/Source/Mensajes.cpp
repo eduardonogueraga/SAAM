@@ -121,8 +121,13 @@ void Mensajes::mensajeError(){
 
 void Mensajes::enviarSMS(){
 
+#ifdef ALARMA_EN_MODO_DEBUG
 	if(MODO_DEFAULT) //@develop !MODO_DEFAULT
 		return;
+#else
+	if(!MODO_DEFAULT)
+		return;
+#endif
 
 	procesarSMS();
 
@@ -134,17 +139,18 @@ void Mensajes::enviarSMS(){
 
 }
 
-void Mensajes::enviarSMSEmergencia(){ //@PEND Esto estaba terminado??
+void Mensajes::enviarSMSEmergencia(){
 
+#ifdef ALARMA_EN_MODO_DEBUG
 	if(MODO_DEFAULT) //@develop !MODO_DEFAULT
 		return;
+#else
+	if(!MODO_DEFAULT)
+		return;
+#endif
 
 	if(leerFlagEE("MENSAJE_EMERGEN") == 1)
 	return;
-
-	/*Serial.println(this->asuntoMensaje+"\n");
-	Serial.println(this->cuerpoMensaje);
-	Serial.println(this->pieMensaje);*/
 
 	procesarSMS();
 
@@ -187,13 +193,18 @@ void Mensajes::procesarSMS(){
 
 void Mensajes::llamarTlf(char* tlf){
 
-	if(MODO_DEFAULT) //@develop  !MODO_DEFAULT
-	return;
+#ifdef ALARMA_EN_MODO_DEBUG
+	if(MODO_DEFAULT) //@develop !MODO_DEFAULT
+		return;
+#else
+	if(!MODO_DEFAULT)
+		return;
+#endif
 
 	if(leerFlagEEInt("N_SMS_ENVIADOS") >= (LIMITE_MAXIMO_SMS-7)){
-			Serial.println(F("Intentos diarios acabados")); //No se haran mas llamadas
-			return;
-		}
+		Serial.println(F("Intentos diarios acabados")); //No se haran mas llamadas
+		return;
+	}
 
 	Serial.println("Llamando "+(String)tlf);
 	UART_GSM.println("AT");

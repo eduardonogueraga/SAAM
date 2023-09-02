@@ -10,6 +10,8 @@
 
 
 //MACROS
+#define ALARMA_EN_MODO_DEBUG //Nunca definir en produccion
+
 #define TIEMPO_OFF_TEST 0.1666
 #define TIEMPO_ON_TEST 0.01
 #define TIEMPO_REACTIVACION_TEST 0.1

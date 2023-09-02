@@ -10,8 +10,6 @@
 
 #define TINY_GSM_MODEM_SIM800 //Definimos el modem
 
-
-
 #include "Arduino.h"
 #include <LiquidCrystal_I2C.h>
 #include <Keypad.h>
@@ -20,15 +18,14 @@
 #include <HardwareSerial.h>
 #include <TinyGsmClient.h>
 #include <ArduinoHttpClient.h>
-#include <Ticker.h>
 
 #include "Autenticacion.h"
 #include "Pantalla.h"
 #include "ComandoSerie.h"
 #include "Bocina.h"
-#include "Teclado.h"
-#include "Env.h"
-#include "Macros.h"
+#include "AlarmaUtil/Teclado.h"
+#include "AlarmaUtil/Env.h"
+#include "AlarmaUtil/Macros.h"
 #include "Mensajes.h"
 #include "Menu.h"
 #include "Fecha.h"
@@ -39,7 +36,7 @@
 
 
 //VERSION (VE -> Version Estable VD -> Version Desarrollo)
-const char* version[] = {"MUSIC VE21R0", "26/08/23"};
+const char* version[] = {"MUSIC VE21R0", "02/09/23"};
 
 //RTOS
 TaskHandle_t gestionLinea;
@@ -59,13 +56,19 @@ PilaTareaEstado estadoPila; //Aun no se usa para nada
 QueueHandle_t colaRegistros;
 
 
-#include "PilaTareas.h"
+#include "AlarmaUtil/PilaTareas.h"
+
 
 //VARIABLES GLOBALES
 ConfigSystem configSystem;
 EE_DatosSalto eeDatosSalto;
 
+#ifdef ALARMA_EN_MODO_DEBUG
 byte MODO_DEFAULT = 0;  //@develop
+#else
+byte MODO_DEFAULT = 1;
+#endif
+
 byte INTENTOS_REACTIVACION = 0;
 byte SD_STATUS = 0; //Comprueba si la escritura en SD esta OK
 
@@ -110,7 +113,7 @@ Autenticacion auth;
 Pantalla pantalla;
 ComandoSerie demonio;
 Bocina bocina;
-Mensajes mensaje(UART_GSM/*, &modem, &client*/);
+Mensajes mensaje(UART_GSM);
 Menu menu;
 Fecha fecha;
 Registro registro;
@@ -136,8 +139,6 @@ const char* literalesZonas[2][MAX_DATOS_SUB_TRAMA] = {
     {"COCHERA", "PORCHE", "ALMACEN", "PUERTA COCHERA", "", "", "", ""},
     {"PORCHE A", "PORCHE B", "PORCHE C", "PATIO NORTE", "PATIO SUR", "TENDEDERO", "PUERTA A", "PUERTA B"}
 };
-
-int flagTest = 1; //@TEST ONLY
 
 //TIEMPOS MARGEN
 
@@ -188,16 +189,6 @@ static byte tiempoFracccion;
  byte flagAlertaRestaurada = 0;
 
  //FUNCIONES//
- Ticker blinker;
- void blinkTEST() {
-	 Serial.println(F("\nBlinker")); //@TEST
-
-   digitalWrite(TEST_PIN_RS, !digitalRead(TEST_PIN_RS));
-
-   Serial.println(digitalRead(TEST_PIN_RS));
-
- }
-
  void leerEntradaTeclado(){
 	 key = keypad.getKey();
 	 auth.comprobarEntrada();
@@ -367,76 +358,9 @@ static byte tiempoFracccion;
 		sleepModeGSM = GSM_REFRESH;
 	}
 
-	void checkearLimitesEnvios(){
-		if(!configSystem.MODULO_RTC){
-			return;
-		}
+	//checkearLimitesEnvios
+    //checkearColaLogsSubtareas
 
-		if(fecha.comprobarHora(0, 0)){
-			if(leerFlagEEInt("N_SMS_ENVIADOS") != 0){
-				guardarFlagEE("N_SMS_ENVIADOS", 0);
-				registro.registrarLogSistema("INTENTOS SMS DIARIOS RECUPERADOS");
-				eventosJson.guardarLog(INTENTOS_SMS_DIARIOS_RECUPERADOS_LOG);
-				Serial.println(F("Intentos diarios recuperados"));
-
-			}
-
-			if(leerFlagEEInt("N_ALR_SEND") != 0){
-				guardarFlagEE("N_ALR_SEND", 0);
-				registro.registrarLogSistema("INTENTOS NOTIFICACION ALARMA DIARIAS RECUPERADAS");
-				eventosJson.guardarLog(INTENTOS_NOT_ALR_DIARIOS_RECUPERADOS_LOG);
-				Serial.println(F("Intentos notificaciones alr diarios recuperados"));
-
-			}
-
-			if(leerFlagEEInt("N_SYS_SEND") != 0){
-				guardarFlagEE("N_SYS_SEND", 0);
-				registro.registrarLogSistema("INTENTOS NOTIFICACION SYS DIARIAS RECUPERADAS");
-				eventosJson.guardarLog(INTENTOS_NOT_SYS_DIARIOS_RECUPERADOS_LOG);
-				Serial.println(F("Intentos notificaciones sys diarios recuperados"));
-
-			}
-
-			if(leerFlagEEInt("N_MOD_SEND") != 0){
-				guardarFlagEE("N_MOD_SEND", 0);
-				registro.registrarLogSistema("INTENTOS MODELO JSON DIARIOS RECUPERADOS");
-				eventosJson.guardarLog(INTENTOS_MODELO_JSON_DIARIOS_RECUPERADOS_LOG);
-				Serial.println(F("Intentos modelo json recuperados"));
-
-			}
-
-		}
-
-	}
-
-	void checkearColaLogsSubtareas(){
-		/*Lee la cola para los registro provenietes de las tareas y los guarda*/
-		RegistroLogTarea reg;
-		TickType_t espera = pdMS_TO_TICKS(50);
-
-		if (uxQueueMessagesWaiting(colaRegistros) > 0) {
-			if (xQueueReceive(colaRegistros, &reg, espera) == pdTRUE) {
-				//printf("Tipo de log: %d\n", reg.tipoLog);
-				//printf("Mensaje: %s\n", reg.log);
-				//printf("Id SAAS: %d\n", reg.saasLogid);
-
-				if(reg.tipoLog == 0){
-					//Log sistema
-					registro.registrarLogSistema(reg.log);
-				}else {
-					//Log http
-					registro.registrarLogHttpRequest(reg.log);
-				}
-
-				if(reg.saasLogid != 0){
-					eventosJson.guardarLog(reg.saasLogid);
-				}
-
-			}
-		}
-
-
-	}
 
 	void resetear(){
 			Serial.println(F("\nReseteando"));
@@ -499,68 +423,10 @@ static byte tiempoFracccion;
 
 	}
 
-	void checkearAlertasDetenidas(){
-		if (leerFlagEEInt("ESTADO_ALERTA") == 1 && leerFlagEEInt("ERR_INTERRUPT") == 0) {
-
-			flagAlertaRestaurada =1;
-			eeDatosSalto = NVS_RestoreData<datos_saltos_t>("SALTO_DATA");
-
-			respuestaTerminal.idSensorDetonante = eeDatosSalto.ID_SENSOR;
-			respuestaTerminal.idTerminal = eeDatosSalto.ID_TERMINAL;
-			INTENTOS_REACTIVACION = eeDatosSalto.INTENTOS_REACTIVACION;
-
-			//Restauramos la lista de saltos
-			T_LIST[0]->deserializarListJson(eeDatosSalto.LISTADOS_TERMINALES.terminalCoreJson);
-
-			char registroConjunto[50];
-			snprintf(registroConjunto, sizeof(registroConjunto), "%s%s", "CARGADO ESTADO ALERTA EN ", String(literalesZonas[respuestaTerminal.idTerminal][respuestaTerminal.idSensorDetonante]));
-
-			registro.registrarLogSistema(registroConjunto);
-			eventosJson.guardarLog(INTRUSISMO_RESTAURADO_LOG);
-
-			Serial.print("\nIntrusismo restaurado en ");
-			Serial.println(literalesZonas[respuestaTerminal.idTerminal][respuestaTerminal.idSensorDetonante]);
-
-			estadoAlarma = ESTADO_ALERTA;
-			sleepModeGSM = GSM_ON;
-			setMargenTiempo(tiempoMargen,15000);
-		}
-	}
-
-	void chekearInterrupciones(){
-		if(leerFlagEE("ERR_INTERRUPT") == 1){
-
-			procesoCentral = ERROR;
-			codigoError = static_cast<CODIGO_ERROR>(leerFlagEE("CODIGO_ERROR"));
-
-			if(leerFlagEE("MENSAJE_EMERGEN") == 1){
-
-				if(leerFlagEE("LLAMADA_EMERGEN") == 0){
-					Serial.println(F("Vuelve a por las llamadas"));
-					estadoError = REALIZAR_LLAMADAS;
-					setMargenTiempo(tiempoMargen,240000);
-				}else {
-					Serial.println(F("Vuelve a esperar ayuda"));
-					estadoError = ESPERAR_AYUDA;
-				}
-
-			}else {
-				Serial.println(F("Vuelve desde el principio"));
-
-				eeDatosSalto = NVS_RestoreData<datos_saltos_t>("SALTO_DATA");
-
-				respuestaTerminal.idSensorDetonante = eeDatosSalto.ID_SENSOR;
-				respuestaTerminal.idTerminal = eeDatosSalto.ID_TERMINAL;
-				INTENTOS_REACTIVACION = eeDatosSalto.INTENTOS_REACTIVACION;
-
-				//Restauramos la lista de saltos
-				T_LIST[0]->deserializarListJson(eeDatosSalto.LISTADOS_TERMINALES.terminalCoreJson);
+	//checkearAlertasDetenidas
+	//chekearInterrupciones
 
 
-				estadoError = COMPROBAR_DATOS;
-			}
-		}
-	}
 	void guardarEstadoAlerta(){
 
 		eeDatosSalto.ID_SENSOR = respuestaTerminal.idSensorDetonante;
@@ -594,33 +460,20 @@ static byte tiempoFracccion;
 		guardarFlagEE("INTERUP_HIST", (leerFlagEE("INTERUP_HIST") + 1));
 	}
 
-	void checkearBateriaDeEmergencia(){
-		alertsInfoLcd[INFO_FALLO_BATERIA] = !mcp.digitalRead(SENSOR_BATERIA_RESPALDO);
+	//checkearBateriaDeEmergencia
+	//checkearFalloEnAlimientacion
 
-	    if(mcp.digitalRead(SENSOR_BATERIA_RESPALDO) != sensorBateriaAnterior){
 
-			if(mcp.digitalRead(SENSOR_BATERIA_RESPALDO) == LOW){
-				registro.registrarLogSistema("BATERIA DE EMERGENCIA ACTIVADA");
-				eventosJson.guardarLog(BATERIA_EMERGENCIA_ACTIVADA_LOG);
-			} else{
-				registro.registrarLogSistema("BATERIA DE EMERGENCIA DESACTIVADA");
-				eventosJson.guardarLog(BATERIA_EMERGENCIA_DESACTIVADA_LOG);
-			}
-		}
-
-	    sensorBateriaAnterior = mcp.digitalRead(SENSOR_BATERIA_RESPALDO);
-	}
-
-	void checkearFalloEnAlimientacion(){
-		if(mcp.digitalRead(FALLO_BATERIA_PRINCIPAL) == HIGH){
-			interrupcionFalloAlimentacion();
-		}
-	}
 
 	void realizarLlamadas(){
 
-		if(MODO_DEFAULT) //@develop !MODO_DEFAULT
-			return;
+		#ifdef ALARMA_EN_MODO_DEBUG
+			if(MODO_DEFAULT) //@develop !MODO_DEFAULT
+				return;
+		#else
+			if(!MODO_DEFAULT)
+				return;
+		#endif
 
 		static byte estadoAnterior;
 
@@ -685,9 +538,8 @@ static byte tiempoFracccion;
 		guardarEstadoInterrupcion();
 	}
 
-	void checkearSensorPuertaCochera(){
-		alertsInfoLcd[INFO_SENSOR_PUERTA_OFF] = !configSystem.SENSORES_HABLITADOS[0];
-	}
+	//checkearSensorPuertaCochera
+
 
 	void avisoLedPuertaCochera(){
 
@@ -721,8 +573,12 @@ static byte tiempoFracccion;
 		sensorCore.sensorMG = sensor;
 
 		//Comprobamos sensor puerta
-		if (sensor == HIGH && !sensorCore.notificadoMG) { // @develop("Cambiado a HIGH para evitar saltos en sensor MG")
-			Serial.println("Puerta abierta");
+		#ifdef ALARMA_EN_MODO_DEBUG
+			if (sensor == HIGH && !sensorCore.notificadoMG) { // @develop("Cambiado a HIGH para evitar saltos en sensor MG")
+		#else
+		    if (sensor == LOW && !sensorCore.notificadoMG) {
+		#endif
+		    Serial.println("Puerta abierta");
 			registro.registrarLogSistema("DETECCION ABERTURA DE PUERTA");
 			eventosJson.guardarDeteccion(1,
 					1,
@@ -772,12 +628,8 @@ static byte tiempoFracccion;
 			Serial.println("\n");
 
 			T_CORE.guardarDatosTerminal(valoresSensoresCore, ctlLineas);
-			Serial.println(T_CORE.generarInformeDatos()); //@TEST ONLY
-
+			//Serial.println(T_CORE.generarInformeDatos());
 		}
-
-
-
 
 	}
 
@@ -948,7 +800,12 @@ static byte tiempoFracccion;
 	byte enviarEnvioModeloSaas(){
 		byte executionResult;
 
-		if(modem.waitForNetwork(2000, true)){ //@TEST NO NEGAR EN PROD
+
+#ifdef ALARMA_EN_MODO_DEBUG
+		if(modem.waitForNetwork(2000, true)){ //@develop NO NEGAR EN PROD
+#else
+		if(!modem.waitForNetwork(2000, true)){
+#endif
 			Serial.println(F("Hay cobertura se procede al envio"));
 			executionResult = eventosJson.enviarInformeSaas();
 		}else {
@@ -1012,7 +869,11 @@ static byte tiempoFracccion;
 
 		byte resultado;
 
-		if(modem.waitForNetwork(2000, true)){ //@TEST NO NEGAR EN PROD
+#ifdef ALARMA_EN_MODO_DEBUG
+		if(modem.waitForNetwork(2000, true)){ //@develop NO NEGAR EN PROD
+#else
+		if(!modem.waitForNetwork(2000, true)){
+#endif
 			Serial.println(F("Hay cobertura se procede al envio"));
 			resultado = eventosJson.enviarNotificacionSaas(tipo, contenido);
 		}else {
@@ -1057,10 +918,6 @@ static byte tiempoFracccion;
 
 		//Comprobamos si hay alguna tarea en curso
 		tarea = tareaEnCurso(&listaTareas);
-
-		//if(tarea != NULL){ //@TEST ONLY
-		//	Serial.println(tarea->data.tipoPeticion);
-		//}
 
 		if(tarea == NULL){
 			//Serial.println("No hay tareas en curso buscamos una nueva");
@@ -1224,30 +1081,11 @@ static byte tiempoFracccion;
 		}
 	}
 
-	void checkearEnvioSaas(){
-		if(!configSystem.ENVIO_SAAS)
-			return;
-
-		static unsigned long lastExecutionTime = 0;
-		//if (millis() - lastExecutionTime >= (((configSystem.ESPERA_SAAS_MULTIPLICADOR*5)+10)*60000)) { //600000 // @TEST
-		if (millis() - lastExecutionTime >= 30000) { //600000
-
-			//Encolar envio modelo
-			encolarEnvioModeloSaas();
-			lastExecutionTime = millis();
-		}
-	}
+	//checkearEnvioSaas
 
 	RespuestaHttp realizarPeticionHttp(const char* metodo, const char* resource, byte auth = 1, const char* jsonData = nullptr){
 
 		RespuestaHttp respuesta;
-
-		/*TEST*/
-		//respuesta.codigo= 200;
-		//respuesta.respuesta = "OK";// "Id de paquete duplicado";
-		//return respuesta;
-		//vTaskDelay(1000);
-		/*TEST*/
 
 		if(establecerConexionGPRS()){
 			int estadoHttp = 0;
@@ -1668,5 +1506,6 @@ static byte tiempoFracccion;
 	  return value;
 	}
 
+#include "AlarmaUtil/Checker.h"
 
 #endif /* SOURCE_ALARMA_H_ */

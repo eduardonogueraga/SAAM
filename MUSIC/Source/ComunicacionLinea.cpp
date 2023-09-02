@@ -44,13 +44,6 @@ void ComunicacionLinea::mantenerComunicacion(){
 	if(!configSystem.ESCUCHAR_LINEA || !ACCESO_LISTAS)
 		return;
 
-/*
-if(flagTest){
-	 byte myArray[] = {1, 2, 3, 4, 5, 6, 7, 8};
-	 //T_LIST_2[0]->guardarDatosTerminal(myArray);
-		 flagTest = 0;
-}
-*/
 
 /*
 	if(!escucharLinea(*T_LIST[0])){
@@ -266,10 +259,10 @@ void ComunicacionLinea::limpiarBuffer(char *str){
 
 
 void ComunicacionLinea::enviarTrazaDatos(){
-	digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission @FAIL
+	digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission
    Serial.println(tramaEnviada);
    this->writeChar(tramaEnviada);
-   digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode @FAIL
+   digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode
 }
 
 
@@ -352,7 +345,7 @@ void ComunicacionLinea::interrogarTerminal(Terminal &terminal){
 
 	switch (terminalComposer) {
 	case LLAMAR_TERMINAL:
-		digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission @FAIL
+		digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission
 
 		this->constructorTramaDatos(terminal, MTH_DATA);
 		//this->enviarTrazaDatos();
@@ -370,7 +363,7 @@ void ComunicacionLinea::interrogarTerminal(Terminal &terminal){
 
 	case ESCUCHAR_LINEA:
 
-		digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode @FAIL
+		digitalWrite(RS_CTL,LOW);    //Disable max485 transmission mode
 
 		//vTaskDelay(500);
 		//this->testUart(); //@TEST
@@ -454,7 +447,7 @@ void ComunicacionLinea::interrogarTerminal(Terminal &terminal){
 			Serial.println(numeroReintentosTerminal); //@TEST
 
 		if(numeroReintentosTerminal < 2){
-			digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission @FAIL
+			digitalWrite(RS_CTL, HIGH);  //Enable max485 transmission
 
 			this->constructorTramaDatos(terminal, MTH_RETRY);
 			//this->enviarTrazaDatos();
