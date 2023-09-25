@@ -8,6 +8,8 @@
  * -Enriquecer el log con dia de la semana o temperatura
  * -Probar que en caso de necesitar tlf y sms las tareas en segundo plano finalizan OK
  * -Controlar a futuro el impacto entre terminales core
+ *
+ * -Falla checkearFalloEnAlimientacion
  */
 
 
@@ -131,10 +133,8 @@ void setup()
 	    colaRegistros = xQueueCreate(10, sizeof(RegistroLogTarea));
 
 #ifndef ALARMA_EN_MODO_DEBUG
-	    //SIM800L
 	    comprobarConexionGSM(10000L);
 #endif
-
 }
 
 void loop()
@@ -198,14 +198,14 @@ void procesosSistema(){
     checkearLimitesEnvios();
 	resetAutomatico();
 	//checkearBateriaDeEmergencia(); //TODO Hardware actual incompatible
-	checkearFalloEnAlimientacion();
-	escucharGSM();
+	//checkearFalloEnAlimientacion();
+	//escucharGSM();
 
 	//Quitadas por pruebas
 
-	//gestionarPilaDeTareas();
+	gestionarPilaDeTareas();
 	checkearEnvioSaas();
-	//checkearColaLogsSubtareas();
+	checkearColaLogsSubtareas();
 }
 
 void procesosPrincipales()

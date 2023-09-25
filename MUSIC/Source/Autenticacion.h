@@ -11,7 +11,7 @@
 #include "Arduino.h"
 #include "AlarmaUtil/Macros.h"
 #include <Keypad.h>
-#include "AlarmaUtil/Env.h"
+#include "Env.h"
 
 extern unsigned long lcd_clave_tiempo;
 extern unsigned long lcd_info_tiempo;

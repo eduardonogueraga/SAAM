@@ -245,9 +245,9 @@ byte enviarEnvioModeloSaas(){
 
 
 #ifdef ALARMA_EN_MODO_DEBUG
-	if(modem.waitForNetwork(2000, true)){ //@develop NO NEGAR EN PROD
+	if(modem.waitForNetwork(2000, true)){
 #else
-	if(!modem.waitForNetwork(2000, true)){
+	if(modem.waitForNetwork(2000, true)){ //@develop NO NEGAR EN PROD
 #endif
 		Serial.println(F("Hay cobertura se procede al envio"));
 		executionResult = eventosJson.enviarInformeSaas();
@@ -313,9 +313,9 @@ byte enviarNotificacionesSaas(byte tipo, const char* contenido){
 	byte resultado;
 
 #ifdef ALARMA_EN_MODO_DEBUG
-	if(modem.waitForNetwork(2000, true)){ //@develop NO NEGAR EN PROD
+	if(modem.waitForNetwork(2000, true)){
 #else
-	if(!modem.waitForNetwork(2000, true)){
+	if(modem.waitForNetwork(2000, true)){ //@develop NO NEGAR EN PROD
 #endif
 		Serial.println(F("Hay cobertura se procede al envio"));
 		resultado = eventosJson.enviarNotificacionSaas(tipo, contenido);

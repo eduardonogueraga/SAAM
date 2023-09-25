@@ -10,7 +10,7 @@
 
 
 //MACROS
-#define ALARMA_EN_MODO_DEBUG //Nunca definir en produccion
+//#define ALARMA_EN_MODO_DEBUG //Nunca definir en produccion
 
 #define TIEMPO_OFF_TEST 0.1666
 #define TIEMPO_ON_TEST 0.01
@@ -56,11 +56,18 @@
 #define BT_PIN 12
 
 //COMUNICACIONES
-#define GSM_TX 19
-#define GSM_RX 23
+//#define GSM_TX 19
+//#define GSM_RX 23
 
-#define RS_TX 18
-#define RS_RX 5
+//#define RS_TX 18
+//#define RS_RX 5
+
+#define GSM_TX 18
+#define GSM_RX 5
+
+#define RS_TX 19
+#define RS_RX 23
+
 
 #define TEST_PIN_RS 13
 

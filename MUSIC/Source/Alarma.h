@@ -8,7 +8,7 @@
 #ifndef SOURCE_ALARMA_H_
 #define SOURCE_ALARMA_H_
 
-#define TINY_GSM_MODEM_SIM800 //Definimos el modem
+#define TINY_GSM_MODEM_SIM7600 //Definimos el modem
 
 #include "Arduino.h"
 #include <LiquidCrystal_I2C.h>
@@ -24,7 +24,7 @@
 #include "ComandoSerie.h"
 #include "Bocina.h"
 #include "AlarmaUtil/Teclado.h"
-#include "AlarmaUtil/Env.h"
+#include "Env.h"
 #include "AlarmaUtil/Macros.h"
 #include "Mensajes.h"
 #include "Menu.h"
