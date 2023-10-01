@@ -55,6 +55,10 @@ void ComandoSerie::esperarRespuestaUart2(){
 
 void ComandoSerie::comprobarComando() {
 
+	if (compararCadena(data, "help")) {
+		nombreComando(data);
+		mostrarAyuda();
+	}
 
 	if (compararCadena(data, "set on")) {
 		nombreComando(data);
@@ -696,6 +700,85 @@ void ComandoSerie::comprobarComando() {
 
 }
 
+void ComandoSerie::mostrarAyuda() {
+  Serial.println("Comandos disponibles:");
+  Serial.println("set on - Encender alarma");
+  Serial.println("set off - Apagar alarma");
+  Serial.println("set in - Activar modo inquieto");
+  Serial.println("set mode - Cambiar modo de alarma");
+  Serial.println("menu - Cambiar al modo de menu");
+  Serial.println("pir1 - Simular PIR 1");
+  Serial.println("pir2 - Simular PIR 2");
+  Serial.println("pir3 - Simular PIR 3");
+  Serial.println("mg - Simular Puerta");
+  Serial.println("cp - Generar informe de terminal core");
+  Serial.println("ch puerta - Habilitar/deshabilitar sensor de puerta");
+  Serial.println("mail - Test para Estado Envio");
+  Serial.println("ls - Listar registros directorio Logs");
+  Serial.println("log - Mostrar contenido ultimo log");
+  Serial.println("clear - Borrar todos los ficheros del directorio log");
+  Serial.println("clear json - Borrar todos los ficheros del directorio json request");
+  Serial.println("json - Mostrar modelo JSON");
+  Serial.println("json -p - Purgar modelo JSON");
+  Serial.println("json -make - Componer JSON");
+  Serial.println("cat json - Mostrar registros JSON");
+  Serial.println("ls json - Listar registros JSON");
+  Serial.println("json -e - Exportar fichero JSON");
+  Serial.println("json -save - Guardar JSON en NVS");
+  Serial.println("json -load - Cargar JSON desde NVS");
+  Serial.println("json -t - Refrescar Modelo en (NVS purga compone guarda y carga)");
+  Serial.println("json -send - Enviar informe a Saas");
+  Serial.println("json -send not - Enviar notificacion a Saas");
+  Serial.println("note -t - Prueba envio notificación por metodo directo");
+  Serial.println("note -send - Prueba envio notificacion por tarea RTOS");
+  Serial.println("json -ch - Prueba cambiar datos JSON fichero");
+  Serial.println("http -id - Obtener ID del paquete Saas");
+  Serial.println("http -token - Generar token Saas");
+  Serial.println("http -pack - Prueba envio paquete hardcoded a Saas");
+  Serial.println("http -not - Prueba envio notificacion  hardcoded a Saas");
+  Serial.println("token - Mostrar token Saas almacenado en NVS");
+  Serial.println("ls http - Listar registros directorio HTTP");
+  Serial.println("cat http - Mostrar registro actual HTTP");
+  Serial.println("purge http - Borrar registros en directorio HTTP");
+  Serial.println("make http - Enviar una peticion HTTP de prueba (No Saas)");
+  Serial.println("encolar reg - Enviar registro a cola de registros de sub tareas");
+  Serial.println("go saas - Activar/desactivar envio a Saas");
+  Serial.println("go ter - Activar/desactivar escucha de la linea RS");
+  Serial.println("rs -t - Simula contenido entrante por RS");
+  Serial.println("t -print - Prueba mostrar datos de terminal cochera");
+  Serial.println("t -add - Prueba agregar datos de terminal");
+  Serial.println("t -addr - Prueba agregar datos aleatorios de terminal");
+  Serial.println("t -show - Prueba mostrar datos de todos los terminales");
+  Serial.println("t -df - Prueba borrar primer elemento de terminal");
+  Serial.println("t -dl - Prueba borrar ultimo elemento de terminal");
+  Serial.println("t -purge - Prueba limpiar datos de terminal");
+  Serial.println("t -save - Prueba guardar estado del terminal en NVS");
+  Serial.println("t -load - Prueba carga estado del terminal desde NVS (incompleto)");
+  Serial.println("interrupcion -r - Reiniciar los flags del estadp interrupcion");
+  Serial.println("at - Enviar comando AT a GSM");
+  Serial.println("echo ? - Consultar configuracion de eco GSM");
+  Serial.println("speed ? - Consultar velocidad de GSM");
+  Serial.println("speed -c - Cambiar velocidad de GSM");
+  Serial.println("pila -t - Probar encolado Notificacion en pila de tareas");
+  Serial.println("pila -t2 - Probar encolado Paquete en pila de tareas");
+  Serial.println("pila -d - Eliminar elementos de pila");
+  Serial.println("pila -r - Recorrer pila de tareas");
+  Serial.println("pila -m - Mover primero al final de la pila");
+  Serial.println("pila -p - Probar iteracion de gestion de pila");
+  Serial.println("pila -at - Probar timeout en pila de tareas para el primer elemento");
+  Serial.println("pila -rp - Recuperar procesable en pila de tareas");
+  Serial.println("pila -sleep - Rehabilitar ejecucion de pila de tareas con tiempo de espera");
+  Serial.println("power -f - Simular fallo de alimentacion");
+  Serial.println("gsm -r - Refrescar modulo GSM");
+  Serial.println("t -m1 - Prueba  de terminal múltiples detecciones");
+  Serial.println("t -m2 - Prueba de terminal detecciones individuales");
+  Serial.println("t -m3 - Prueba de terminal sabotaje");
+  Serial.println("t -m4 - Prueba de terminal averia");
+  Serial.println("12 - Recuperar intentos diarios de SMS y notificaciones");
+  Serial.println("info - Mostrar informacion del sistema");
+  Serial.println("clock - Cambiar estado del modulo RTC");
+  Serial.println("bye - Reiniciar el sistema");
+}
 
 
 

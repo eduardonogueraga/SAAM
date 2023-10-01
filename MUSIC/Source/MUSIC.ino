@@ -5,11 +5,16 @@
  *
  * POR HACER:
  *
+ * -Falla checkearFalloEnAlimientacion
+ * -Pinta mal el minuto en menu saas
+ * -Cifrar el contenido del paquete
+ * -Eliminar el log de modelo de datos enviado (Redundante)
+ *
+ *
  * -Enriquecer el log con dia de la semana o temperatura
  * -Probar que en caso de necesitar tlf y sms las tareas en segundo plano finalizan OK
  * -Controlar a futuro el impacto entre terminales core
  *
- * -Falla checkearFalloEnAlimientacion
  */
 
 
@@ -133,7 +138,7 @@ void setup()
 	    colaRegistros = xQueueCreate(10, sizeof(RegistroLogTarea));
 
 #ifndef ALARMA_EN_MODO_DEBUG
-	    comprobarConexionGSM(10000L);
+	    comprobarConexionGSM(20000L);
 #endif
 }
 

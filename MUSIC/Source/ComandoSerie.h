@@ -73,6 +73,7 @@ private:
 	boolean compararCadena(const char* data, const char* cadena);
 	void nombreComando(const char* data);
 	void esperarRespuestaUart2();
+	void mostrarAyuda();
 
 public:
 	ComandoSerie();
