@@ -10,20 +10,21 @@
 Fecha::Fecha() {
 }
 
-void Fecha::iniciarRTC(){
+byte Fecha::iniciarRTC(){
 
 	if(!configSystem.MODULO_RTC)
-		return;
+		return 1;
 
 	if (! rtc.begin()) {
 		Serial.println("Modulo RTC no encontrado !");
-
 		pantallaDeError(F("  SYSTM ERROR!  ERR INICIAR  RTC"));
+		return 0;
 	}else {
 		//rtc.adjust(DateTime(__DATE__, __TIME__));  //Establecer tiempo
 
 		//Sincronizamos el tiempo con el RTC local
 		rtcLocal.setTime(rtc.now().unixtime());
+		return 1;
 	}
 
 }

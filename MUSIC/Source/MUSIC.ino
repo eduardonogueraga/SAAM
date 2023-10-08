@@ -5,12 +5,10 @@
  *
  * POR HACER:
  *
+ * - Mas metricas y envio FTP
+ * - Controlar el reset GSM en Response status code: -4 (FLAG)
+ *
  * -Falla checkearFalloEnAlimientacion
- * -Pinta mal el minuto en menu saas
- * -Cifrar el contenido del paquete
- * -Eliminar el log de modelo de datos enviado (Redundante)
- *
- *
  * -Enriquecer el log con dia de la semana o temperatura
  * -Probar que en caso de necesitar tlf y sms las tareas en segundo plano finalizan OK
  * -Controlar a futuro el impacto entre terminales core
@@ -59,13 +57,21 @@ void setup()
 
 	  //Inicio de perifericos
 	  iniciarTecladoI2C();
+	  //Iniciar pantalla
 	  pantalla.iniciar();
-	  fecha.iniciarRTC();
-
+	  //Iniciar reloj
+	  if(!fecha.iniciarRTC()){
+		  registro.registrarLogSistema("Error! No se inicializo del modulo RTC");
+	  }else {
+		  registro.registrarLogSistema("Modulo RTC OK");
+	  }
 	  //Iniciar multiplexor
 	  if (!mcp.begin_I2C(MCP_ADDR)) {
 	    Serial.println("Error MUX MCP23017");
 	    pantallaDeError(F("  SYSTM ERROR!  ERROR MUX INICIO"));
+	    registro.registrarLogSistema("Error! No se inicializo el modulo multiplexor");
+	  }else {
+		  registro.registrarLogSistema("Multiplexor OK");
 	  }
 
 	  //Asignar el semaforo
@@ -73,9 +79,15 @@ void setup()
 
 	  if(registro.iniciar() == 0){
 		  Serial.println(F("ERROR AL INICIAR SD"));
+		  registro.registrarLogSistema("Error! No se inicializo la tarjeta SD");
 		  pantallaDeError(F("  SYSTM ERROR!  ERROR INICIAR SD"));
+	  }else {
+		  registro.registrarLogSistema("Almacenamiento SD OK");
+
 	  }
 
+	  //Definir el padding AES
+	  aesLib.set_paddingmode(paddingMode::CMS);
 
 	  pantalla.lcdLoadView(&pantalla, &Pantalla::lcdInicio);
 	  delay(1000);

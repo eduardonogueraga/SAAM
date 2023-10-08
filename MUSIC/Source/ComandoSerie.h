@@ -63,6 +63,8 @@ extern void rehabilitarEjecucionPila();
 
 extern InterStrikeCore sensorCore;
 extern void guardarEstadoAlerta();
+extern void testEnvioFtp();
+extern void pruebaCifrado();
 
 class ComandoSerie {
 

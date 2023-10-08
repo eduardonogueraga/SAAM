@@ -26,7 +26,7 @@ private:
 public:
 
 	Fecha();
-	void iniciarRTC();
+	byte iniciarRTC();
 	String imprimeFecha(byte local= 0, DateTime paramFecha = 0);
 	String imprimeFechaSimple(DateTime paramFecha = 0);
 	String imprimeFechaSQL();

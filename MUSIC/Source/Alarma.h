@@ -18,6 +18,8 @@
 #include <HardwareSerial.h>
 #include <TinyGsmClient.h>
 #include <ArduinoHttpClient.h>
+#include <AESLib.h>
+#include "base64.h"
 
 #include "Autenticacion.h"
 #include "Pantalla.h"
@@ -34,9 +36,8 @@
 #include "ComunicacionLinea.h"
 #include "Terminal.h"
 
-
 //VERSION (VE -> Version Estable VD -> Version Desarrollo)
-const char* version[] = {"MUSIC VE21R0", "02/09/23"};
+const char* version[] = {"MUSIC VE21R0", "03/10/23"};
 
 //RTOS
 TaskHandle_t gestionLinea;
@@ -72,6 +73,9 @@ byte SD_STATUS = 0; //Comprueba si la escritura en SD esta OK
 byte sensorHabilitado[4] = {1,1,1,1};
 
 //INSTANCIAS
+
+//Cifrado AES
+AESLib aesLib;
 
 //UART
 HardwareSerial UART_GSM(1);

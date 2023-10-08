@@ -596,7 +596,7 @@ byte EventosJson::enviarInformeSaas(){
 		confirmarIdPaquete();
 
 		snprintf(reg.log, sizeof(reg.log), "Modelo enviado");
-		reg.saasLogid = MODELO_ENVIADO_LOG;
+		//reg.saasLogid = MODELO_ENVIADO_LOG; //No enviar copia al siguente modelo redundante
 		xQueueSend(colaRegistros, &reg, 0);
 
 		estadoEnvio = 1;

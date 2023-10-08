@@ -341,6 +341,15 @@ void ComandoSerie::comprobarComando() {
 
 	}
 
+
+	if(compararCadena(data, "http -pack c")){
+		nombreComando(data);
+
+		String json = R"({"version":"MUSIC VE21R0","retry":"0","id":"204","date":"2023-10-08T00:07:31","System":[{"action":"1","msen":"1","alive":"816585","traffic":"0|0|0|0","modules":"1|1|0","sensors":"102;1|103;1|104;1|105;1","reset":"2023-10-17T23:54:00"}],"Entry":[{"isnew":true,"reg":"1|0|0|0","date":"2023-10-08T00:06:23","Log":[{"reg":"137","date":"2023-10-08T00:06:23"}]},{"isnew":true,"reg":"0|0|0|0","date":"2023-10-08T00:06:32","Log":[{"reg":"139","date":"2023-10-08T00:06:32"}]},{"isnew":true,"reg":"0|0|0|0","date":"2023-10-08T00:06:34","Log":[{"reg":"139","date":"2023-10-08T00:06:34"}]},{"isnew":true,"reg":"0|0|0|0","date":"2023-10-08T00:06:36","Log":[{"reg":"139","date":"2023-10-08T00:06:36"}]},{"isnew":true,"reg":"0|0|0|0","date":"2023-10-08T00:06:38","Log":[{"reg":"139","date":"2023-10-08T00:06:38"}]},{"isnew":true,"reg":"0|0|0|0","date":"2023-10-08T00:06:40","Log":[{"reg":"139","date":"2023-10-08T00:06:40"}]},{"isnew":true,"reg":"0|0|0|0","date":"2023-10-08T00:06:44","Log":[{"reg":"139","date":"2023-10-08T00:06:44"}]},{"isnew":true,"reg":"0|0|0|0","date":"2023-10-08T00:06:46","Log":[{"reg":"139","date":"2023-10-08T00:06:46"}]},{"isnew":true,"reg":"0|0|0|0","date":"2023-10-08T00:06:51","Log":[{"reg":"139","date":"2023-10-08T00:06:51"}]},{"isnew":true,"reg":"0|0|0|0","date":"2023-10-08T00:06:53","Log":[{"reg":"139","date":"2023-10-08T00:06:53"}]},{"isnew":true,"reg":"0|0|0|0","date":"2023-10-08T00:06:54","Log":[{"reg":"139","date":"2023-10-08T00:06:54"}]},{"isnew":true,"reg":"0|0|0|0","date":"2023-10-08T00:06:56","Log":[{"reg":"139","date":"2023-10-08T00:06:56"}]},{"isnew":true,"reg":"0|0|0|0","date":"2023-10-08T00:06:58","Log":[{"reg":"139","date":"2023-10-08T00:06:58"}]},{"isnew":true,"reg":"0|0|0|0","date":"2023-10-08T00:07:03","Log":[{"reg":"139","date":"2023-10-08T00:07:03"}]},{"isnew":true,"reg":"0|0|0|0","date":"2023-10-08T00:07:05","Log":[{"reg":"139","date":"2023-10-08T00:07:05"}]},{"isnew":true,"reg":"0|0|0|0","date":"2023-10-08T00:07:10","Log":[{"reg":"139","date":"2023-10-08T00:07:10"}]},{"isnew":true,"reg":"0|0|0|0","date":"2023-10-08T00:07:13","Log":[{"reg":"139","date":"2023-10-08T00:07:13"}]},{"isnew":true,"reg":"0|0|0|0","date":"2023-10-08T00:07:15","Log":[{"reg":"139","date":"2023-10-08T00:07:15"}]}]})";
+		postDatosSaas(&json, PAQUETE);
+
+	}
+
 	if(compararCadena(data, "http -not")){
 		nombreComando(data);
 
@@ -403,6 +412,13 @@ void ComandoSerie::comprobarComando() {
 
 	}
 
+
+	if (compararCadena(data, "json -feed")){
+		nombreComando(data);
+		for (int i = 0; i < 25; i++) {
+			eventosJson.guardarLog(ALARMA_DESACTIVADA_MANUALMENTE_LOG);
+		}
+	}
 
 	if (compararCadena(data, "go saas")){
 		nombreComando(data);
@@ -680,7 +696,16 @@ void ComandoSerie::comprobarComando() {
 
 	}
 
+	if(compararCadena(data, "ftp")){
+		nombreComando(data);
+		testEnvioFtp();
+	}
 
+
+	if(compararCadena(data, "aes")){
+		nombreComando(data);
+		pruebaCifrado();
+	}
 
 	if(compararCadena(data, "info")){
 		nombreComando(data);
@@ -729,12 +754,14 @@ void ComandoSerie::mostrarAyuda() {
   Serial.println("json -t - Refrescar Modelo en (NVS purga compone guarda y carga)");
   Serial.println("json -send - Enviar informe a Saas");
   Serial.println("json -send not - Enviar notificacion a Saas");
+  Serial.println("json -feed - Rellena el modelo con datos de prueba");
   Serial.println("note -t - Prueba envio notificación por metodo directo");
   Serial.println("note -send - Prueba envio notificacion por tarea RTOS");
   Serial.println("json -ch - Prueba cambiar datos JSON fichero");
   Serial.println("http -id - Obtener ID del paquete Saas");
   Serial.println("http -token - Generar token Saas");
   Serial.println("http -pack - Prueba envio paquete hardcoded a Saas");
+  Serial.println("http -pack c - Prueba envio paquete hardcoded a Saas Compacto");
   Serial.println("http -not - Prueba envio notificacion  hardcoded a Saas");
   Serial.println("token - Mostrar token Saas almacenado en NVS");
   Serial.println("ls http - Listar registros directorio HTTP");

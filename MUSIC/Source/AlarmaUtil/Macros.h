@@ -92,7 +92,7 @@
 #define TIEMPO_ALERT_LCD 6000
 #define	NUMERO_ALERTAS 4
 #define TOTAL_SENSORES 4 //EL numero de sensores activos
-#define MAX_SIZE_JSON 3584 //Bytes maximos del modelo JSON 3.5K
+#define MAX_SIZE_JSON 2300 //Bytes maximos del modelo JSON
 #define MAX_TOQUES_BOCINA_RESTANTES 15 //Intentos en modo inquieto
 #define MAX_INTENTOS_REACTIVACION 3
 //COMUNICACION LINEA

@@ -10,6 +10,58 @@
 #ifndef SOURCE_ALARMAUTIL_HTTPREQUEST_H_
 #define SOURCE_ALARMAUTIL_HTTPREQUEST_H_
 
+String eliminarCaracteresRaros(String cadena) {
+    String cadenaLimpia = "";
+    for (int i = 0; i < cadena.length(); i++) {
+        char caracter = cadena.charAt(i);
+        if (isPrintable(caracter)) {
+            cadenaLimpia += caracter;
+        }
+    }
+    return cadenaLimpia;
+}
+
+String cifrarCadena(const String& t) {
+
+	byte iv[N_BLOCK];
+	int msgLen = t.length();
+	char encrypted[2 * msgLen] = {0};
+
+	//Preparar clave en byte
+	byte aes_key[strlen(AES_KEY)];
+
+	for (int i = 0; i < strlen(AES_KEY); i++) {
+		aes_key[i] = (byte)AES_KEY[i];
+		iv[i] = AES_KEY_IV[i];
+	}
+
+	aesLib.encrypt64((const byte*)t.c_str(), msgLen, encrypted, aes_key, sizeof(aes_key), iv);
+	return String(encrypted);
+}
+
+
+String descifrarCadena(const String& inputString) {
+
+	byte iv[N_BLOCK];
+	int msgLen = inputString.length();
+	char decrypted[msgLen + 1] = {0}; // +1 para el caracter nulo al final
+	const char* ciphertext = inputString.c_str(); // Obtener puntero a la representación de caracteres del String
+
+	// Crear un bufer temporal para los datos cifrados
+	char tempCiphertext[msgLen];
+	strcpy(tempCiphertext, ciphertext);
+
+	//Preparar clave en byte
+	byte aes_key[strlen(AES_KEY)];
+
+	for (int i = 0; i < strlen(AES_KEY); i++) {
+		aes_key[i] = (byte)AES_KEY[i];
+		iv[i] = AES_KEY_IV[i];
+	}
+
+	aesLib.decrypt64(tempCiphertext, msgLen, (byte*)decrypted, aes_key, sizeof(aes_key), iv);
+	return String(decrypted);
+}
 
 	void escucharGSM(){
 
@@ -62,6 +114,8 @@
 		pantalla.lcdLoadView(&pantalla, &Pantalla::sysConexionGSM);
 		if (!modem.waitForNetwork(timeOut, true)) {
 			Serial.println(" fail");
+			registro.registrarLogSistema("Error! Sin red movil");
+
 			pantallaDeError(F("  SYSTM ERROR!   SIN RED MOVIL  "));
 			return;
 		}
@@ -75,6 +129,12 @@
 
 		int csq = modem.getSignalQuality();
 		Serial.println("Signal quality: " + String(csq));
+
+
+		char descripcion[190];
+		snprintf(descripcion, sizeof(descripcion), "Operador: %s, Calidad de red: (%d)", operatorName.c_str(), csq);
+		registro.registrarLogSistema(descripcion);
+
 
 		pantallaDeError(fixedLengthString(operatorName, 16)+"Calidad red:"+(csq));
 
@@ -113,20 +173,29 @@
 		if(establecerConexionGPRS()){
 			int estadoHttp = 0;
 			String respuestaHttp;
+			respuestaHttp += "Inicio peticion "+ fecha.imprimeFecha(1) +"\n";
+
+			String ipAdd = modem.getLocalIP();
+			Serial.print("Ip asignada: ");
+			Serial.println(ipAdd);
+
+			respuestaHttp += "Direccion asignada GPRS "+ ipAdd +"\n";
 
 			//vTaskDelay(1000);
 
 			//Formular peticion HTTP
-			//http.connectionKeepAlive();  // Currently, this is needed for HTTPS
+			http.connectionKeepAlive();  // Currently, this is needed for HTTPS
 			http.beginRequest();
 
 			if (strcmp(metodo, "GET") == 0) {
 				estadoHttp = http.get(resource);
 			} else if (strcmp(metodo, "POST") == 0) {
 				if (jsonData) {
-					estadoHttp= http.post(resource/*, "application/json", jsonData*/);
-					http.sendHeader("Content-Type", "application/json");
+					estadoHttp= http.post(resource);
+					//http.sendHeader("Content-Type", "application/json");
+					http.sendHeader("Content-Type", "text/plain");
 					http.sendHeader("Content-Length", strlen(jsonData));
+
 				} else {
 					estadoHttp = http.post(resource);
 				}
@@ -142,7 +211,27 @@
 
 			//Adjuntamos el json en el body
 			http.beginBody();
-			http.print(jsonData);
+
+			if (jsonData){
+				int len = strlen(jsonData);
+
+				Serial.println("Buffer a enviar " + String(len));
+				respuestaHttp += "Buffer a enviar "+ String(len) +"\n";
+
+				uint32_t j = 0;
+				uint32_t shard = 512;
+				for (int32_t i = len; i > 0;) {
+					if (i >= shard) {
+						http.write((const unsigned char *)(jsonData + shard * j), shard);
+						i -= shard;
+						j++;
+					} else {
+						http.write((const unsigned char *)(jsonData + shard * j), i);
+						break;
+					}
+				}
+
+			}
 
 			http.endRequest();
 
@@ -227,6 +316,7 @@
 				Serial.println(F("Server disconnected"));
 			}
 
+			respuestaHttp += "Fin peticion "+ fecha.imprimeFecha(1) +"\n";
 
 			RegistroLogTarea reg;
 			TickType_t espera = pdMS_TO_TICKS(10);
@@ -253,6 +343,12 @@
 	    Serial.print("Contenido: ");
 	    Serial.println(respuesta.respuesta);
 
+	    respuesta.respuesta = descifrarCadena(respuesta.respuesta);
+	    respuesta.respuesta.trim();
+	    respuesta.respuesta = eliminarCaracteresRaros(respuesta.respuesta);
+	    Serial.print("Contenido descifrado: ");
+	    Serial.println(respuesta.respuesta);
+
 	    if(respuesta.codigo == 200){
 	    	int id = respuesta.respuesta.toInt();
 	    	guardarFlagEE("PACKAGE_ID", id);
@@ -270,6 +366,13 @@
 	    Serial.print("Contenido: ");
 	    Serial.println(respuesta.respuesta);
 
+	    respuesta.respuesta = descifrarCadena(respuesta.respuesta);
+	    respuesta.respuesta.trim();
+	    respuesta.respuesta = eliminarCaracteresRaros(respuesta.respuesta);
+
+	    Serial.print("Contenido descifrado: ");
+	    Serial.println(respuesta.respuesta);
+
 		if(respuesta.codigo == 200){
 			guardarCadenaEE("SAAS_TOKEN", &respuesta.respuesta);
 		}
@@ -281,14 +384,15 @@
 
 	RespuestaHttp postDatosSaas(String* modeloJson, SAAS_TIPO_HTTP_REQUEST tipoDatos){
 		RespuestaHttp respuesta;
-		const char* jsonData = modeloJson->c_str();
+
+		*modeloJson = cifrarCadena(*modeloJson);
 
 		if(tipoDatos == PAQUETE){
 			 Serial.println("Envio de paquete");
-			respuesta = realizarPeticionHttp("POST", postEventosJson, 1, jsonData);
+			respuesta = realizarPeticionHttp("POST", postEventosJson, 1, modeloJson->c_str());
 		}else if(tipoDatos == NOTIFICACION){
 			Serial.println("Envio de notificacion");
-			respuesta = realizarPeticionHttp("POST", postNotificacionJson, 1, jsonData);
+			respuesta = realizarPeticionHttp("POST", postNotificacionJson, 1, modeloJson->c_str());
 		}else {
 			Serial.print("Error tipo de peticion http no reconocida");
 		}
@@ -299,6 +403,152 @@
 	    Serial.println(respuesta.respuesta);
 
 		return respuesta;
+	}
+
+	uint8_t sendATcommand(const char* ATcommand, const char* expected_answer, unsigned int timeout) {
+
+	  uint8_t x = 0,  answer = 0;
+	  char response[100];
+	  unsigned long previous;
+
+	  memset(response, '\0', 100);    // Initialize the string
+
+	  delay(100);
+
+	  while ( UART_GSM.available() > 0) UART_GSM.read();   // Clean the input buffer
+
+	  UART_GSM.println(ATcommand);    // Send the AT command
+
+
+	  x = 0;
+	  previous = millis();
+
+	  // this loop waits for the answer
+	  do {
+	    if (UART_GSM.available() != 0) {
+	      // if there are data in the UART input buffer, reads it and checks for the asnwer
+	      response[x] = UART_GSM.read();
+	                  Serial.print(response[x]);
+	      x++;
+	      // check if the desired answer  is in the response of the module
+	      if (strstr(response, expected_answer) != NULL)
+	      {
+	        answer = 1;
+	      }
+	    }
+	    // Waits for the asnwer with time out
+	  } while ((answer == 0) && ((millis() - previous) < timeout));
+
+	  //    Serial.print("\n");
+
+	  return answer;
+	}
+
+	void ConfigureFTP(const char* FTPServer, const char* FTPUserName, const char* FTPPassWord) {
+	  char aux_str[50];
+
+	  int result;
+	  int response;
+
+	  result = sendATcommand("AT+CFTPPORT=7512", "OK", 2000);
+	  Serial.print("AT+CFTPPORT=7512: ");
+	  Serial.println(result);
+
+	  result = sendATcommand("AT+CFTPMODE=1", "OK", 2000);
+	  Serial.print("AT+CFTPMODE=1: ");
+	  Serial.println(result);
+
+	  result = sendATcommand("AT+CFTPTYPE=A", "OK", 2000);
+	  Serial.print("AT+CFTPTYPE=A: ");
+	  Serial.println(result);
+
+
+	  sprintf(aux_str, "AT+CFTPSERV=\"%s\"", FTPServer);
+	  response = sendATcommand(aux_str, "OK", 2000);
+	  Serial.print(aux_str);
+	  Serial.print(": ");
+	  Serial.println(response);
+
+	  sprintf(aux_str, "AT+CFTPUN=\"%s\"", FTPUserName);
+	  response = sendATcommand(aux_str, "OK", 2000);
+	  Serial.print(aux_str);
+	  Serial.print(": ");
+	  Serial.println(response);
+
+	  sprintf(aux_str, "AT+CFTPPW=\"%s\"", FTPPassWord);
+	  response = sendATcommand(aux_str, "OK", 2000);
+	  Serial.print(aux_str);
+	  Serial.print(": ");
+	  Serial.println(response);
+
+
+	  char FTPConnectionCommand[150];
+	   sprintf(FTPConnectionCommand, "AT+CFTPSLOGIN=\"%s\",%i,\"%s\", \"%s\",0", FTPServer, 7512, FTPUserName, FTPPassWord);
+	   if(!sendATcommand("AT+CFTPSSTART","OK",2000)){ Serial.println("ok1");}
+	   delay(200);
+	   if(!sendATcommand(FTPConnectionCommand,"OK",2000)){Serial.println("ok2");}
+	   delay(2500);
+
+
+
+	}
+
+
+
+	void DownloadFromFTP(const char* FileName) {
+	  char aux_str[50];
+
+
+
+	  Serial.print("Download file from FTP...\n");
+	  sprintf(aux_str, "AT+CFTPGETFILE=\"%s\",0", FileName);
+	  int result = sendATcommand(aux_str, "OK", 2000);
+
+	   if (result == 1) {
+	     Serial.println("Descarga exitosa.");
+	   } else {
+	     Serial.println("Error en la descarga.");
+	   }
+
+	}
+
+	void testEnvioFtp(){
+
+		//uint8_t answer = 0;
+		//answer = sendATcommand("AT", "OK", 2000);
+		//Serial.println(answer);
+
+	  // Llama a la función ConfigureFTP con los detalles del servidor FTP
+	  const char* servidorFTP = "";
+	  const char* userFtp = "";
+	  const char* passFtp = "";
+	  ConfigureFTP(servidorFTP, userFtp, passFtp);
+
+	  //const char* nombreArchivo = "test.txt";
+	  //DownloadFromFTP(nombreArchivo);
+
+
+	}
+
+	void pruebaCifrado(){
+
+		//String inputString = R"()";
+		String inputString = "eIEHqE/vOVLb7FO9VBDD/6ABzwzlo+OPMP9HhvMs7YQTIib9fxpCgnIxtAwt9uYT";
+
+		// Encrypt Data
+		String encrypted = cifrarCadena(inputString);
+
+		Serial.print("Base64 encoded Ciphertext: ");
+		Serial.println(encrypted);
+
+		 encrypted = "eIEHqE/vOVLb7FO9VBDD/6ABzwzlo+OPMP9HhvMs7YQTIib9fxpCgnIxtAwt9uYT";
+
+		// Decrypt Data
+		String decrypted = descifrarCadena(encrypted);
+
+		Serial.print("Base64-decoded Cleartext: ");
+		Serial.println(decrypted);
+
 	}
 
 

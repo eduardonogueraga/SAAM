@@ -9,8 +9,6 @@
 #ifndef PROYECTO_MENSAJES_H_
 #define PROYECTO_MENSAJES_H_
 
-#define TINY_GSM_MODEM_SIM800
-
 #include "Arduino.h"
 #include <HardwareSerial.h>
 #include "EventosJson.h"

@@ -233,7 +233,7 @@ void crearTareaEnvioModeloSaas(){
 	xTaskCreatePinnedToCore(
 			tareaSaas,
 			"tareaSaas",
-			(1024*10), //Buffer
+			(1024*15), //Buffer
 			NULL, //Param
 			1, //Prioridad
 			&envioServidorSaas, //Task
