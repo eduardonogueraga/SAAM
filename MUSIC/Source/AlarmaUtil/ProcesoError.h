@@ -12,7 +12,7 @@
 #define SOURCE_ALARMAUTIL_PROCESOERROR_H_
 
 void setEstadoErrorComprobarDatos(){
-		Serial.println(F("Guardando datos "));
+	WebSerial.println(F("Guardando datos "));
 		estadoError = COMPROBAR_DATOS;
 		guardarEstadoAlerta();
 
@@ -34,7 +34,7 @@ void setEstadoErrorComprobarDatos(){
 
 	void setEstadoErrorEnviarAviso(){
 
-		Serial.println(F("Comprobando datos "));
+		WebSerial.println(F("Comprobando datos y enviando SMS "));
 		estadoError = ENVIAR_AVISO;
 
 		//Cerramos la pila de tareas y terminamos la ejecucion si quedase alguna tarea ejecutandose
@@ -42,23 +42,22 @@ void setEstadoErrorComprobarDatos(){
 		//Cerramos el acceso a los terminales
 		ACCESO_LISTAS = 0;
 
-		sleepModeGSM = GSM_ON;
-		setMargenTiempo(tiempoMargen,TIEMPO_CARGA_GSM);
 
 		if(!modem.waitForNetwork(1000, true)){
-			Serial.println(F("Modulo sin red refrescando"));
+			WebSerial.println(F("Modulo sin red refrescando"));
 			refrescarModuloGSM();
 		}
 
 	}
 
 	void setEstadoErrorRealizarLlamadas(){
+		WebSerial.println(F("Realizando llamadas "));
 		estadoError = REALIZAR_LLAMADAS;
 		setMargenTiempo(tiempoMargen,240000);
 	}
 
 	void setEstadoErrorEsperarAyuda(){
-		Serial.println(F("Esperar ayuda"));
+		WebSerial.println(F("Esperar ayuda"));
 
 		//Liberadas los SMS y llamadas encolamos peticiones
 		encolarNotificacionSaas(0, "Interrupcion por fallo en la alimentacion");
@@ -92,6 +91,7 @@ void setEstadoErrorComprobarDatos(){
 
 			if(checkearMargenTiempo(tiempoMargen)){
 				mensaje.mensajeError();
+				WebSerial.println(F("SMS Enviado Checkpoint"));
 				setEstadoErrorRealizarLlamadas();
 			}
 			desactivarEstadoDeError();
@@ -103,9 +103,10 @@ void setEstadoErrorComprobarDatos(){
 			if(!isLcdInfo())
 				pantalla.lcdLoadView(&pantalla, &Pantalla::errorEmergencia);
 
-			realizarLlamadas();
+			//realizarLlamadas();
 
 			if(checkearMargenTiempo(tiempoMargen)){
+				WebSerial.println(F("Llamadas realizadas Checkpoint"));
 				setEstadoErrorEsperarAyuda();
 				guardarFlagEE("LLAMADA_EMERGEN", 1);
 			}

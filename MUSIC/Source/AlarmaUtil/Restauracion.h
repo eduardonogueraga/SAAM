@@ -32,7 +32,7 @@ void cargarEstadoPrevio(){
 
 void guardarEstadoInterrupcion(){
 		guardarFlagEE("ERR_INTERRUPT", 1);
-		guardarFlagEE("INTERUP_HIST", (leerFlagEE("INTERUP_HIST") + 1));
+		guardarFlagEE("INTERUP_HIST", (leerFlagEEInt("INTERUP_HIST") + 1));
 	}
 
 

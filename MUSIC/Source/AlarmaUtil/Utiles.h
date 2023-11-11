@@ -27,6 +27,7 @@ String fixedLengthString(String& original, size_t fixedLength) {
 
 
 //MANEJO DE MEMORIA NVS
+/* Deprecated
 uint8_t leerFlagEE(const char* key) {
 
 	NVSMemory.begin("SAA_DATA", false);
@@ -35,6 +36,7 @@ uint8_t leerFlagEE(const char* key) {
 
 	return value;
 }
+*/
 
 int leerFlagEEInt(const char* key) {
 

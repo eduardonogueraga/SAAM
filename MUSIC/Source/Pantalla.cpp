@@ -385,7 +385,7 @@ void Pantalla::lcdGuardia(){
 		lcd.setCursor(0,1);
 		lcd.print("->");
 		lcd.setCursor(2,1);
-		lcd.print(leerFlagEE("INTERUP_HIST"));
+		lcd.print(leerFlagEEInt("INTERUP_HIST"));
 		lcd.setCursor(5,1);
 		lcd.print(F("RESET>3 A>#"));
 	}

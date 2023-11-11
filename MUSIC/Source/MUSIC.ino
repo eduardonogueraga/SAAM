@@ -7,11 +7,19 @@
  *
  * - Mas metricas y envio FTP
  * - Controlar el reset GSM en Response status code: -4 (FLAG)
+ * - Header SAAS voltage
+ * - Enriquecer el log con dia de la semana o temperatura
+ * - Probar que en caso de necesitar tlf y sms las tareas en segundo plano finalizan OK
+ * - Controlar a futuro el impacto entre terminales core
  *
- * -Falla checkearFalloEnAlimientacion
- * -Enriquecer el log con dia de la semana o temperatura
- * -Probar que en caso de necesitar tlf y sms las tareas en segundo plano finalizan OK
- * -Controlar a futuro el impacto entre terminales core
+ * INCIDENCIAS
+ *
+ * 	-  Error en esta parte para el guardado del lo mensajes: char registroConjunto[50];
+ *	 snprintf(registroConjunto, sizeof(registroConjunto), "%s%s", Mensajes::getAsuntoMensaje()," MENSAJE ENVIADO");
+ *
+ *  - Log http incompleto no pinta la respuesta del servidor
+ *
+ *  - Fichero temp.txt en directorio json investigar
  *
  */
 
@@ -24,7 +32,7 @@ void EstadoInicio(){
 
 	procesoCentral = ALARMA;
 	estadoAlarma = ESTADO_REPOSO;
-	sleepModeGSM = GSM_ON;
+
 
 	saasCronEstado = ESPERA_ENVIO;
 
@@ -40,7 +48,6 @@ void EstadoInicio(){
 		fecha.establecerFechaReset(10);
 	}
 }
-
 
 void setup()
 {
@@ -102,6 +109,7 @@ void setup()
 
 	    //MODULO GSM
 	    mcp.pinMode(GSM_PIN, OUTPUT);
+	    mcp.digitalWrite(GSM_PIN, HIGH); //Siempre ALTO (BAJO = RESET)
 
 		//MODULO RS485
 	    pinMode(RS_CTL, OUTPUT);
@@ -149,6 +157,29 @@ void setup()
 	    disableCore0WDT(); //Quito el watchdog en 0 que Dios me perdone
 	    colaRegistros = xQueueCreate(10, sizeof(RegistroLogTarea));
 
+	    if(mcp.digitalRead(FALLO_BATERIA_PRINCIPAL) == HIGH){
+	    	 Serial.println(F("ERROR NO 12V"));
+	    }else {
+	    	 Serial.println(F("12V OK"));
+	    }
+
+	    //TEST WIFI
+	    WiFi.mode(WIFI_STA);
+	    WiFi.begin(ssidWifi, passwordWifi);
+	    if (WiFi.waitForConnectResult() != WL_CONNECTED) {
+	    	Serial.printf("WiFi Failed!\n");
+	    	//return;
+	    }else {
+	    	Serial.print("IP Address: ");
+	    	Serial.print(WiFi.localIP());
+	    	Serial.println("/webserial");
+	    	// WebSerial is accessible at "<IP Address>/webserial" in browser
+	    	WebSerial.begin(&serverDos);
+	    	WebSerial.msgCallback(recvMsg);
+	    	serverDos.begin();
+	    }
+	   //TEST WIFI
+
 #ifndef ALARMA_EN_MODO_DEBUG
 	    comprobarConexionGSM(20000L);
 #endif
@@ -156,7 +187,6 @@ void setup()
 
 void loop()
 {
-
 	leerEntradaTeclado();
 	demonio.demonioSerie();
 	procesosSistema();
@@ -208,14 +238,14 @@ void procesosSistema(){
 
 
 	watchDog();
-	sleepMode();
+	//checkearResetModuloGSM();
 	checkearSensorPuertaCochera();
 	avisoLedPuertaCochera();
 	resetearAlarma();
     checkearLimitesEnvios();
 	resetAutomatico();
 	//checkearBateriaDeEmergencia(); //TODO Hardware actual incompatible
-	//checkearFalloEnAlimientacion();
+	checkearFalloEnAlimientacion();
 	//escucharGSM();
 
 	//Quitadas por pruebas

@@ -21,6 +21,12 @@
 #include <AESLib.h>
 #include "base64.h"
 
+#include <WiFi.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+#include <WebSerial.h>
+#include <Print.h>
+
 #include "Autenticacion.h"
 #include "Pantalla.h"
 #include "ComandoSerie.h"
@@ -36,8 +42,27 @@
 #include "ComunicacionLinea.h"
 #include "Terminal.h"
 
+//FLAG TESTS
+byte F_COMPROBAR_BAT = 0;
+
+//TEST WIFI
+AsyncWebServer serverDos(80);
+
+void recvMsg(uint8_t *data, size_t len){
+  //WebSerial.println("Received Data...");
+  String d = "";
+  for(int i=0; i < len; i++){
+    d += char(data[i]);
+  }
+  WebSerial.println(d);
+
+  F_COMPROBAR_BAT = 1;
+
+}
+//TEST WIFI
+
 //VERSION (VE -> Version Estable VD -> Version Desarrollo)
-const char* version[] = {"MUSIC VE21R0", "03/10/23"};
+const char* version[] = {"MUSIC VE21R0", "11/11/23"};
 
 //RTOS
 TaskHandle_t gestionLinea;
@@ -101,7 +126,6 @@ Preferences NVSMemory; //Memoria
 ProcesoCentral procesoCentral;
 EstadosAlarma estadoAlarma;
 EstadosError estadoError;
-SLEEPMODE_GSM sleepModeGSM;
 LLAMADAS_GSM estadoLlamada;
 CODIGO_ERROR codigoError;
 SAAS_LITERAL_LOGS saaLiteralLogs;
@@ -326,32 +350,6 @@ void leerEntradaTeclado(){
 
 	void watchDog(){
 		mcp.digitalWrite(WATCHDOG, !mcp.digitalRead(WATCHDOG));
-	}
-
-	void sleepMode(){
-
-		switch(sleepModeGSM){
-
-		case GSM_ON:
-			mcp.digitalWrite(GSM_PIN, HIGH);
-			break;
-
-		case GSM_OFF:
-			mcp.digitalWrite(GSM_PIN, LOW);
-			break;
-
-		case GSM_REFRESH:
-
-			if(checkearMargenTiempo(tiempoRefrescoGSM)){
-				sleepModeGSM = GSM_ON;
-				mcp.digitalWrite(GSM_PIN, HIGH);
-			}else {
-				mcp.digitalWrite(GSM_PIN, LOW);
-			}
-
-			break;
-		}
-
 	}
 
 	void resetear(){
@@ -614,7 +612,7 @@ void leerEntradaTeclado(){
 
 
 	void interrupcionFalloAlimentacion(){
-		Serial.println(F("\nInterrupcion por fallo en la alimentacion"));
+		WebSerial.println(F("\nInterrupcion por fallo en la alimentacion"));
 		codigoError = ERR_FALLO_ALIMENTACION;
 		registro.registrarLogSistema("INTERRUPCION POR FALLO EN LA ALIMENTACION");
 		eventosJson.guardarLog(FALLO_ALIMENTACION_LOG);

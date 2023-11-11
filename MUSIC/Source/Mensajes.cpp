@@ -149,10 +149,10 @@ void Mensajes::enviarSMSEmergencia(){
 		return;
 #endif
 
-	if(leerFlagEE("MENSAJE_EMERGEN") == 1)
+	if(leerFlagEEInt("MENSAJE_EMERGEN") == 1)
 	return;
 
-	procesarSMS();
+	//procesarSMS(); @develop
 
 	guardarFlagEE("MENSAJE_EMERGEN", 1);
 

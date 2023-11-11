@@ -516,7 +516,7 @@ void ComandoSerie::comprobarComando() {
 		Serial.println("Comando incompleto prueba manualmente");
 	}
 
-	if (compararCadena(data, "iterrupcion -r")){
+	if (compararCadena(data, "interrupcion -r")){
 		nombreComando(data);
 
 		guardarFlagEE("ERR_INTERRUPT", 0);

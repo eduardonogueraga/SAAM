@@ -105,8 +105,7 @@ String descifrarCadena(const String& inputString) {
 	}
 
 	void refrescarModuloGSM(){
-		setMargenTiempo(tiempoRefrescoGSM, 1000);
-		sleepModeGSM = GSM_REFRESH;
+		setMargenTiempo(tiempoRefrescoGSM, 400);
 	}
 
 	void comprobarConexionGSM(unsigned long timeOut){
@@ -135,6 +134,10 @@ String descifrarCadena(const String& inputString) {
 		snprintf(descripcion, sizeof(descripcion), "Operador: %s, Calidad de red: (%d)", operatorName.c_str(), csq);
 		registro.registrarLogSistema(descripcion);
 
+
+		int voltage = modem.getBattVoltage();
+        Serial.print("Voltaje bateria: ");
+		Serial.println(voltage);
 
 		pantallaDeError(fixedLengthString(operatorName, 16)+"Calidad red:"+(csq));
 

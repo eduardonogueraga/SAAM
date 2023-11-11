@@ -556,12 +556,12 @@ void testTaskNodos(){
 	strcpy(datosNodo.notificacion.contenido, "Deteccion en un lugar indeterminado");
 
 	//Comprobamos si quedan envios
-	if(leerFlagEE("N_SYS_SEND") >= MAX_NOTIFICACIONES_SYS_DIARIAS && datosNodo.notificacion.tipo == 0){
+	if(leerFlagEEInt("N_SYS_SEND") >= MAX_NOTIFICACIONES_SYS_DIARIAS && datosNodo.notificacion.tipo == 0){
 		registro.registrarLogSistema("SUPERADO MAXIMO NOTIFICACIONES_SYS_DIARIAS");
 		return;
 	}
 
-	if(leerFlagEE("N_ALR_SEND") >= MAX_NOTIFICACIONES_ALARM_DIARIAS && datosNodo.notificacion.tipo == 1){
+	if(leerFlagEEInt("N_ALR_SEND") >= MAX_NOTIFICACIONES_ALARM_DIARIAS && datosNodo.notificacion.tipo == 1){
 		registro.registrarLogSistema("SUPERADO MAXIMO NOTIFICACIONES_ALR_DIARIAS");
 		return;
 	}

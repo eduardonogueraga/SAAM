@@ -12,6 +12,14 @@
 #ifndef MUSIC_SOURCE_ALARMAUTIL_CHECKER_H_
 #define MUSIC_SOURCE_ALARMAUTIL_CHECKER_H_
 
+void checkearResetModuloGSM(){
+	if(checkearMargenTiempo(tiempoRefrescoGSM)){
+		mcp.digitalWrite(GSM_PIN, HIGH);
+	}else {
+		mcp.digitalWrite(GSM_PIN, LOW);
+	}
+}
+
 void checkearLimitesEnvios(){
 	if(!configSystem.MODULO_RTC){
 		return;
@@ -104,20 +112,18 @@ void checkearAlertasDetenidas(){
 			Serial.println(literalesZonas[respuestaTerminal.idTerminal][respuestaTerminal.idSensorDetonante]);
 
 			estadoAlarma = ESTADO_ALERTA;
-			sleepModeGSM = GSM_ON;
-			setMargenTiempo(tiempoMargen,15000);
 		}
 	}
 
 void chekearInterrupciones(){
-	if(leerFlagEE("ERR_INTERRUPT") == 1){
+	if(leerFlagEEInt("ERR_INTERRUPT") == 1){
 
 		procesoCentral = ERROR;
-		codigoError = static_cast<CODIGO_ERROR>(leerFlagEE("CODIGO_ERROR"));
+		codigoError = static_cast<CODIGO_ERROR>(leerFlagEEInt("CODIGO_ERROR"));
 
-		if(leerFlagEE("MENSAJE_EMERGEN") == 1){
+		if(leerFlagEEInt("MENSAJE_EMERGEN") == 1){
 
-			if(leerFlagEE("LLAMADA_EMERGEN") == 0){
+			if(leerFlagEEInt("LLAMADA_EMERGEN") == 0){
 				Serial.println(F("Vuelve a por las llamadas"));
 				estadoError = REALIZAR_LLAMADAS;
 				setMargenTiempo(tiempoMargen,240000);
@@ -162,8 +168,11 @@ void checkearBateriaDeEmergencia(){
 }
 
 void checkearFalloEnAlimientacion(){
-	if(mcp.digitalRead(FALLO_BATERIA_PRINCIPAL) == HIGH){
-		interrupcionFalloAlimentacion();
+	if(leerFlagEEInt("ERR_INTERRUPT") == 0){ //Si no hay una caida previa compruebo
+		if(mcp.digitalRead(FALLO_BATERIA_PRINCIPAL) == HIGH){
+			interrupcionFalloAlimentacion();
+			WebSerial.println("Lanza Iterrupcion");
+		}
 	}
 }
 

@@ -183,7 +183,7 @@ void printSystemInfo();
 
 void guardarFlagEE(const char* key, int value);
 void guardarFlagEE(const char* key, uint8_t value);
-uint8_t leerFlagEE(const char* key);
+//uint8_t leerFlagEE(const char* key); //Deprecated
 int leerFlagEEInt(const char* key);
 String leerCadenaEE(const char* key);
 void guardarCadenaEE(const char* key, String* value);
@@ -285,13 +285,6 @@ typedef enum {
 	INFO_RESET_AUTO,
 	INFO_BLUETOOH
 } Infos;
-
-typedef enum {
-	GSM_ON,
-	GSM_OFF,
-	GSM_TEMPORAL,
-	GSM_REFRESH
-} SLEEPMODE_GSM;
 
 typedef enum {
 	BT_OFF,
