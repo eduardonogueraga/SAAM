@@ -105,7 +105,7 @@ String descifrarCadena(const String& inputString) {
 	}
 
 	void refrescarModuloGSM(){
-		setMargenTiempo(tiempoRefrescoGSM, 400);
+		setMargenTiempo(tiempoRefrescoGSM, 5000);
 	}
 
 	void comprobarConexionGSM(unsigned long timeOut){
@@ -331,7 +331,7 @@ String descifrarCadena(const String& inputString) {
 
 			cerrarConexionGPRS();
 
-			//vTaskDelay(1000);
+			vTaskDelay(300); //Damos algo de tipo a la cola de registros para que no se pisen
 		}
 		return respuesta;
 	}

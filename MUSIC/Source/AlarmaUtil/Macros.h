@@ -11,6 +11,7 @@
 
 //MACROS
 //#define ALARMA_EN_MODO_DEBUG //Nunca definir en produccion
+//#define WIFI_PUERTO_SERIE //Definir solo para debug
 
 #define TIEMPO_OFF_TEST 0.1666
 #define TIEMPO_ON_TEST 0.01
@@ -257,7 +258,7 @@ struct configuracion_sistema_t {
  typedef struct  {
 	 int  saasLogid = 0;
 	 byte tipoLog;
-	 char log[500];
+	 char log[600];
  } RegistroLogTarea;
 
 

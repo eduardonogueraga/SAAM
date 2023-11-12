@@ -14,13 +14,6 @@
  *
  * INCIDENCIAS
  *
- * 	-  Error en esta parte para el guardado del lo mensajes: char registroConjunto[50];
- *	 snprintf(registroConjunto, sizeof(registroConjunto), "%s%s", Mensajes::getAsuntoMensaje()," MENSAJE ENVIADO");
- *
- *  - Log http incompleto no pinta la respuesta del servidor
- *
- *  - Fichero temp.txt en directorio json investigar
- *
  */
 
 
@@ -109,7 +102,7 @@ void setup()
 
 	    //MODULO GSM
 	    mcp.pinMode(GSM_PIN, OUTPUT);
-	    mcp.digitalWrite(GSM_PIN, HIGH); //Siempre ALTO (BAJO = RESET)
+	    mcp.digitalWrite(GSM_PIN, LOW); //Siempre BAJO (ALTO = TIERRA EN RESET)
 
 		//MODULO RS485
 	    pinMode(RS_CTL, OUTPUT);
@@ -127,10 +120,6 @@ void setup()
 	    //Configuracion de los puertos
 	    mcp.digitalWrite(LED_COCHERA, LOW);
 	    digitalWrite(RS_CTL,LOW);
-
-
-	    //Activamos el modulo GSM
-	    mcp.digitalWrite(GSM_PIN, HIGH);
 
 	    //Respaldo modelo JSON
 	    eventosJson.iniciarModeloJSON();
@@ -164,20 +153,22 @@ void setup()
 	    }
 
 	    //TEST WIFI
+		#ifdef WIFI_PUERTO_SERIE
 	    WiFi.mode(WIFI_STA);
-	    WiFi.begin(ssidWifi, passwordWifi);
-	    if (WiFi.waitForConnectResult() != WL_CONNECTED) {
-	    	Serial.printf("WiFi Failed!\n");
-	    	//return;
-	    }else {
-	    	Serial.print("IP Address: ");
-	    	Serial.print(WiFi.localIP());
-	    	Serial.println("/webserial");
-	    	// WebSerial is accessible at "<IP Address>/webserial" in browser
-	    	WebSerial.begin(&serverDos);
-	    	WebSerial.msgCallback(recvMsg);
-	    	serverDos.begin();
-	    }
+	   	    WiFi.begin(ssidWifi, passwordWifi);
+	   	    if (WiFi.waitForConnectResult() != WL_CONNECTED) {
+	   	    	Serial.printf("WiFi Failed!\n");
+	   	    	//return;
+	   	    }else {
+	   	    	Serial.print("IP Address: ");
+	   	    	Serial.print(WiFi.localIP());
+	   	    	Serial.println("/webserial");
+	   	    	// WebSerial is accessible at "<IP Address>/webserial" in browser
+	   	    	WebSerial.begin(&serverDos);
+	   	    	WebSerial.msgCallback(recvMsg);
+	   	    	serverDos.begin();
+	   	    }
+		#endif
 	   //TEST WIFI
 
 #ifndef ALARMA_EN_MODO_DEBUG
@@ -238,7 +229,7 @@ void procesosSistema(){
 
 
 	watchDog();
-	//checkearResetModuloGSM();
+	checkearResetModuloGSM();
 	checkearSensorPuertaCochera();
 	avisoLedPuertaCochera();
 	resetearAlarma();

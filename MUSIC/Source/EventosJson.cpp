@@ -520,13 +520,12 @@ byte EventosJson::enviarInformeSaas(){
 			if(resultado == ENVIO_OK){
 				Serial.println(F("Modelo sd enviado"));
 				confirmarIdPaquete();
+				registro.extraerPrimerElemento(); //Saco el registro
 
 				 snprintf(reg.log, sizeof(reg.log), "Modelo enviado desde SD");
 				 reg.saasLogid = MODELO_ENVIADO_SD_LOG;
 				 xQueueSend(colaRegistros, &reg, 0);
 
-
-				registro.extraerPrimerElemento(); //Saco el registro
 				estadoEnvio = 1;
 			}else if(resultado == ERROR_ID){
 

@@ -14,9 +14,9 @@
 
 void checkearResetModuloGSM(){
 	if(checkearMargenTiempo(tiempoRefrescoGSM)){
-		mcp.digitalWrite(GSM_PIN, HIGH);
-	}else {
 		mcp.digitalWrite(GSM_PIN, LOW);
+	}else {
+		mcp.digitalWrite(GSM_PIN, HIGH);
 	}
 }
 

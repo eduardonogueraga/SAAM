@@ -47,8 +47,8 @@ void Mensajes::mensajeAlerta()  {
 
 	this->enviarSMS();
 
-	char registroConjunto[50];
-	snprintf(registroConjunto, sizeof(registroConjunto), "%s%s", Mensajes::getAsuntoMensaje()," MENSAJE ENVIADO");
+	char registroConjunto[60];
+	snprintf(registroConjunto, sizeof(registroConjunto), "%s%s", Mensajes::getAsuntoMensaje().c_str()," MENSAJE ENVIADO");
 	registro.registrarLogSistema(registroConjunto);
 	eventosJson.guardarNotificacion(1, this->literalAsuntoSaas, this->getFullSMS(), TLF_NUM_1);
 
@@ -111,8 +111,8 @@ void Mensajes::mensajeError(){
 	//pieFechaBateria(); //Incompatibilidad hardware
 
 	this->enviarSMSEmergencia();
-	char registroConjunto[50];
-	snprintf(registroConjunto, sizeof(registroConjunto), "%s%s", Mensajes::getAsuntoMensaje()," MENSAJE ENVIADO");
+	char registroConjunto[60];
+	snprintf(registroConjunto, sizeof(registroConjunto), "%s%s", Mensajes::getAsuntoMensaje().c_str()," MENSAJE ENVIADO");
 	registro.registrarLogSistema(registroConjunto);
 	eventosJson.guardarNotificacion(1, this->literalAsuntoSaas, this->getFullSMS(), TLF_NUM_1);
 
