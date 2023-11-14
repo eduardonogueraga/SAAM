@@ -141,6 +141,7 @@ void EventosJson::guardarEvento(char eventName[],char reg[]) {
 	 E_ARR_SYSTEM["msen"] = String(configSystem.MODO_SENSIBLE);
 	 E_ARR_SYSTEM["alive"] = String(millis());
 	 E_ARR_SYSTEM["traffic"] = numTrafic;
+	 E_ARR_SYSTEM["gsm"] = String(getCalidadRed()) + "|" + String(getVoltajeBateria());
 	 E_ARR_SYSTEM["modules"] = String(configSystem.MODULO_SD)+
 			 "|" + String(configSystem.MODULO_RTC)+
 			 "|0";
@@ -358,6 +359,7 @@ void EventosJson::actualizarCabecera(){
 	lastSystem["msen"] = String(configSystem.MODO_SENSIBLE);
 	lastSystem["alive"] = String(millis());
 	lastSystem["traffic"] = numTrafic;
+	lastSystem["gsm"] = String(getCalidadRed()) + "|" + String(getVoltajeBateria());
 	lastSystem["modules"] = String(configSystem.MODULO_SD)+
 			"|" + String(configSystem.MODULO_RTC)+
 			"|0";

@@ -16,7 +16,6 @@
 #include "AlarmaUtil/Macros.h"
 
 
-
 extern Registro registro;
 extern Fecha fecha;
 extern Preferences NVSMemory;
@@ -25,13 +24,14 @@ extern Preferences NVSMemory;
 extern byte MODO_DEFAULT;
 extern byte INTENTOS_REACTIVACION;
 extern EstadosAlarma estadoAlarma;
-
 extern ConfigSystem configSystem;
 
 extern RespuestaHttp postDatosSaas(String* modeloJson, SAAS_TIPO_HTTP_REQUEST tipoDatos);
 extern int getIdPaqueteSaas();
 extern int generarTokenSaas();
 extern const char* version[];
+extern int getCalidadRed();
+extern int getVoltajeBateria();
 
 extern QueueHandle_t colaRegistros;
 

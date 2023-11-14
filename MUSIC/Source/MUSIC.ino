@@ -5,9 +5,9 @@
  *
  * POR HACER:
  *
- * - Mas metricas y envio FTP
  * - Controlar el reset GSM en Response status code: -4 (FLAG)
- * - Header SAAS voltage
+ * - Mas metricas y envio FTP
+ *
  * - Enriquecer el log con dia de la semana o temperatura
  * - Probar que en caso de necesitar tlf y sms las tareas en segundo plano finalizan OK
  * - Controlar a futuro el impacto entre terminales core

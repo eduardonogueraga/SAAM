@@ -130,14 +130,13 @@ String descifrarCadena(const String& inputString) {
 		Serial.println("Signal quality: " + String(csq));
 
 
-		char descripcion[190];
-		snprintf(descripcion, sizeof(descripcion), "Operador: %s, Calidad de red: (%d)", operatorName.c_str(), csq);
-		registro.registrarLogSistema(descripcion);
-
-
 		int voltage = modem.getBattVoltage();
-        Serial.print("Voltaje bateria: ");
+		Serial.print("Voltaje bateria: ");
 		Serial.println(voltage);
+
+		char descripcion[190];
+		snprintf(descripcion, sizeof(descripcion), "Operador: %s, Calidad de red: (%d), V:(%d)", operatorName.c_str(), csq, voltage);
+		registro.registrarLogSistema(descripcion);
 
 		pantallaDeError(fixedLengthString(operatorName, 16)+"Calidad red:"+(csq));
 
@@ -406,6 +405,14 @@ String descifrarCadena(const String& inputString) {
 	    Serial.println(respuesta.respuesta);
 
 		return respuesta;
+	}
+
+	int getCalidadRed(){
+		return modem.getSignalQuality();
+	}
+
+	int getVoltajeBateria(){
+		return modem.getBattVoltage();
 	}
 
 	uint8_t sendATcommand(const char* ATcommand, const char* expected_answer, unsigned int timeout) {
