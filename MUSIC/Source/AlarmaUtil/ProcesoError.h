@@ -12,7 +12,9 @@
 #define SOURCE_ALARMAUTIL_PROCESOERROR_H_
 
 void setEstadoErrorComprobarDatos(){
-	WebSerial.println(F("Guardando datos "));
+#ifdef WIFI_PUERTO_SERIE
+		WebSerial.println(F("Guardando datos "));
+#endif
 		estadoError = COMPROBAR_DATOS;
 		guardarEstadoAlerta();
 
@@ -33,8 +35,9 @@ void setEstadoErrorComprobarDatos(){
 	}
 
 	void setEstadoErrorEnviarAviso(){
-
+#ifdef WIFI_PUERTO_SERIE
 		WebSerial.println(F("Comprobando datos y enviando SMS "));
+#endif
 		estadoError = ENVIAR_AVISO;
 
 		//Cerramos la pila de tareas y terminamos la ejecucion si quedase alguna tarea ejecutandose
@@ -44,20 +47,26 @@ void setEstadoErrorComprobarDatos(){
 
 
 		if(!modem.waitForNetwork(1000, true)){
+#ifdef WIFI_PUERTO_SERIE
 			WebSerial.println(F("Modulo sin red refrescando"));
+#endif
 			refrescarModuloGSM();
 		}
 
 	}
 
 	void setEstadoErrorRealizarLlamadas(){
+#ifdef WIFI_PUERTO_SERIE
 		WebSerial.println(F("Realizando llamadas "));
+#endif
 		estadoError = REALIZAR_LLAMADAS;
 		setMargenTiempo(tiempoMargen,240000);
 	}
 
 	void setEstadoErrorEsperarAyuda(){
+#ifdef WIFI_PUERTO_SERIE
 		WebSerial.println(F("Esperar ayuda"));
+#endif
 
 		//Liberadas los SMS y llamadas encolamos peticiones
 		encolarNotificacionSaas(0, "Interrupcion por fallo en la alimentacion");
@@ -91,7 +100,9 @@ void setEstadoErrorComprobarDatos(){
 
 			if(checkearMargenTiempo(tiempoMargen)){
 				mensaje.mensajeError();
+#ifdef WIFI_PUERTO_SERIE
 				WebSerial.println(F("SMS Enviado Checkpoint"));
+#endif
 				setEstadoErrorRealizarLlamadas();
 			}
 			desactivarEstadoDeError();
@@ -106,7 +117,9 @@ void setEstadoErrorComprobarDatos(){
 			//realizarLlamadas();
 
 			if(checkearMargenTiempo(tiempoMargen)){
+#ifdef WIFI_PUERTO_SERIE
 				WebSerial.println(F("Llamadas realizadas Checkpoint"));
+#endif
 				setEstadoErrorEsperarAyuda();
 				guardarFlagEE("LLAMADA_EMERGEN", 1);
 			}

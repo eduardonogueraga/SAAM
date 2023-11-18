@@ -5,7 +5,6 @@
  *
  * POR HACER:
  *
- * - Controlar el reset GSM en Response status code: -4 (FLAG)
  * - Mas metricas y envio FTP
  *
  * - Enriquecer el log con dia de la semana o temperatura
@@ -102,7 +101,7 @@ void setup()
 
 	    //MODULO GSM
 	    mcp.pinMode(GSM_PIN, OUTPUT);
-	    mcp.digitalWrite(GSM_PIN, LOW); //Siempre BAJO (ALTO = TIERRA EN RESET)
+	    mcp.digitalWrite(GSM_PIN, HIGH);
 
 		//MODULO RS485
 	    pinMode(RS_CTL, OUTPUT);
@@ -237,7 +236,7 @@ void procesosSistema(){
 	resetAutomatico();
 	//checkearBateriaDeEmergencia(); //TODO Hardware actual incompatible
 	checkearFalloEnAlimientacion();
-	//escucharGSM();
+	escucharGSM();
 
 	//Quitadas por pruebas
 

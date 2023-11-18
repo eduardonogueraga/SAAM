@@ -618,6 +618,12 @@ void ComandoSerie::comprobarComando() {
 		refrescarModuloGSM();
 	}
 
+	if (compararCadena(data, "http -4")){
+		nombreComando(data);
+		guardarFlagEE("ERR_HTTP_4", 1);
+	}
+
+
 	if (compararCadena(data, "t -m1")){
 		nombreComando(data);
 		Serial.println("Probando multiples detecciones");
@@ -797,6 +803,7 @@ void ComandoSerie::mostrarAyuda() {
   Serial.println("pila -sleep - Rehabilitar ejecucion de pila de tareas con tiempo de espera");
   Serial.println("power -f - Simular fallo de alimentacion");
   Serial.println("gsm -r - Refrescar modulo GSM");
+  Serial.println("http -4 - Forzar error HTTP -4");
   Serial.println("t -m1 - Prueba  de terminal múltiples detecciones");
   Serial.println("t -m2 - Prueba de terminal detecciones individuales");
   Serial.println("t -m3 - Prueba de terminal sabotaje");

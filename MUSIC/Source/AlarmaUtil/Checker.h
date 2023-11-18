@@ -13,10 +13,16 @@
 #define MUSIC_SOURCE_ALARMAUTIL_CHECKER_H_
 
 void checkearResetModuloGSM(){
+
+	if(leerFlagEEInt("ERR_HTTP_4") == 1){
+		refrescarModuloGSM();
+		guardarFlagEE("ERR_HTTP_4", 0);
+	}
+
 	if(checkearMargenTiempo(tiempoRefrescoGSM)){
-		mcp.digitalWrite(GSM_PIN, LOW);
-	}else {
 		mcp.digitalWrite(GSM_PIN, HIGH);
+	}else {
+		mcp.digitalWrite(GSM_PIN, LOW);
 	}
 }
 
@@ -171,7 +177,9 @@ void checkearFalloEnAlimientacion(){
 	if(leerFlagEEInt("ERR_INTERRUPT") == 0){ //Si no hay una caida previa compruebo
 		if(mcp.digitalRead(FALLO_BATERIA_PRINCIPAL) == HIGH){
 			interrupcionFalloAlimentacion();
+#ifdef WIFI_PUERTO_SERIE
 			WebSerial.println("Lanza Iterrupcion");
+#endif
 		}
 	}
 }

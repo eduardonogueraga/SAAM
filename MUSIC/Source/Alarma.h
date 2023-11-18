@@ -20,12 +20,10 @@
 #include <ArduinoHttpClient.h>
 #include <AESLib.h>
 #include "base64.h"
-
 #include <WiFi.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <WebSerial.h>
-#include <Print.h>
 
 #include "Autenticacion.h"
 #include "Pantalla.h"
@@ -42,23 +40,18 @@
 #include "ComunicacionLinea.h"
 #include "Terminal.h"
 
-//FLAG TESTS
-byte F_COMPROBAR_BAT = 0;
-
 //TEST WIFI
+#ifdef WIFI_PUERTO_SERIE
 AsyncWebServer serverDos(80);
 
 void recvMsg(uint8_t *data, size_t len){
-  //WebSerial.println("Received Data...");
   String d = "";
   for(int i=0; i < len; i++){
     d += char(data[i]);
   }
   WebSerial.println(d);
-
-  F_COMPROBAR_BAT = 1;
-
 }
+#endif
 //TEST WIFI
 
 //VERSION (VE -> Version Estable VD -> Version Desarrollo)
@@ -362,6 +355,7 @@ void leerEntradaTeclado(){
 				eventosJson.guardarLog(RESET_MANUAL_LOG);
 			}
 
+			mcp.digitalWrite(GSM_PIN, LOW); //Reseteo el modulo GSM
 			delay(200);
 			mcp.digitalWrite(RESETEAR, HIGH);
 		}
@@ -612,7 +606,9 @@ void leerEntradaTeclado(){
 
 
 	void interrupcionFalloAlimentacion(){
+#ifdef WIFI_PUERTO_SERIE
 		WebSerial.println(F("\nInterrupcion por fallo en la alimentacion"));
+#endif
 		codigoError = ERR_FALLO_ALIMENTACION;
 		registro.registrarLogSistema("INTERRUPCION POR FALLO EN LA ALIMENTACION");
 		eventosJson.guardarLog(FALLO_ALIMENTACION_LOG);

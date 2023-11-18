@@ -105,7 +105,7 @@ String descifrarCadena(const String& inputString) {
 	}
 
 	void refrescarModuloGSM(){
-		setMargenTiempo(tiempoRefrescoGSM, 5000);
+		setMargenTiempo(tiempoRefrescoGSM, 400);
 	}
 
 	void comprobarConexionGSM(unsigned long timeOut){
@@ -242,6 +242,11 @@ String descifrarCadena(const String& inputString) {
 			respuesta.codigo = http.responseStatusCode();
 			Serial.print(F("Response status code: "));
 			Serial.println(respuesta.codigo);
+
+			if(respuesta.codigo == -4){
+				//Flag respuesta -4 reiniciar modulo GSM
+				guardarFlagEE("ERR_HTTP_4", 1);
+			}
 
 			if (estadoHttp != 0 || respuesta.codigo <= 0) {
 				Serial.println(F("failed to connect"));
@@ -524,15 +529,72 @@ String descifrarCadena(const String& inputString) {
 
 	void testEnvioFtp(){
 
+		// Llama a la función ConfigureFTP con los detalles del servidor FTP
+		//const char* servidorFTP = "";
+		//const char* userFtp = "";
+		//const char* passFtp = "";
+		//ConfigureFTP(servidorFTP, userFtp, passFtp);
+
+
+		if(establecerConexionGPRS()){
+
+			int result;
+			int response;
+
+			result = sendATcommand("AT+CFTPSSTART", "OK", 300);
+			Serial.println(result);
+/*
+			result = sendATcommand("AT+CFTPPORT=7512", "OK", 2000);
+			Serial.print("AT+CFTPPORT=7512: ");
+			Serial.println(result);
+
+			result = sendATcommand("AT+CFTPMODE=1", "OK", 2000);
+			Serial.print("AT+CFTPMODE=1: ");
+			Serial.println(result);
+
+			delay(1000);
+
+
+
+
+*/
+			result = sendATcommand("AT+CFTPSSINGLEIP=1", "OK", 300);
+						Serial.println(result);
+
+			delay(1000);
+
+			Serial.println(result);
+
+			delay(1000);
+
+
+			result = sendATcommand("AT+CFTPSLIST=\"/\"", "OK", 7000);
+			Serial.println(result);
+
+			//delay(1000);
+
+
+			//result = sendATcommand("AT+CFTPSPWD", "OK", 300);
+			//Serial.println(result);
+
+			delay(1000);
+
+			result = sendATcommand("AT+CFTPSLOGOUT", "OK", 300);
+			Serial.println(result);
+
+			delay(1000);
+
+			result = sendATcommand("AT+CFTPSSTOP", "OK", 300);
+			Serial.println(result);
+
+
+			cerrarConexionGPRS();
+
+		}
+
 		//uint8_t answer = 0;
 		//answer = sendATcommand("AT", "OK", 2000);
 		//Serial.println(answer);
-
-	  // Llama a la función ConfigureFTP con los detalles del servidor FTP
-	  const char* servidorFTP = "";
-	  const char* userFtp = "";
-	  const char* passFtp = "";
-	  ConfigureFTP(servidorFTP, userFtp, passFtp);
 
 	  //const char* nombreArchivo = "test.txt";
 	  //DownloadFromFTP(nombreArchivo);
