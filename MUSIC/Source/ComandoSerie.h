@@ -14,6 +14,7 @@
 #include <HardwareSerial.h>
 #include "ComunicacionLinea.h"
 #include "Terminal.h"
+#include "Env.h"
 
 
 extern void setEstadoGuardia();
@@ -65,6 +66,8 @@ extern InterStrikeCore sensorCore;
 extern void guardarEstadoAlerta();
 extern void testEnvioFtp();
 extern void pruebaCifrado();
+extern bool establecerConexionGPRS();
+extern void cerrarConexionGPRS();
 
 class ComandoSerie {
 

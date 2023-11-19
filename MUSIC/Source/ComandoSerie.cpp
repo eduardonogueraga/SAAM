@@ -557,8 +557,127 @@ void ComandoSerie::comprobarComando() {
 		UART_GSM.println("AT+CFUN=1,1");
 	}
 
+	//GSM FileSystem
+
+	if(compararCadena(data, "gsm dir")){
+		nombreComando(data);
+		UART_GSM.println("AT+FSCD?");
+
+		esperarRespuestaUart2();
+	}
+
+	if(compararCadena(data, "gsm cd F")){
+		nombreComando(data);
+		UART_GSM.println("AT+FSCD=F:/");
+		esperarRespuestaUart2();
+	}
+
+	if(compararCadena(data, "gsm cd C")){
+		nombreComando(data);
+		UART_GSM.println("AT+FSCD=C:/");
+		esperarRespuestaUart2();
+	}
+
+	if(compararCadena(data, "gsm cd E")){
+		nombreComando(data);
+		UART_GSM.println("AT+FSCD=E:/");
+		esperarRespuestaUart2();
+	}
+
+	if(compararCadena(data, "gsm ls")){
+		nombreComando(data);
+		UART_GSM.println("AT+FSLS");
+		esperarRespuestaUart2();
+	}
+
+	if(compararCadena(data, "gsm load")){
+		nombreComando(data);
+		UART_GSM.println("AT+CFTRANRX=\"e:/toftp.txt\",50");
+		esperarRespuestaUart2();
+	}
 
 
+	if(compararCadena(data, "gsm content")){
+		nombreComando(data);
+		UART_GSM.println("Hola este el el contenido del load un saludo");
+		esperarRespuestaUart2();
+	}
+
+	if(compararCadena(data, "gsm clear")){
+		nombreComando(data);
+		UART_GSM.println("AT+FSDEL=toftp.txt");
+		esperarRespuestaUart2();
+	}
+
+
+
+	//FTP
+	if(compararCadena(data, "ftp gprs on")){
+		nombreComando(data);
+		establecerConexionGPRS();
+	}
+
+
+	if(compararCadena(data, "ftp start")){
+		nombreComando(data);
+		UART_GSM.println("AT+CFTPSSTART");
+		esperarRespuestaUart2();
+	}
+
+	if(compararCadena(data, "ftp ip")){
+		nombreComando(data);
+		UART_GSM.println("AT+CFTPSSINGLEIP=1");
+		esperarRespuestaUart2();
+	}
+
+
+	if(compararCadena(data, "ftp login")){
+		nombreComando(data);
+
+		char FTPConnectionCommand[150];
+		sprintf(FTPConnectionCommand, "AT+CFTPSLOGIN=\"%s\",%i,\"%s\", \"%s\",0", serverUrl, 21, ftpUser, ftpPassword);
+
+		UART_GSM.println(FTPConnectionCommand);
+		esperarRespuestaUart2();
+	}
+
+	if(compararCadena(data, "ftp pwd")){
+		nombreComando(data);
+		UART_GSM.println("AT+CFTPSPWD");
+		esperarRespuestaUart2();
+	}
+
+	if(compararCadena(data, "ftp cd")){
+		nombreComando(data);
+
+		char FTPPwdCommand[150];
+		sprintf(FTPPwdCommand, "AT+CFTPSCWD=\"%s\"", ftpWorkingDir);
+		UART_GSM.println(FTPPwdCommand);
+		esperarRespuestaUart2();
+	}
+
+	if(compararCadena(data, "ftp put")){
+		nombreComando(data);
+		UART_GSM.println("AT+CFTPSPUTFILE=\"toftp.txt\",3");
+		esperarRespuestaUart2();
+	}
+
+	if(compararCadena(data, "ftp logout")){
+		nombreComando(data);
+		UART_GSM.println("AT+CFTPSLOGOUT");
+		esperarRespuestaUart2();
+	}
+
+	if(compararCadena(data, "ftp stop")){
+		nombreComando(data);
+		UART_GSM.println("AT+CFTPSSTOP");
+		esperarRespuestaUart2();
+	}
+
+	if(compararCadena(data, "ftp gprs off")){
+		nombreComando(data);
+		cerrarConexionGPRS();
+	}
 
 	if(compararCadena(data, "pila -t")){
 		nombreComando(data);
