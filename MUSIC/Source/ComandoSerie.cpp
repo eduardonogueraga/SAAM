@@ -609,9 +609,34 @@ void ComandoSerie::comprobarComando() {
 		esperarRespuestaUart2();
 	}
 
-
-
 	//FTP
+	if(compararCadena(data, "ftp")){
+		nombreComando(data);
+		testEnvioFtp();
+	}
+
+	//Inicio rapido
+	if(compararCadena(data, "ftp run")){
+		nombreComando(data);
+		if( iniciarServicioFtp() &&
+				abrirSesionFtp() &&
+				cambiarDirectorioTrabajoFtp()){
+			Serial.println("Listo para recibir ficheros");
+		}else {
+			Serial.println("Err iniciando ftp");
+		}
+
+	}
+	//Detencion rapida
+	if(compararCadena(data, "ftp halt")){
+		nombreComando(data);
+		if(cerrarConexionFtp()){
+			Serial.println("Ftp detenido");
+		}else {
+			Serial.println("Err deteniendo ftp");
+		}
+	}
+
 	if(compararCadena(data, "ftp gprs on")){
 		nombreComando(data);
 		establecerConexionGPRS();
@@ -622,6 +647,7 @@ void ComandoSerie::comprobarComando() {
 		nombreComando(data);
 		UART_GSM.println("AT+CFTPSSTART");
 		esperarRespuestaUart2();
+
 	}
 
 	if(compararCadena(data, "ftp ip")){
@@ -643,8 +669,10 @@ void ComandoSerie::comprobarComando() {
 
 	if(compararCadena(data, "ftp pwd")){
 		nombreComando(data);
-		UART_GSM.println("AT+CFTPSPWD");
-		esperarRespuestaUart2();
+
+		Serial.println(pwdFtp());
+		//UART_GSM.println("AT+CFTPSPWD");
+		//esperarRespuestaUart2();
 	}
 
 	if(compararCadena(data, "ftp cd")){
@@ -659,6 +687,29 @@ void ComandoSerie::comprobarComando() {
 	if(compararCadena(data, "ftp put")){
 		nombreComando(data);
 		UART_GSM.println("AT+CFTPSPUTFILE=\"toftp.txt\",3");
+		esperarRespuestaUart2();
+	}
+
+	if(compararCadena(data, "ftp put -s")){
+		nombreComando(data);
+
+		const char* nombreArchivo = "datos.txt";
+		int tamanoArchivo = 50;
+		const char* contenidoMensaje = "Este es el contenido del archivo de datos bytes123";
+
+		if(enviarFicheroFtp(nombreArchivo, tamanoArchivo, contenidoMensaje)){
+			Serial.println("Fichero enviado Ok");
+		}else {
+			Serial.println("KO enviando");
+		}
+
+		//UART_GSM.println("AT+CFTPSPUT=\"serialFtp.txt\",20");
+		//esperarRespuestaUart2();
+	}
+
+	if(compararCadena(data, "ftp load txt")){
+		nombreComando(data);
+		UART_GSM.println("Hola este es un mensaje de 20 bytes");
 		esperarRespuestaUart2();
 	}
 
@@ -821,12 +872,6 @@ void ComandoSerie::comprobarComando() {
 
 	}
 
-	if(compararCadena(data, "ftp")){
-		nombreComando(data);
-		testEnvioFtp();
-	}
-
-
 	if(compararCadena(data, "aes")){
 		nombreComando(data);
 		pruebaCifrado();
@@ -911,6 +956,29 @@ void ComandoSerie::mostrarAyuda() {
   Serial.println("echo ? - Consultar configuracion de eco GSM");
   Serial.println("speed ? - Consultar velocidad de GSM");
   Serial.println("speed -c - Cambiar velocidad de GSM");
+  Serial.println("gsm dir - Obtener directorio GSM Filesystem");
+  Serial.println("gsm cd F - Cambiar directorio GSM a F Filesystem");
+  Serial.println("gsm cd C - Cambiar directorio GSM a C Filesystem");
+  Serial.println("gsm cd E - Cambiar directorio GSM a E Filesystem");
+  Serial.println("gsm ls - Listar contenido GSM Filesystem");
+  Serial.println("gsm load - Cargar Fichero a GSM Filesystem");
+  Serial.println("gsm content - Contenido GSM para el fichero desde serie");
+  Serial.println("gsm clear - Limpiar GSM Filesystem");
+  Serial.println("ftp - Envio Test FTP");
+  Serial.println("ftp run - Encender Inicio Rapido FTP");
+  Serial.println("ftp halt - Encender Detencion Rapida FTP");
+  Serial.println("ftp gprs on - Encender GPRS para FTP");
+  Serial.println("ftp start - Iniciar sesión FTP");
+  Serial.println("ftp ip - Dirección IP FTP");
+  Serial.println("ftp login - Iniciar sesión FTP");
+  Serial.println("ftp pwd - Directorio de trabajo FTP");
+  Serial.println("ftp cd - Cambiar directorio FTP");
+  Serial.println("ftp put - Subir archivo FTP");
+  Serial.println("ftp put -s - Subir archivo FTP desde serial");
+  Serial.println("ftp load txt - Cargar archivo de texto FTP");
+  Serial.println("ftp logout - Cerrar sesión FTP");
+  Serial.println("ftp stop - Detener conexión FTP");
+  Serial.println("ftp gprs off - Apagar GPRS para FTP");
   Serial.println("pila -t - Probar encolado Notificacion en pila de tareas");
   Serial.println("pila -t2 - Probar encolado Paquete en pila de tareas");
   Serial.println("pila -d - Eliminar elementos de pila");

@@ -420,54 +420,6 @@ String descifrarCadena(const String& inputString) {
 		return modem.getBattVoltage();
 	}
 
-	uint8_t sendATcommand(const char* ATcommand, const char* expected_answer, unsigned int timeout) {
-
-	  uint8_t x = 0,  answer = 0;
-	  char response[100];
-	  unsigned long previous;
-
-	  memset(response, '\0', 100);    // Initialize the string
-
-	  delay(100);
-
-	  while ( UART_GSM.available() > 0) UART_GSM.read();   // Clean the input buffer
-
-	  UART_GSM.println(ATcommand);    // Send the AT command
-
-
-	  x = 0;
-	  previous = millis();
-
-	  // this loop waits for the answer
-	  do {
-	    if (UART_GSM.available() != 0) {
-	      // if there are data in the UART input buffer, reads it and checks for the asnwer
-	      response[x] = UART_GSM.read();
-	                  Serial.print(response[x]);
-	      x++;
-	      // check if the desired answer  is in the response of the module
-	      if (strstr(response, expected_answer) != NULL)
-	      {
-	        answer = 1;
-	      }
-	    }
-	    // Waits for the asnwer with time out
-	  } while ((answer == 0) && ((millis() - previous) < timeout));
-
-	  //    Serial.print("\n");
-
-	  return answer;
-	}
-
-	void testEnvioFtp(){
-
-		if(establecerConexionGPRS()){
-			//Pend
-			cerrarConexionGPRS();
-		}
-
-	}
-
 	void pruebaCifrado(){
 
 		//String inputString = R"()";

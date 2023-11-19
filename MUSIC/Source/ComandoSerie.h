@@ -68,6 +68,14 @@ extern void testEnvioFtp();
 extern void pruebaCifrado();
 extern bool establecerConexionGPRS();
 extern void cerrarConexionGPRS();
+extern String pwdFtp();
+extern bool enviarFicheroFtp(const char* nombreArchivo, int bytes, const char* buffer);
+
+extern bool iniciarServicioFtp();
+extern bool abrirSesionFtp();
+extern bool cambiarDirectorioTrabajoFtp();
+extern bool cerrarConexionFtp();
+
 
 class ComandoSerie {
 

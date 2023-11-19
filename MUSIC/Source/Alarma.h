@@ -620,6 +620,7 @@ void leerEntradaTeclado(){
 
 #include "AlarmaUtil/Utiles.h"
 #include "AlarmaUtil/PilaTareas.h"
+#include "AlarmaUtil/Ftp.h"
 #include "AlarmaUtil/HttpRequest.h"
 #include "AlarmaUtil/Restauracion.h"
 #include "AlarmaUtil/ProcesoError.h"
