@@ -24,13 +24,7 @@ void EstadoInicio(){
 
 	procesoCentral = ALARMA;
 	estadoAlarma = ESTADO_REPOSO;
-
-
 	saasCronEstado = ESPERA_ENVIO;
-
-	//Acutalizamos el secuencial de los logs para esta ejecucion
-	guardarFlagEE("LOG_SEQ", (leerFlagEEInt("LOG_SEQ")+1));
-
 
 #ifdef ALARMA_EN_MODO_DEBUG
 	printSystemInfo();

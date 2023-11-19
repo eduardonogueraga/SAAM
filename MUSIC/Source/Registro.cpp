@@ -56,14 +56,19 @@ byte Registro::iniciar(){
 
 
 		  //Definimos el nombre del nuevo fichero de syslog
-		  snprintf(nombreFicheroLog, sizeof(nombreFicheroLog), "%s_%08d_%s%s", "syslog", leerFlagEEInt("LOG_SEQ"), fecha.imprimeFechaFichero(),".txt");
-
+		  crearNuevoNombreLog();
 
 		  SD_STATUS = 1;
 		  Serial.println("ALMACENIAMENTO SD OK");
 
 		  return 1;
 
+}
+
+void Registro::crearNuevoNombreLog(){
+	snprintf(nombreFicheroLog, sizeof(nombreFicheroLog), "%s_%08d_%s%s", "syslog", leerFlagEEInt("LOG_SEQ"), fecha.imprimeFechaFichero(),".txt");
+	//Acutalizamos el secuencial de los logs para esta ejecucion
+	guardarFlagEE("LOG_SEQ", (leerFlagEEInt("LOG_SEQ")+1));
 }
 
 void Registro::registrarLogSistema(char descripcion[190]){
@@ -169,11 +174,13 @@ void Registro::listarRegistros(RegistroDirectorios dir){
 
 		while (true) {
 		  File entry = root.openNextFile();
-		  if (!entry) {
+		  if (!entry || entry.isDirectory()) {
 			break;
 		  }
 		  String fileName = entry.name();
-		  Serial.println(fileName);
+		  Serial.print(fileName);
+		  Serial.print("\t");
+		  Serial.println(entry.size(), DEC);
 
 		  entry.close();
 		}
@@ -429,6 +436,76 @@ int Registro::leerReintentosModelo(const String* modelo){
 String Registro::actualizarIdModelo(String* modelo, int id){
 	 String m = *modelo;
 	 return this->modificarCampo(m, "id", String(id));
+}
+
+bool Registro::envioRegistrosFTP(){
+	//Los ficheros se envian por ftp y son movidos a backup. Al finalizar se actualiza un nuevo registro de log
+	if(!configSystem.MODULO_SD || SD_STATUS == 0)
+		return false;
+
+	root = SD.open(directories[DIR_LOGS]);
+	String line = "";
+
+	if (!root) {
+		Serial.print("No se pudo abrir la carpeta de logs ");
+		return false;
+	}
+
+	File tempFile; //Guarda la copia en la ruta de backup
+	File entry;
+
+	//Itero los ficheros de la ruta
+	while (true) {
+		 entry = root.openNextFile();
+		if (!entry || entry.isDirectory()) {break;}
+
+		//Envio nombre y size a ftp para que lo envie
+		const String nombreLog = entry.name();
+
+		Serial.print(nombreLog);
+		Serial.print("\t");
+		Serial.println(entry.size(), DEC);
+
+		//Nombre del fichero solo
+		String nombreLogTemp = nombreLog.substring(13);
+		const char* fichero = nombreLogTemp.c_str();
+		//Serial.println(fichero);
+
+		//Si lo envia OK lo muevo a la ruta de backup -> (funcion que copie el fichero)
+		snprintf(rutaAbosulutaBackup, sizeof(rutaAbosulutaBackup), "%s/%s", directories[DIR_LOGS_BACKUP], fichero);
+		//Serial.println(rutaAbosulutaBackup);
+
+		tempFile = SD.open(rutaAbosulutaBackup, FILE_APPEND);
+
+		if (!tempFile) {
+			Serial.println("Fallo al abrir el fichero de backup");
+		}
+
+		if (entry) {
+			while (entry.available()) {
+				tempFile.print(entry.readStringUntil('\n'));
+				tempFile.print("\n");
+			}
+			entry.close();
+			tempFile.close();
+
+			//Borrar original
+			if (SD.remove(nombreLog)) {
+				Serial.print("Archivo borrado: ");
+				Serial.println(nombreLog);
+			} else {
+				Serial.print("Error al borrar el archivo: ");
+				Serial.println(nombreLog);
+			}
+
+		} else {
+			Serial.println("Error al abrir el archivo.");
+		}
+	}
+
+	//Si todo va bien actualizo el nuevo registro
+	root.close();
+	return true;
 }
 
 String Registro::modificarCampo(String cadena, const String& nombre_campo, const String& nuevo_valor) {

@@ -165,6 +165,16 @@ void ComandoSerie::comprobarComando() {
 		registro.listarRegistros();
 	}
 
+	if (compararCadena(data, "ls backup")){
+		nombreComando(data);
+		registro.listarRegistros(DIR_LOGS_BACKUP);
+	}
+
+	if (compararCadena(data, "purge backup")){
+		nombreComando(data);
+		registro.borrarRegistros(DIR_LOGS_BACKUP);
+	}
+
 	if (compararCadena(data, "log")){
 		nombreComando(data);
 		Serial.println("Mostrando contenido");
@@ -723,6 +733,11 @@ void ComandoSerie::comprobarComando() {
 		nombreComando(data);
 		UART_GSM.println("AT+CFTPSSTOP");
 		esperarRespuestaUart2();
+	}
+
+	if(compararCadena(data, "ftp send")){
+		nombreComando(data);
+		registro.envioRegistrosFTP();
 	}
 
 	if(compararCadena(data, "ftp gprs off")){

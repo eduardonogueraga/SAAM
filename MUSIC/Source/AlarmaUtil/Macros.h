@@ -327,6 +327,7 @@ typedef enum {
 	DIR_LOGS,
 	DIR_JSON_REQUEST,
 	DIR_HTTP_LOG,
+	DIR_LOGS_BACKUP,
 } RegistroDirectorios;
 
 //LITERALES SAAS

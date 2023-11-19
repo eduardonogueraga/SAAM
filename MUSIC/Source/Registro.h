@@ -27,20 +27,23 @@ extern Fecha fecha;
 class Registro {
 private:
 	File root;
-	const char* directories[6] = {"/saa",
+	const char* directories[7] = {"/saa",
 									"/saa/sys",
 									"/saa/http",
 									"/saa/sys/log",
 									"/saa/sys/json",
-									"/saa/http/log"};
+									"/saa/http/log",
+									"/saa/sys/log/backup"};
 	char rutaAbosuluta[60];
 	char rutaAbosulutaTemporal[60];
+	char rutaAbosulutaBackup[100];
 	char nombreFicheroLog[40];
 	char nombreFicheroJsonRequest[25] = "TEMP_JSON_RESQUEST.txt";
 	char nombreFicheroHttpLog[40];
 	RegistroDirectorios registroDirectorios;
 	String modificarCampo(String cadena, const String& nombre_campo, const String& nuevo_valor);
 	String obtenerValorCampo(const String& cadena, const String& nombre_campo);
+	void crearNuevoNombreLog();
 public:
 	Registro();
 	byte iniciar();
@@ -55,6 +58,7 @@ public:
 	void actualizarUltimoElemento(const char* campoJson,int nuevoValor= -1, RegistroDirectorios dir = DIR_JSON_REQUEST);
 	int leerReintentosModelo(const String* modelo);
 	String actualizarIdModelo(String* modelo, int id);
+	bool envioRegistrosFTP();
 
 };
 

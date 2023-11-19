@@ -76,6 +76,7 @@ extern bool abrirSesionFtp();
 extern bool cambiarDirectorioTrabajoFtp();
 extern bool cerrarConexionFtp();
 
+extern bool envioRegistrosFTP();
 
 class ComandoSerie {
 
