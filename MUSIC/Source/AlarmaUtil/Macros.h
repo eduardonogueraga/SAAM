@@ -237,6 +237,11 @@ struct configuracion_sistema_t {
  } RespuestaHttp;
 
  typedef struct  {
+     int error = 0;
+     String msg = "";
+ } RespuestaFtp;
+
+ typedef struct  {
      int intensidadSignal = 0;
      String proveedor = "";
  } ProveedorEstado;

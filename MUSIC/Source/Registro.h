@@ -19,7 +19,11 @@
 
 extern ConfigSystem configSystem;
 extern byte SD_STATUS;
-
+extern bool crearFicheroFtp(const char* nombreArchivo, int bytes);
+extern void enviarBufferFtp(const char* buffer);
+extern bool cerrarFicheroFtp();
+extern bool abrirConexionFtp();
+extern bool cerrarConexionFtp();
 
 
 extern Fecha fecha;
@@ -58,7 +62,9 @@ public:
 	void actualizarUltimoElemento(const char* campoJson,int nuevoValor= -1, RegistroDirectorios dir = DIR_JSON_REQUEST);
 	int leerReintentosModelo(const String* modelo);
 	String actualizarIdModelo(String* modelo, int id);
-	bool envioRegistrosFTP();
+	bool enviarFicheroPorFTP(int bytes, const char* rutaFichero, const char* nombreFichero);
+	RespuestaFtp envioRegistrosFTP();
+
 
 };
 

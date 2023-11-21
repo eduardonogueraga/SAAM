@@ -52,7 +52,36 @@ bool enviarFicheroDesdeFSFtp() {
 	return true;
 }
 
-bool enviarFicheroFtp(const char* nombreArchivo, int bytes, const char* buffer) {
+bool crearFicheroFtp(const char* nombreArchivo, int bytes){
+	//Genera el fichero a 0 bytes
+	char FTPPutFileCommand[150];
+	sprintf(FTPPutFileCommand, "+CFTPSPUT=\"%s\",%i", nombreArchivo, bytes);
+
+	modem.sendAT(GF(FTPPutFileCommand));
+	if (modem.waitResponse(10000L,GF(GSM_NL ">")) != 1) {
+		Serial.println("No llega el caracter >");
+		return false;
+	}
+
+	return true;
+}
+
+void enviarBufferFtp(const char* buffer){
+	//Escribir buffer desde el puerto serial
+	modem.streamWrite(buffer);
+	modem.streamWrite("\n");
+	modem.stream.flush();
+}
+
+bool cerrarFicheroFtp(){
+	//Si ya se ha enviado todo el buffer se espera la confirmacion de cierre
+	modem.streamWrite("\n\n\n");
+	modem.stream.flush();
+	if (modem.waitResponse(20000L, GF(GSM_NL "+CFTPSPUT: 0")) != 1) { return false; }
+	return true;
+}
+
+bool enviarFicheroFtpBuffer(const char* nombreArchivo, int bytes, const char* buffer) {
 
 	char FTPPutFileCommand[150];
 	sprintf(FTPPutFileCommand, "+CFTPSPUT=\"%s\",%i", nombreArchivo, bytes);
@@ -72,7 +101,6 @@ bool enviarFicheroFtp(const char* nombreArchivo, int bytes, const char* buffer) 
 	return true;
 }
 
-
 bool cerrarSesionFtp() {
 	modem.sendAT(GF("+CFTPSLOGOUT"));
 	if (modem.waitResponse(10000L, GF(GSM_NL "+CFTPSLOGOUT: 0")) != 1) { return false; }
@@ -82,6 +110,30 @@ bool cerrarSesionFtp() {
 bool detenerServicioFtp() {
 	modem.sendAT(GF("+CFTPSSTOP"));
 	if (modem.waitResponse(10000L, GF(GSM_NL "+CFTPSSTOP: 0")) != 1) { return false; }
+	return true;
+}
+
+bool abrirConexionFtp(){
+
+	if(!iniciarServicioFtp()){
+		Serial.println("No se pudo iniciar el servicio FTP");
+		return false;
+	}
+
+	if(!abrirSesionFtp()){
+		Serial.println("Error iniciando sesion FTP");
+		return false;
+	}else {
+		Serial.println("Login OK listo para tranferencia");
+
+	}
+
+	if(!cambiarDirectorioTrabajoFtp()){
+		Serial.printf("Error moviendose a la ruta %s", ftpWorkingDir);
+		Serial.print("\n");
+		return false;
+	}
+
 	return true;
 }
 
@@ -116,7 +168,7 @@ void testEnvioFtp(){
 	int tamanoArchivo = 50;
 	const char* contenidoMensaje = "Este es el contenido del archivo de datos bytes123";
 
-	if(enviarFicheroFtp(nombreArchivo, tamanoArchivo, contenidoMensaje)){
+	if(enviarFicheroFtpBuffer(nombreArchivo, tamanoArchivo, contenidoMensaje)){
 		Serial.println("Fichero enviado Ok");
 	}else {
 		Serial.println("KO enviando");

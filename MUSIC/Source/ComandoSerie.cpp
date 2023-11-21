@@ -707,7 +707,7 @@ void ComandoSerie::comprobarComando() {
 		int tamanoArchivo = 50;
 		const char* contenidoMensaje = "Este es el contenido del archivo de datos bytes123";
 
-		if(enviarFicheroFtp(nombreArchivo, tamanoArchivo, contenidoMensaje)){
+		if(enviarFicheroFtpBuffer(nombreArchivo, tamanoArchivo, contenidoMensaje)){
 			Serial.println("Fichero enviado Ok");
 		}else {
 			Serial.println("KO enviando");

@@ -174,7 +174,7 @@ void Registro::listarRegistros(RegistroDirectorios dir){
 
 		while (true) {
 		  File entry = root.openNextFile();
-		  if (!entry || entry.isDirectory()) {
+		  if (!entry /*|| entry.isDirectory()*/) {
 			break;
 		  }
 		  String fileName = entry.name();
@@ -438,38 +438,93 @@ String Registro::actualizarIdModelo(String* modelo, int id){
 	 return this->modificarCampo(m, "id", String(id));
 }
 
-bool Registro::envioRegistrosFTP(){
+bool Registro::enviarFicheroPorFTP(int bytes, const char* rutaFichero, const char* nombreFichero){
+
+	File file;
+	file = SD.open(rutaFichero);
+
+	if(!crearFicheroFtp(nombreFichero,bytes)){
+		Serial.printf("Fallo al crear el fichero %s en el servidor", rutaFichero);
+		Serial.print("\n");
+		return false;
+	}else {
+		Serial.printf("Fichero %s creado en el servidor", rutaFichero);
+		Serial.print("\n");
+	}
+
+	if (file) {
+		// Lee linea por linea hasta el final del archivo
+		while (file.available()) {
+			String linea = file.readStringUntil('\n');
+			const char* l = linea.c_str();
+			enviarBufferFtp(l);
+		}
+		// Cierra el archivo cuando termina de leer
+		file.close();
+
+		//Cerramos el fichero en el servidor ftp
+		if(!cerrarFicheroFtp()){
+			Serial.printf("Fallo al cerrar el fichero %s en el servidor", rutaFichero);
+			Serial.print("\n");
+			return false;
+		}else {
+			Serial.printf("Fichero %s cerrado transferencia OK", rutaFichero);
+			Serial.print("\n");
+		}
+
+	} else {
+		Serial.printf("Fallo al abrir el fichero %s", rutaFichero);
+		return false;
+	}
+
+	return true;
+}
+
+RespuestaFtp Registro::envioRegistrosFTP(){
 	//Los ficheros se envian por ftp y son movidos a backup. Al finalizar se actualiza un nuevo registro de log
-	if(!configSystem.MODULO_SD || SD_STATUS == 0)
-		return false;
+	RespuestaFtp respuesta;
 
-	root = SD.open(directories[DIR_LOGS]);
-	String line = "";
-
-	if (!root) {
-		Serial.print("No se pudo abrir la carpeta de logs ");
-		return false;
+	if(!configSystem.MODULO_SD || SD_STATUS == 0){
+		respuesta.error = 1;
+		return respuesta;
 	}
 
 	File tempFile; //Guarda la copia en la ruta de backup
 	File entry;
+	byte error = 0;
+
+	root = SD.open(directories[DIR_LOGS]);
+	if (!root) {
+		Serial.println("No se pudo abrir la carpeta de logs ");
+		respuesta.error = 1;
+		respuesta.msg = "No se pudo abrir la carpeta de logs";
+		return respuesta;
+	}
+
+	if (!abrirConexionFtp()) {
+		Serial.println("Err no se pudo abrir la conexion FTP");
+		respuesta.error = 1;
+		respuesta.msg = "Err no se pudo abrir la conexion FTP";
+		return respuesta;
+	}
 
 	//Itero los ficheros de la ruta
 	while (true) {
-		 entry = root.openNextFile();
-		if (!entry || entry.isDirectory()) {break;}
+		entry = root.openNextFile();
+		if (!entry) {break;}
+		if(entry.isDirectory()) {continue;}
 
-		//Envio nombre y size a ftp para que lo envie
-		const String nombreLog = entry.name();
+		const char* nombreLog = entry.name();
+		// Nombre del archivo solamente
+		const char* fichero = &nombreLog[13];
+		const int bytesFichero = entry.size();
 
-		Serial.print(nombreLog);
-		Serial.print("\t");
-		Serial.println(entry.size(), DEC);
-
-		//Nombre del fichero solo
-		String nombreLogTemp = nombreLog.substring(13);
-		const char* fichero = nombreLogTemp.c_str();
-		//Serial.println(fichero);
+		//Enviamos el fichero por ftp
+		if(!enviarFicheroPorFTP(bytesFichero, nombreLog, fichero)){
+			Serial.println("Error durante la tranferencia del fichero");
+			error = 1;
+			break;
+		}
 
 		//Si lo envia OK lo muevo a la ruta de backup -> (funcion que copie el fichero)
 		snprintf(rutaAbosulutaBackup, sizeof(rutaAbosulutaBackup), "%s/%s", directories[DIR_LOGS_BACKUP], fichero);
@@ -503,9 +558,22 @@ bool Registro::envioRegistrosFTP(){
 		}
 	}
 
-	//Si todo va bien actualizo el nuevo registro
 	root.close();
-	return true;
+
+	//Si todo va bien actualizo el nuevo registro para proximos logs
+	crearNuevoNombreLog();
+
+	if (!cerrarConexionFtp() || error == 1) {
+		Serial.println("Err no se pudo cerrar la conexion FTP");
+		respuesta.error = 1;
+		respuesta.msg = (error == 1) ? "Error durante la transferencia del fichero" : "Err no se pudo cerrar la conexión FTP";
+		return respuesta;
+	}else {
+		Serial.println("Conexion FTP cerrada bye!");
+	}
+
+	respuesta.error = 0;
+	return respuesta;
 }
 
 String Registro::modificarCampo(String cadena, const String& nombre_campo, const String& nuevo_valor) {
