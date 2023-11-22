@@ -418,7 +418,8 @@ typedef enum  {
 
 typedef enum  {
     PAQUETE,
-	NOTIFICACION
+	NOTIFICACION,
+	FTP
 } SAAS_TIPO_HTTP_REQUEST;
 
 

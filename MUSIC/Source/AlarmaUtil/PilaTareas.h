@@ -353,6 +353,51 @@ void encolarNotifiacionIntrusismo(){
 	encolarNotificacionSaas(1, contenidoCola);
 }
 
+void encolarEnvioFtpSaas(){
+	//Se guarda en la cola el envio ftp diario
+	DatosTarea datosNodo;
+	datosNodo.tipoPeticion = FTP;
+
+	InsertarFinal(&listaTareas, datosNodo);
+}
+
+void crearTareaEnvioFtpSaas(){
+	xTaskCreatePinnedToCore(
+			tareaFtpSaas,
+			"tareaFtp",
+			(1024*10), //Buffer
+			NULL, //Param
+			1, //Prioridad
+			&envioFtpSaas, //Task
+			0);
+}
+
+byte enviarEnvioFtpSaas(){
+	byte executionResult;
+	RespuestaFtp respuesta;
+
+#ifdef ALARMA_EN_MODO_DEBUG
+	if(modem.waitForNetwork(2000, true)){
+#else
+		if(modem.waitForNetwork(2000, true)){ //@develop NO NEGAR EN PROD
+#endif
+			Serial.println(F("Hay cobertura se procede al envio"));
+			respuesta = registro.envioRegistrosFTP();
+			executionResult = !respuesta.error; //Si no hay problem le envio un 1 como OK
+
+			//Pend encolar mensajes en log en funcion de lo que se devuelva
+
+		}else {
+			Serial.println(F("No hay cobertura se aborta el envio"));
+			executionResult = 0;
+			//Refresco el modulo
+			refrescarModuloGSM();
+		}
+
+		return executionResult;
+}
+
+
 void gestionarPilaDeTareas(){
 	//Compruebo si se ha habilitado la gestion de tareas
 	if(!accesoGestorPila)
@@ -397,6 +442,8 @@ void gestionarPilaDeTareas(){
 		manejador = envioNotificacionSaas;
 	}else if(tarea->data.tipoPeticion == PAQUETE) {
 		manejador = envioServidorSaas;
+	}else if(tarea->data.tipoPeticion == FTP) {
+		manejador = envioFtpSaas;
 	}else {
 		manejador = NULL;
 	}
@@ -425,6 +472,12 @@ void gestionarPilaDeTareas(){
 			//Creo la tarea para el envio de paquetes
 			Serial.println("Creando tarea envio modelo json");
 			crearTareaEnvioModeloSaas();
+		}
+
+		if(tarea->data.tipoPeticion == FTP){
+			//Creo la tarea para el envio de paquetes
+			Serial.println("Creando tarea envio ftp log");
+			crearTareaEnvioFtpSaas();
 		}
 
 
@@ -458,6 +511,10 @@ void gestionarPilaDeTareas(){
 
 			if(tarea->data.tipoPeticion == PAQUETE) {
 				resultadoTarea = resultadoEnvioServidorSaas;
+			}
+
+			if(tarea->data.tipoPeticion == FTP) {
+				resultadoTarea = resultadoEnvioFtpSaas;
 			}
 
 			if(resultadoTarea){
@@ -501,6 +558,11 @@ void gestionarPilaDeTareas(){
 					//Elimino la tarea
 					vTaskDelete(envioServidorSaas);
 					envioServidorSaas = NULL;
+				}else if(tarea->data.tipoPeticion == FTP) {
+					vTaskSuspend(envioFtpSaas);
+					//Elimino la tarea
+					vTaskDelete(envioFtpSaas);
+					envioFtpSaas = NULL;
 				}
 
 				if(tarea->reintentos == MAX_REINTENTOS_REPROCESO_TAREA){

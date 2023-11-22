@@ -5,7 +5,13 @@
  *
  * POR HACER:
  *
- * - Mas metricas y envio FTP
+ * - FTP:
+ * 		Checker para determinar envio a x hora
+ * 		Proporcionar mas tiempo de ejecucion
+ * 		No admitir reintentos de la tarea
+ * 		Derivar los logs entrantes a la cola de log durante el envio
+ * 		Eliminar la tarea en caso de emergencia
+ * 		Encolar tambien la salida del resultado del envio
  *
  * - Enriquecer el log con dia de la semana o temperatura
  * - Probar que en caso de necesitar tlf y sms las tareas en segundo plano finalizan OK
@@ -207,6 +213,21 @@ void tareaNotificacionSaas(void *pvParameters){
 	vTaskDelay(100);
 	//Finalizar tras release
 	envioNotificacionSaas = NULL;
+	vTaskDelete(NULL);
+}
+
+void tareaFtpSaas(void *pvParameters) {
+
+	Serial.println("Task envio ftp");
+	resultadoEnvioFtpSaas = 0;
+	resultadoEnvioFtpSaas = enviarEnvioFtpSaas();
+	vTaskDelay(100);
+
+	//Pendiente de cierre
+	vTaskSuspend(NULL);
+	vTaskDelay(100);
+	//Finalizar tras release
+	envioFtpSaas = NULL;
 	vTaskDelete(NULL);
 }
 

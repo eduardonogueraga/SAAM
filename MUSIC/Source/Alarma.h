@@ -61,12 +61,14 @@ const char* version[] = {"MUSIC VE21R0", "11/11/23"};
 TaskHandle_t gestionLinea;
 TaskHandle_t envioServidorSaas = NULL;
 TaskHandle_t envioNotificacionSaas = NULL;
+TaskHandle_t envioFtpSaas = NULL;
 //Parametros para tareas
 NotificacionSaas datosNotificacionSaas;
 
 //Flags resultado tareas
 byte resultadoEnvioServidorSaas;
 byte resultadoEnvioNotificacionSaas;
+byte resultadoEnvioFtpSaas;
 
 byte accesoGestorPila = 1; //Abre y cierra el gestor
 PilaTareaEstado estadoPila; //Aun no se usa para nada

@@ -755,6 +755,11 @@ void ComandoSerie::comprobarComando() {
 		testTaskNodos2();
 	}
 
+	if(compararCadena(data, "pila -t3")){
+		nombreComando(data);
+		encolarEnvioFtpSaas();
+	}
+
 	if(compararCadena(data, "pila -d")){
 		nombreComando(data);
 		testTaskNodosDelete();
@@ -996,6 +1001,7 @@ void ComandoSerie::mostrarAyuda() {
   Serial.println("ftp gprs off - Apagar GPRS para FTP");
   Serial.println("pila -t - Probar encolado Notificacion en pila de tareas");
   Serial.println("pila -t2 - Probar encolado Paquete en pila de tareas");
+  Serial.println("pila -t3 - Probar encolado FTP en pila de tareas");
   Serial.println("pila -d - Eliminar elementos de pila");
   Serial.println("pila -r - Recorrer pila de tareas");
   Serial.println("pila -m - Mover primero al final de la pila");

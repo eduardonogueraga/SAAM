@@ -52,6 +52,7 @@ extern void crearTareaNotificacionSaas(byte tipo, const char* contenido);
 
 extern void testTaskNodos();
 extern void testTaskNodos2();
+extern void encolarEnvioFtpSaas();
 extern void testTaskNodosDelete();
 extern void gestionarPilaDeTareas();
 extern void testTaskNodosRecorrer();
