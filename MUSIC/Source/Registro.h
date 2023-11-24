@@ -19,6 +19,9 @@
 
 extern ConfigSystem configSystem;
 extern byte SD_STATUS;
+extern byte accesoAlmacenamientoSD;
+extern QueueHandle_t colaRegistros;
+
 extern bool crearFicheroFtp(const char* nombreArchivo, int bytes);
 extern void enviarBufferFtp(const char* buffer);
 extern bool cerrarFicheroFtp();

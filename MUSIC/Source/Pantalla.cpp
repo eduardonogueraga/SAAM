@@ -267,7 +267,7 @@ void Pantalla::lcdGuardia(){
 
 	void Pantalla::menuConfigModulos(){
 		lcd.setCursor(0,0);
-		lcd.print(F("BLUETOOH>1  SD>2"));
+		lcd.print(F("FTP>1       SD>2"));
 		lcd.setCursor(0,1);
 		lcd.print(F("RTC>3    ATRAS>#"));
 	}

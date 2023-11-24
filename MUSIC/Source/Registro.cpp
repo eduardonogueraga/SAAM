@@ -76,6 +76,17 @@ void Registro::registrarLogSistema(char descripcion[190]){
 	if(!configSystem.MODULO_SD || SD_STATUS == 0)
 		return;
 
+	if(!accesoAlmacenamientoSD){
+		//Si el acceso esta cortado los registros del hilo principal van a la cola
+		RegistroLogTarea reg;
+		reg.tipoLog = 0; //systema
+
+		snprintf(reg.log, sizeof(reg.log), descripcion);
+		xQueueSend(colaRegistros, &reg, 0);
+		return;
+	}
+
+
 	 //Nos movemos al diretorio de logs
 	   root = SD.open(directories[DIR_LOGS]);
 	   if (!root) {
@@ -198,9 +209,8 @@ void Registro::borrarRegistros(RegistroDirectorios dir){
 
 	    while (true) {
 	      File entry = root.openNextFile();
-	      if (!entry) {
-	        break;
-	      }
+	      if (!entry) {break;}
+	      if(entry.isDirectory()) {continue;}
 	      String fileName = entry.name();
 
 	      	  // Borra el archivo
@@ -483,6 +493,7 @@ bool Registro::enviarFicheroPorFTP(int bytes, const char* rutaFichero, const cha
 RespuestaFtp Registro::envioRegistrosFTP(){
 	//Los ficheros se envian por ftp y son movidos a backup. Al finalizar se actualiza un nuevo registro de log
 	RespuestaFtp respuesta;
+	int numFicherosTransferidos= 0;
 
 	if(!configSystem.MODULO_SD || SD_STATUS == 0){
 		respuesta.error = 1;
@@ -498,6 +509,7 @@ RespuestaFtp Registro::envioRegistrosFTP(){
 		Serial.println("No se pudo abrir la carpeta de logs ");
 		respuesta.error = 1;
 		respuesta.msg = "No se pudo abrir la carpeta de logs";
+		respuesta.saasLogid = FTP_ERROR_ABRIENDO_DIR_LOG;
 		return respuesta;
 	}
 
@@ -505,6 +517,7 @@ RespuestaFtp Registro::envioRegistrosFTP(){
 		Serial.println("Err no se pudo abrir la conexion FTP");
 		respuesta.error = 1;
 		respuesta.msg = "Err no se pudo abrir la conexion FTP";
+		respuesta.saasLogid = FTP_ERROR_ABRIENDO_CONEXION;
 		return respuesta;
 	}
 
@@ -513,6 +526,7 @@ RespuestaFtp Registro::envioRegistrosFTP(){
 		entry = root.openNextFile();
 		if (!entry) {break;}
 		if(entry.isDirectory()) {continue;}
+		numFicherosTransferidos++;
 
 		const char* nombreLog = entry.name();
 		// Nombre del archivo solamente
@@ -567,12 +581,15 @@ RespuestaFtp Registro::envioRegistrosFTP(){
 		Serial.println("Err no se pudo cerrar la conexion FTP");
 		respuesta.error = 1;
 		respuesta.msg = (error == 1) ? "Error durante la transferencia del fichero" : "Err no se pudo cerrar la conexión FTP";
+		respuesta.saasLogid = (error == 1) ? FTP_ERROR_TRANSFERENCIA : FTP_ERROR_CERRANDO_CONEXION;
 		return respuesta;
 	}else {
 		Serial.println("Conexion FTP cerrada bye!");
 	}
 
 	respuesta.error = 0;
+	respuesta.numFicheros = numFicherosTransferidos;
+	respuesta.saasLogid = FTP_TRANFERENCIA_OK;
 	return respuesta;
 }
 

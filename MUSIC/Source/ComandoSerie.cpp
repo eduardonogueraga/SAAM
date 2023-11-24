@@ -154,6 +154,11 @@ void ComandoSerie::comprobarComando() {
 		}
 	}
 
+	if (compararCadena(data, "alert")) {
+		nombreComando(data);
+		setEstadoAlerta();
+	}
+
 	if (compararCadena(data, "mail")) {
 		nombreComando(data);
 		setEstadoEnvio();

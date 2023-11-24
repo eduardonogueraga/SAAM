@@ -221,6 +221,7 @@ struct configuracion_sistema_t {
 	byte MODULO_RTC = 1;
 	byte ENVIO_SAAS = 1;
 	byte ENVIO_SAAS_NOTIFICACION = 1;
+	byte ENVIO_FTP = 1;
 	byte ESPERA_SAAS_MULTIPLICADOR = 0;
 	byte ESCUCHAR_LINEA = 1;
 	byte SENSORES_HABLITADOS[4] = {1,1,1,1};
@@ -238,6 +239,8 @@ struct configuracion_sistema_t {
 
  typedef struct  {
      int error = 0;
+     int numFicheros = 0;
+     int saasLogid;
      String msg = "";
  } RespuestaFtp;
 
@@ -384,7 +387,12 @@ typedef enum  {
 	MODELO_ENVIADO_LOG = 145,
 	INTENTOS_NOT_SYS_DIARIOS_RECUPERADOS_LOG  = 146,
 	INTENTOS_NOT_ALR_DIARIOS_RECUPERADOS_LOG  = 147,
-	INTENTOS_MODELO_JSON_DIARIOS_RECUPERADOS_LOG  = 148
+	INTENTOS_MODELO_JSON_DIARIOS_RECUPERADOS_LOG  = 148,
+	FTP_ERROR_ABRIENDO_DIR_LOG  = 149,
+	FTP_ERROR_ABRIENDO_CONEXION = 150,
+	FTP_ERROR_TRANSFERENCIA = 151,
+	FTP_ERROR_CERRANDO_CONEXION = 152,
+	FTP_TRANFERENCIA_OK = 153,
 } SAAS_LITERAL_LOGS;
 
 
@@ -444,7 +452,7 @@ typedef enum {
 
 typedef enum {
 	MOD_SELECT,
-	MOD_BT,
+	MOD_FTP,
 	MOD_SD,
 	MOD_RTC
 } MENU_CONFIG_MODULOS;

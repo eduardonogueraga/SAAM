@@ -18,6 +18,7 @@
 
 
 extern void setEstadoGuardia();
+extern void setEstadoAlerta();
 extern void setEstadoReposo();
 extern void setEstadoEnvio();
 extern void setEstadoInquieto();

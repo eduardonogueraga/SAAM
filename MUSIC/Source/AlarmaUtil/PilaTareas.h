@@ -375,6 +375,8 @@ void crearTareaEnvioFtpSaas(){
 byte enviarEnvioFtpSaas(){
 	byte executionResult;
 	RespuestaFtp respuesta;
+	RegistroLogTarea reg;
+	reg.tipoLog = 0; //systema
 
 #ifdef ALARMA_EN_MODO_DEBUG
 	if(modem.waitForNetwork(2000, true)){
@@ -385,12 +387,21 @@ byte enviarEnvioFtpSaas(){
 			respuesta = registro.envioRegistrosFTP();
 			executionResult = !respuesta.error; //Si no hay problem le envio un 1 como OK
 
-			//Pend encolar mensajes en log en funcion de lo que se devuelva
+			if(!respuesta.error){
+				snprintf(reg.log, sizeof(reg.log), "Envio FTP realizado con exito (%i)", respuesta.numFicheros);
+			}else {
+				Serial.println(F("Error en el envio reiniciando GSM"));
+				refrescarModuloGSM();
+				snprintf(reg.log, sizeof(reg.log), "Error en envio FTP: %s", respuesta.msg.c_str());
+			}
+
+			reg.saasLogid = respuesta.saasLogid;
+
+			xQueueSend(colaRegistros, &reg, 0);
 
 		}else {
 			Serial.println(F("No hay cobertura se aborta el envio"));
 			executionResult = 0;
-			//Refresco el modulo
 			refrescarModuloGSM();
 		}
 
@@ -480,11 +491,16 @@ void gestionarPilaDeTareas(){
 			crearTareaEnvioFtpSaas();
 		}
 
+		//Definimos los tiempos de ejecucion para las tareas
+		if(tarea->data.tipoPeticion != FTP){
+			if(estadoAlarma == ESTADO_ALERTA || estadoAlarma == ESTADO_ENVIO){
+				setMargenTiempo(tiempoTareaEnEjecucion,TIEMPO_MAX_TAREA);
+			}else {
+				setMargenTiempo(tiempoTareaEnEjecucion,(TIEMPO_MAX_TAREA*2));
+			}
 
-		if(estadoAlarma == ESTADO_ALERTA || estadoAlarma == ESTADO_ENVIO){
-			setMargenTiempo(tiempoTareaEnEjecucion,TIEMPO_MAX_TAREA);
 		}else {
-			setMargenTiempo(tiempoTareaEnEjecucion,(TIEMPO_MAX_TAREA*2));
+			setMargenTiempo(tiempoTareaEnEjecucion,(TIEMPO_MAX_TAREA_FTP));
 		}
 
 		estadoPila = PROCESANDO;
@@ -602,9 +618,23 @@ void detenerEjecucionPila(){
 		vTaskDelete(envioServidorSaas);
 		envioServidorSaas = NULL;
 	}
+	if(envioFtpSaas != NULL){
+		vTaskDelete(envioFtpSaas);
+		envioFtpSaas = NULL;
+	}
 }
 
+void detenerEjecucionTaskFTP(){
+	TaskNodo* tarea;
 
+	if(envioFtpSaas != NULL){
+		Serial.println("El envio FTP se detuvo debido a una emergencia");
+		tarea = tareaEnCurso(&listaTareas);
+		EliminarTareaEnPosicion(&listaTareas,tarea->posicion);
+		vTaskDelete(envioFtpSaas);
+		envioFtpSaas = NULL;
+	}
+}
 
 //----------------------------------------------------------
 

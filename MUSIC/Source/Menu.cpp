@@ -258,7 +258,7 @@ void Menu::configModulos(){
 		pantalla.lcdLoadView(&pantalla, &Pantalla::menuConfigModulos);
 
 		if(key == '1')
-			menuModulos = MOD_BT;
+			menuModulos = MOD_FTP;
 
 		if(key == '3')
 			menuModulos = MOD_RTC;
@@ -270,7 +270,7 @@ void Menu::configModulos(){
 			menuConfig = CONFIG_SUBMENU;
 		break;
 
-	case MOD_BT:
+	case MOD_FTP:
 		configComunicaciones();
 		break;
 
@@ -447,20 +447,13 @@ void Menu::configSaasConf(){
 
 void Menu::configComunicaciones(){
 
-	byte bt;
+	byte bt = configSystem.ENVIO_FTP;
 
-	pantalla.lcdLoadView(&pantalla, &Pantalla::menuConfigChangeMode, &bt, (char*)"CONN BT");
+	pantalla.lcdLoadView(&pantalla, &Pantalla::menuConfigChangeMode, &bt, (char*)"FTP LOG");
 
 	if(key == '1'){
-		/*
-		if(sleepModeBT == 1){ //@PEND
-			sleepModeBT = 0;
-			alertsInfoLcd[INFO_BLUETOOH] = 0;
-		}else if(sleepModeBT == 0){
-			sleepModeBT = 1;
-			alertsInfoLcd[INFO_BLUETOOH] = 1;
-		}
-		*/
+		configSystem.ENVIO_FTP = !configSystem.ENVIO_FTP;
+		NVS_SaveData<configuracion_sistema_t>("CONF_SYSTEM", configSystem);
 	}
 
 	if(key == '#')

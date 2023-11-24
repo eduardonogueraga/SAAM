@@ -55,7 +55,7 @@ void recvMsg(uint8_t *data, size_t len){
 //TEST WIFI
 
 //VERSION (VE -> Version Estable VD -> Version Desarrollo)
-const char* version[] = {"MUSIC VE21R0", "11/11/23"};
+const char* version[] = {"MUSIC VE21R0", "24/11/23"};
 
 //RTOS
 TaskHandle_t gestionLinea;
@@ -71,6 +71,7 @@ byte resultadoEnvioNotificacionSaas;
 byte resultadoEnvioFtpSaas;
 
 byte accesoGestorPila = 1; //Abre y cierra el gestor
+byte accesoAlmacenamientoSD = 1; //Abre y cierra en acceso a los logs del sistema
 PilaTareaEstado estadoPila; //Aun no se usa para nada
 
 //Cola para registro en tareas
@@ -167,11 +168,12 @@ const unsigned long TIEMPO_REACTIVACION = 240000; // (*0.1) ->  24000
 const unsigned long TIEMPO_MODO_SENSIBLE = 3600000; // (*0.0166)  -> 60000*
 const unsigned long TIEMPO_BOCINA = 600000; // (*0.0333) -> 20000* //300000(*0.0666) ->20000
 const unsigned long TIEMPO_PRORROGA_GSM = 1200000; // (*0.05) -> 60000
-const unsigned short TIEMPO_CARGA_GSM = 10000;
+const unsigned long TIEMPO_CARGA_GSM = 10000;
 
-const unsigned short TIEMPO_MAX_TAREA = 90000;
-const unsigned short TIEMPO_ESPERA_REINTENTO_TAREA = 20000;
-const unsigned short TIEMPO_REINCIO_PILA = 20000;
+const unsigned long TIEMPO_MAX_TAREA = 90000;
+const unsigned long TIEMPO_MAX_TAREA_FTP = 300000; //5 min
+const unsigned long TIEMPO_ESPERA_REINTENTO_TAREA = 25000;
+const unsigned long TIEMPO_REINCIO_PILA = 20000;
 
 unsigned long tiempoMargen;
 
@@ -580,6 +582,7 @@ void leerEntradaTeclado(){
 		Serial.print("\nEnvios al servidor SAAS\n");
 		Serial.printf("ENVIO DE MODELO PERIODICO = %d\n", configSystem.ENVIO_SAAS);
 		Serial.printf("ENVIO DE NOTIFICACIONES = %d\n", configSystem.ENVIO_SAAS_NOTIFICACION);
+		Serial.printf("ENVIO FICHEROS POR FTP = %d\n", configSystem.ENVIO_FTP);
 
 		Serial.print("\n");
 
@@ -598,6 +601,7 @@ void leerEntradaTeclado(){
 		Serial.printf("NUM NOT SYS ENVIADOS = %d\n", leerFlagEEInt("N_SYS_SEND"));
 		Serial.printf("NUM NOT ALR ENVIADOS = %d\n", leerFlagEEInt("N_ALR_SEND"));
 		Serial.printf("NUM MODELOS ENVIADOS = %d\n", leerFlagEEInt("N_MOD_SEND"));
+		Serial.printf("NUM ENVIOS FTP DIARIOS = %d\n", leerFlagEEInt("FTP_DIARIO"));
 
 		Serial.print("\n");
 

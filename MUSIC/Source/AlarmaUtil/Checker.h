@@ -64,6 +64,12 @@ void checkearLimitesEnvios(){
 
 		}
 
+		//Marco el flag ftp para el dia siguente
+		if(leerFlagEEInt("FTP_DIARIO") != 0){
+			guardarFlagEE("FTP_DIARIO", 0);
+			Serial.println(F("Flag envio FTP OK"));
+		}
+
 	}
 
 }
@@ -72,6 +78,11 @@ void checkearColaLogsSubtareas(){
 	/*Lee la cola para los registro provenietes de las tareas y los guarda*/
 	RegistroLogTarea reg;
 	TickType_t espera = pdMS_TO_TICKS(50);
+
+	if(!accesoAlmacenamientoSD){
+		//Si el acceso esta cortado no se mueven los registros de la cola
+		return;
+	}
 
 	if (uxQueueMessagesWaiting(colaRegistros) > 0) {
 		if (xQueueReceive(colaRegistros, &reg, espera) == pdTRUE) {
@@ -189,6 +200,18 @@ void checkearSensorPuertaCochera(){
 	alertsInfoLcd[INFO_SENSOR_PUERTA_OFF] = !configSystem.SENSORES_HABLITADOS[0];
 }
 
+
+void checkearEnvioFtpDiario(){
+	if(!configSystem.ENVIO_FTP)
+		return;
+
+	if(fecha.comprobarHora(10, 0)){
+		if(leerFlagEEInt("FTP_DIARIO") == 0){
+			encolarEnvioFtpSaas();
+			guardarFlagEE("FTP_DIARIO", 1);
+		}
+	}
+}
 
 void checkearEnvioSaas(){
 	if(!configSystem.ENVIO_SAAS)

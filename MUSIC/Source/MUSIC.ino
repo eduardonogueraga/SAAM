@@ -5,13 +5,7 @@
  *
  * POR HACER:
  *
- * - FTP:
- * 		Checker para determinar envio a x hora
- * 		Proporcionar mas tiempo de ejecucion
- * 		No admitir reintentos de la tarea
- * 		Derivar los logs entrantes a la cola de log durante el envio
- * 		Eliminar la tarea en caso de emergencia
- * 		Encolar tambien la salida del resultado del envio
+ *	 La detencion de la tarea ftp no funciona
  *
  * - Enriquecer el log con dia de la semana o temperatura
  * - Probar que en caso de necesitar tlf y sms las tareas en segundo plano finalizan OK
@@ -219,8 +213,10 @@ void tareaNotificacionSaas(void *pvParameters){
 void tareaFtpSaas(void *pvParameters) {
 
 	Serial.println("Task envio ftp");
+	accesoAlmacenamientoSD = 0; //Cierro el acceso a SD
 	resultadoEnvioFtpSaas = 0;
 	resultadoEnvioFtpSaas = enviarEnvioFtpSaas();
+	accesoAlmacenamientoSD = 1;
 	vTaskDelay(100);
 
 	//Pendiente de cierre
@@ -251,12 +247,13 @@ void procesosSistema(){
 	resetAutomatico();
 	//checkearBateriaDeEmergencia(); //TODO Hardware actual incompatible
 	checkearFalloEnAlimientacion();
-	escucharGSM();
+	//escucharGSM();
 
 	//Quitadas por pruebas
 
 	gestionarPilaDeTareas();
 	checkearEnvioSaas();
+	checkearEnvioFtpDiario();
 	checkearColaLogsSubtareas();
 }
 
@@ -538,6 +535,7 @@ void setEstadoAlerta()
 	ACCESO_LISTAS = 0; //Blindamos las listas de datos
 	guardarFlagEE("ESTADO_ALERTA", 1);
 	guardarEstadoAlerta();
+	detenerEjecucionTaskFTP(); //Detenemos envio FTP si se encuentra ejecutandose
 	encolarNotifiacionIntrusismo();
 
 	lcd_clave_tiempo = millis();
