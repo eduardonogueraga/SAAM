@@ -533,43 +533,49 @@ RespuestaFtp Registro::envioRegistrosFTP(){
 		const char* fichero = &nombreLog[13];
 		const int bytesFichero = entry.size();
 
-		//Enviamos el fichero por ftp
-		if(!enviarFicheroPorFTP(bytesFichero, nombreLog, fichero)){
-			Serial.println("Error durante la tranferencia del fichero");
-			error = 1;
-			break;
-		}
-
-		//Si lo envia OK lo muevo a la ruta de backup -> (funcion que copie el fichero)
-		snprintf(rutaAbosulutaBackup, sizeof(rutaAbosulutaBackup), "%s/%s", directories[DIR_LOGS_BACKUP], fichero);
-		//Serial.println(rutaAbosulutaBackup);
-
-		tempFile = SD.open(rutaAbosulutaBackup, FILE_APPEND);
-
-		if (!tempFile) {
-			Serial.println("Fallo al abrir el fichero de backup");
-		}
-
-		if (entry) {
-			while (entry.available()) {
-				tempFile.print(entry.readStringUntil('\n'));
-				tempFile.print("\n");
+		//Si el fichero no esta en el server se envia sino directamente se elimina
+		if(!comprobarFicheroFtp(fichero)){
+			Serial.println("El fichero no existe se procede al envio...");
+			//Enviamos el fichero por ftp
+			if(!enviarFicheroPorFTP(bytesFichero, nombreLog, fichero)){
+				Serial.println("Error durante la tranferencia del fichero");
+				error = 1;
+				break;
 			}
-			entry.close();
-			tempFile.close();
 
-			//Borrar original
-			if (SD.remove(nombreLog)) {
-				Serial.print("Archivo borrado: ");
-				Serial.println(nombreLog);
+			//Si lo envia OK lo muevo a la ruta de backup -> (funcion que copie el fichero)
+			snprintf(rutaAbosulutaBackup, sizeof(rutaAbosulutaBackup), "%s/%s", directories[DIR_LOGS_BACKUP], fichero);
+			//Serial.println(rutaAbosulutaBackup);
+
+			tempFile = SD.open(rutaAbosulutaBackup, FILE_APPEND);
+
+			if (!tempFile) {
+				Serial.println("Fallo al abrir el fichero de backup");
+			}
+
+			if (entry) {
+				while (entry.available()) {
+					tempFile.print(entry.readStringUntil('\n'));
+					tempFile.print("\n");
+				}
+				entry.close();
+				tempFile.close();
 			} else {
-				Serial.print("Error al borrar el archivo: ");
-				Serial.println(nombreLog);
+				Serial.println("Error al abrir el archivo.");
 			}
-
-		} else {
-			Serial.println("Error al abrir el archivo.");
+		}else {
+			Serial.println("El fichero ya existe no se envia y se borra...");
 		}
+
+		//Borrar original
+		if (SD.remove(nombreLog)) {
+			Serial.print("Archivo borrado: ");
+			Serial.println(nombreLog);
+		} else {
+			Serial.print("Error al borrar el archivo: ");
+			Serial.println(nombreLog);
+		}
+
 	}
 
 	root.close();

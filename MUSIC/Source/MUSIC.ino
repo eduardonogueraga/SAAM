@@ -5,8 +5,6 @@
  *
  * POR HACER:
  *
- *	 La detencion de la tarea ftp no funciona
- *
  * - Enriquecer el log con dia de la semana o temperatura
  * - Probar que en caso de necesitar tlf y sms las tareas en segundo plano finalizan OK
  * - Controlar a futuro el impacto entre terminales core

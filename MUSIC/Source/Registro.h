@@ -27,6 +27,7 @@ extern void enviarBufferFtp(const char* buffer);
 extern bool cerrarFicheroFtp();
 extern bool abrirConexionFtp();
 extern bool cerrarConexionFtp();
+extern bool comprobarFicheroFtp(const char* nombreArchivo);
 
 
 extern Fecha fecha;

@@ -558,8 +558,8 @@ void gestionarPilaDeTareas(){
 		}else {
 			//Dejamos trabajar a la tarea y controlamos el tiempo
 
-			if(checkearMargenTiempo(tiempoTareaEnEjecucion)){
-				Serial.println("Se supera el tiempo de ejecucion");
+			if(checkearMargenTiempo(tiempoTareaEnEjecucion) || paradaDeEmergenciaPila == 1){
+				Serial.println(!paradaDeEmergenciaPila ? "Se supera el tiempo de ejecucion" : "Se detiene la tarea solicitud de parada");
 
 				//Cerramos la tareas directamente
 				//eRunning 0 , eReady 1 , eBlocked 2, eSuspended 3, etc.
@@ -581,10 +581,13 @@ void gestionarPilaDeTareas(){
 					envioFtpSaas = NULL;
 				}
 
-				if(tarea->reintentos == MAX_REINTENTOS_REPROCESO_TAREA){
+				if(tarea->reintentos == MAX_REINTENTOS_REPROCESO_TAREA || paradaDeEmergenciaPila == 1){
 					//Elimino la tarea
-					Serial.println("Eliminando tarea por exceso de intentos");
+					Serial.println(!paradaDeEmergenciaPila ? "Eliminando tarea por exceso de intentos" : "Eliminando tarea por solicitud de parada");
+
 					EliminarTareaEnPosicion(&listaTareas, tarea->posicion);
+					if(paradaDeEmergenciaPila ==1){paradaDeEmergenciaPila = 0;}
+
 				}else {
 					tarea->reintentos++;
 					//Muevo la tarea al final
@@ -625,14 +628,11 @@ void detenerEjecucionPila(){
 }
 
 void detenerEjecucionTaskFTP(){
-	TaskNodo* tarea;
-
 	if(envioFtpSaas != NULL){
 		Serial.println("El envio FTP se detuvo debido a una emergencia");
-		tarea = tareaEnCurso(&listaTareas);
-		EliminarTareaEnPosicion(&listaTareas,tarea->posicion);
-		vTaskDelete(envioFtpSaas);
-		envioFtpSaas = NULL;
+		paradaDeEmergenciaPila = 1;
+		accesoAlmacenamientoSD = 1; //Vuelvo a abrir el paso de logs
+		refrescarModuloGSM();
 	}
 }
 

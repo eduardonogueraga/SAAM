@@ -52,6 +52,26 @@ bool enviarFicheroDesdeFSFtp() {
 	return true;
 }
 
+bool comprobarFicheroFtp(const char* nombreArchivo) {
+
+	char FTPLsFileCommand[150];
+	sprintf(FTPLsFileCommand, "+CFTPSLIST=\"%s\"", nombreArchivo);
+
+	modem.sendAT(GF(FTPLsFileCommand));
+
+	if (modem.waitResponse(10000L,GF("+CFTPSLIST:")) == 1) {
+		String res = modem.stream.readStringUntil('\n');
+		res = res.substring(0, res.indexOf(','));
+		res.trim();
+
+		//Serial.println(res);
+		return (res.equals("DATA")) ? true : false;
+	}
+
+	return false;
+}
+
+
 bool crearFicheroFtp(const char* nombreArchivo, int bytes){
 	//Genera el fichero a 0 bytes
 	char FTPPutFileCommand[150];

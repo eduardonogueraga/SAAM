@@ -63,6 +63,7 @@ extern void testTaskNodosTimeout();
 extern void testTaskNodosRecuperarProcesable();
 
 extern void rehabilitarEjecucionPila();
+extern void detenerEjecucionTaskFTP();
 
 extern InterStrikeCore sensorCore;
 extern void guardarEstadoAlerta();
@@ -72,6 +73,7 @@ extern bool establecerConexionGPRS();
 extern void cerrarConexionGPRS();
 extern String pwdFtp();
 extern bool enviarFicheroFtpBuffer(const char* nombreArchivo, int bytes, const char* buffer);
+extern bool comprobarFicheroFtp(const char* nombreArchivo);
 
 extern bool iniciarServicioFtp();
 extern bool abrirSesionFtp();

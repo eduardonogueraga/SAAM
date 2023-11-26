@@ -72,6 +72,7 @@ byte resultadoEnvioFtpSaas;
 
 byte accesoGestorPila = 1; //Abre y cierra el gestor
 byte accesoAlmacenamientoSD = 1; //Abre y cierra en acceso a los logs del sistema
+byte paradaDeEmergenciaPila = 0;
 PilaTareaEstado estadoPila; //Aun no se usa para nada
 
 //Cola para registro en tareas

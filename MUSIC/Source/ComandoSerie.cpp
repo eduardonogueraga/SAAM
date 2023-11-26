@@ -652,6 +652,30 @@ void ComandoSerie::comprobarComando() {
 		}
 	}
 
+	if(compararCadena(data, "ftp ls")){
+		nombreComando(data);
+		if (comprobarFicheroFtp("syslog_00003276_25112023_140735.txt")) {
+			Serial.println("El archivo existe en el servidor FTP.");
+		} else {
+			Serial.println("El archivo NO existe en el servidor FTP.");
+		}
+
+		//UART_GSM.println("AT+CFTPSLIST=\"syslog_00003276_25112023_140735.txt\"");
+	}
+
+	if(compararCadena(data, "ftp ls -f")){
+		nombreComando(data);
+
+		if (comprobarFicheroFtp("syslog_00004276_25112023_140735.txt")) {
+			Serial.println("El archivo existe en el servidor FTP.");
+		} else {
+			Serial.println("El archivo NO existe en el servidor FTP.");
+		}
+
+		//UART_GSM.println("AT+CFTPSLIST=\"syslog_00004276_25112023_140735.txt\"");
+	}
+
+
 	if(compararCadena(data, "ftp gprs on")){
 		nombreComando(data);
 		establecerConexionGPRS();
@@ -801,6 +825,11 @@ void ComandoSerie::comprobarComando() {
 	if(compararCadena(data, "pila -sleep")){
 		nombreComando(data);
 		rehabilitarEjecucionPila();
+	}
+
+	if(compararCadena(data, "pila -break")){
+		nombreComando(data);
+		detenerEjecucionTaskFTP();
 	}
 
 	if(compararCadena(data, "power -f")){
