@@ -17,9 +17,6 @@ Mensajes::Mensajes(HardwareSerial& serialInstance) : UART_GSM(serialInstance){
 
 void Mensajes::inicioGSM(){
 	UART_GSM.begin(115200, SERIAL_8N1, GSM_RX, GSM_TX); 	//RX TX  (H2 = RX23 TX19)
-	//UART_GSM.println("AT+CMGF=1"); 			//Vamos utilizar los SMS.
-	//delay(100);
-	//UART_GSM.println("AT+CNMI=1,2,0,0,0"); 	//Configurar el SIM800L p/ que muestre msm por com. serie.
 }
 
 
@@ -152,7 +149,7 @@ void Mensajes::enviarSMSEmergencia(){
 	if(leerFlagEEInt("MENSAJE_EMERGEN") == 1)
 	return;
 
-	//procesarSMS(); @develop
+	procesarSMS(); //@develop
 
 	guardarFlagEE("MENSAJE_EMERGEN", 1);
 
@@ -169,9 +166,9 @@ void Mensajes::procesarSMS(){
 	}
 	//UART_GSM
 
-	Serial.println("AT+CMGF=1");
+	UART_GSM.println("AT+CMGF=1");
 	delay(200);
-	Serial.println("AT+CMGS=\"+34"+(String)telefonoPrincipal+"\"");
+	UART_GSM.println("AT+CMGS=\"+34"+(String)telefonoPrincipal+"\"");
 	delay(200);
 
 	Serial.print(this->asuntoMensaje+"\n");
@@ -179,9 +176,9 @@ void Mensajes::procesarSMS(){
 	Serial.println(this->pieMensaje);
 
 	delay(200);
-	Serial.print((char)26);
+	UART_GSM.print((char)26);
 	delay(200);
-	Serial.println("");
+	UART_GSM.println("");
 	delay(200);
 
 	mensajesEnviados++;

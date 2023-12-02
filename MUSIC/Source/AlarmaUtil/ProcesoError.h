@@ -114,7 +114,7 @@ void setEstadoErrorComprobarDatos(){
 			if(!isLcdInfo())
 				pantalla.lcdLoadView(&pantalla, &Pantalla::errorEmergencia);
 
-			//realizarLlamadas();
+			realizarLlamadas();
 
 			if(checkearMargenTiempo(tiempoMargen)){
 #ifdef WIFI_PUERTO_SERIE
