@@ -346,7 +346,7 @@ void encolarNotifiacionIntrusismo(){
 			(respuestaTerminal.interpretacion == DETECCION_FOTOSENIBLE)? "Luz detectada":
 			(respuestaTerminal.interpretacion == AVERIA)? "Averia":
 			(respuestaTerminal.interpretacion == SABOTAJE)? "Sabotaje": "Intrusismo",
-			 String(literalesZonas[respuestaTerminal.idTerminal][respuestaTerminal.idSensorDetonante]),
+			 literalesZonas[respuestaTerminal.idTerminal][respuestaTerminal.idSensorDetonante],
 			 resumenTerminal
 	);
 

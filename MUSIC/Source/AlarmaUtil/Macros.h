@@ -11,7 +11,9 @@
 
 //MACROS
 //#define ALARMA_EN_MODO_DEBUG //Nunca definir en produccion
+//#define SENSOR_MG_CONECTADO //Definir cuando la alarma este conectada al sensor real
 //#define WIFI_PUERTO_SERIE //Definir solo para debug
+
 
 #define TIEMPO_OFF_TEST 0.1666
 #define TIEMPO_ON_TEST 0.01

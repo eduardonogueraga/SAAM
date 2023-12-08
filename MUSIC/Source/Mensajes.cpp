@@ -49,6 +49,7 @@ void Mensajes::mensajeAlerta()  {
 	registro.registrarLogSistema(registroConjunto);
 	eventosJson.guardarNotificacion(1, this->literalAsuntoSaas, this->getFullSMS(), TLF_NUM_1);
 
+	limpiarContenido();
 }
 
 void Mensajes::mensajeReactivacion(){
@@ -71,6 +72,8 @@ void Mensajes::mensajeReactivacion(){
 	this->enviarSMS();
 	registro.registrarLogSistema("ALARMA REACTIVADA MENSAJE ENVIADO");
 	eventosJson.guardarNotificacion(1, ALARMA_REACTIVADA_EXITO, this->getFullSMS(), TLF_NUM_1);
+
+	limpiarContenido();
 }
 
 
@@ -113,7 +116,7 @@ void Mensajes::mensajeError(){
 	registro.registrarLogSistema(registroConjunto);
 	eventosJson.guardarNotificacion(1, this->literalAsuntoSaas, this->getFullSMS(), TLF_NUM_1);
 
-
+	limpiarContenido();
 }
 
 void Mensajes::enviarSMS(){
@@ -171,9 +174,9 @@ void Mensajes::procesarSMS(){
 	UART_GSM.println("AT+CMGS=\"+34"+(String)telefonoPrincipal+"\"");
 	delay(200);
 
-	Serial.print(this->asuntoMensaje+"\n");
-	Serial.println(this->cuerpoMensaje);
-	Serial.println(this->pieMensaje);
+	UART_GSM.print(this->asuntoMensaje+"\n");
+	UART_GSM.println(this->cuerpoMensaje);
+	UART_GSM.println(this->pieMensaje);
 
 	delay(200);
 	UART_GSM.print((char)26);
@@ -230,6 +233,12 @@ void Mensajes::asuntoAlerta(){
 	}else {
 		this->asuntoMensaje += "INTRUSISMO DETECTADO EN " + String(literalesZonas[respuestaTerminal.idTerminal][respuestaTerminal.idSensorDetonante]);
 	}
+
+	//Por ahora solo el CORE
+	if(respuestaTerminal.idTerminal == 0){
+		this->literalAsuntoSaas = nombreZonasSaas[respuestaTerminal.idSensorDetonante];
+	}
+
 
 }
 

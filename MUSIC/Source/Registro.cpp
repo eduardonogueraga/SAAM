@@ -101,9 +101,11 @@ void Registro::registrarLogSistema(char descripcion[190]){
 			   Serial.println("Fallo al abrir el fichero de logs");
 			   return;
 			 }
+
+		 root.print(fecha.imprimeFecha(1));
+	     root.print("\t>>");
 	     root.print(descripcion);
-	     root.print("\t");
-	     root.print(fecha.imprimeFecha(1));
+
 	     root.print("\n");
 	     root.close();
 

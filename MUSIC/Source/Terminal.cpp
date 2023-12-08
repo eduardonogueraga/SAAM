@@ -222,20 +222,10 @@ RespuestaTerminal Terminal::evaluarDatosTerminal(){
 				double sensorPorcentaje = EvaluarSensor(&listaTerminal, i);
 
 				if(sensorPorcentaje>0){
-
 					Serial.print("SENSOR: ");
 					Serial.print(i+1);
 					Serial.print(" INTER: %: ");
 					Serial.println(sensorPorcentaje);
-
-					snprintf(registroConjunto, sizeof(registroConjunto), "%s%d%s", "MOVIMIENTO EN TERMINAL X:",i," ONLINE");
-					registro.registrarLogSistema(registroConjunto);
-					eventosJson.guardarDeteccion((sensorPorcentaje >= UMBRAL_SENSOR_INDIVIDUAL),
-													FRACCION_SALTO,
-													P_MODO_NORMAL,
-													getTerminalId(),
-													i,
-													P_ESTADO_ONLINE); //Regularizar el id del terminal
 				}
 
 				if(sensorPorcentaje >= UMBRAL_SENSOR_INDIVIDUAL){
@@ -453,6 +443,27 @@ double Terminal::EvaluarSensor(Lista* lista, int numSensor) {
     while (puntero) {
         if (puntero->data.sampleSensores[numSensor]) {
         	contadorSalto++;
+        	//Serial.println("Detecta el salto");
+
+        	//Se guarda el salto por primera vez
+        	if (!puntero->data.saltosRegistrados[numSensor]) {
+        		//Serial.println("Guarda el salto");
+        		char registroConjunto[50];
+
+        		snprintf(registroConjunto, sizeof(registroConjunto), "MOVIMIENTO EN TERMINAL %d:%s%s", getTerminalId(),literalesZonas[getTerminalId()][numSensor]," ONLINE");
+        		registro.registrarLogSistema(registroConjunto);
+        		eventosJson.guardarDeteccion(0, //@PEND No podemos determinar si es el que genera el intrusismo desde aqui
+        				FRACCION_SALTO,
+						P_MODO_NORMAL,
+						getTerminalId(),
+						numSensor,
+						P_ESTADO_ONLINE); //Regularizar el id del terminal
+
+
+        		puntero->data.saltosRegistrados[numSensor] = 1;
+        	}
+
+
             if (diferenciaTiempoAux == 0) {
                 diferenciaTiempoAux = puntero->data.marcaTiempo;
                 contadorMatch++; //Un primer combo para aumentar el porcentaje al principio

@@ -55,7 +55,7 @@ void recvMsg(uint8_t *data, size_t len){
 //TEST WIFI
 
 //VERSION (VE -> Version Estable VD -> Version Desarrollo)
-const char* version[] = {"MUSIC VE21R0", "24/11/23"};
+const char* version[] = {"MUSIC VE21R0", "08/12/23"};
 
 //RTOS
 TaskHandle_t gestionLinea;
@@ -514,7 +514,7 @@ void leerEntradaTeclado(){
 					1,
 					(estadoAlarma ==ESTADO_GUARDIA)? P_MODO_NORMAL: P_MODO_PHANTOM,
 					0, //id terminal core
-					0, //id sensor
+					3, //id sensor
 					P_ESTADO_ONLINE);
 
 			sensorCore.notificadoMG = 1;

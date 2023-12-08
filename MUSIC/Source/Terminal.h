@@ -60,6 +60,7 @@ private:
 
 	struct Data {
 		byte sampleSensores[MAX_DATOS_SUB_TRAMA];
+		byte saltosRegistrados[MAX_DATOS_SUB_TRAMA] = {0};  //Controlamos si estos ya han sido registrados
 		unsigned long marcaTiempo;
 	};
 

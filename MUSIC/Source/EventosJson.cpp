@@ -206,7 +206,7 @@ void EventosJson::guardarDeteccion(byte strikes, byte umbral, byte modo, byte id
   */
 
 	char reg[20];
-	byte sensor_id[] = {102, 103, 104, 105};
+	byte sensor_id[] = {103, 104, 105,102};
 
 	snprintf(reg, sizeof(reg), "%d|%d|%d|%d|%d|%d|%d|%d",
 			(strikes==umbral),
@@ -223,19 +223,18 @@ void EventosJson::guardarDeteccion(byte strikes, byte umbral, byte modo, byte id
 }
 
 void EventosJson::guardarNotificacion(byte tipo, byte asunto, char cuerpo[],byte tlf){
-	/*
-	        'tipo' => ($noticeField[0]) ? "sms" : "llamada",
-                                'asunto' => ($noticeField[1]),
-                                'cuerpo' => ($noticeField[2]),
-                                'telefono' => ($noticeField[3]),
-	 	guardarEvento("Notice","1|116|Pendiente|2");
-	 */
-	char reg[200];
+
+	char reg[1024]; //Para que entre el log
+
+	// Limitar el campo cuerpo a 800 caracteres
+	char cuerpoLimitado[801];
+	strncpy(cuerpoLimitado, cuerpo, 800);
+	cuerpoLimitado[800] = '\0';
 
 	snprintf(reg, sizeof(reg), "%d|%d|%s|%d",
 			tipo,
 			asunto, //0 = Llamadas
-			cuerpo, //Cadena vacia = Llamadas
+			cuerpoLimitado, //Cadena vacia = Llamadas
 			tlf);
 
 	guardarEvento("Notice",reg);
