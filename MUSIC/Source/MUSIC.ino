@@ -309,9 +309,9 @@ void procesoAlarma(){
 
 			//Sensor MG
 #ifdef SENSOR_MG_CONECTADO
-			if(!sensorCore.sensorMG){
+			if(!sensorCore.sensorMG && configSystem.SENSORES_HABLITADOS[0]){
 #else
-			if(sensorCore.sensorMG){ //(@develop LOW = PUERTA ABIERTA)
+			if(sensorCore.sensorMG && configSystem.SENSORES_HABLITADOS[0]){ //(@develop LOW = PUERTA ABIERTA)
 #endif
 				Serial.println(F("\nDisparador:  MG"));
 				respuestaTerminal.resumen = "PUERTA COCHERA ABIERTA";

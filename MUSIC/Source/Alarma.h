@@ -499,27 +499,28 @@ void leerEntradaTeclado(){
 		byte ctlLineas[2] = {0};
 
 
-		sensor = mcp.digitalRead(sensorCore.dirSensor[0]);
-		sensorCore.sensorMG = sensor;
-
 		//Comprobamos sensor puerta
-		#ifdef ALARMA_EN_MODO_DEBUG
-			if (sensor == HIGH && !sensorCore.notificadoMG) { // @develop("Cambiado a HIGH para evitar saltos en sensor MG")
-		#else
-		    if (sensor == LOW && !sensorCore.notificadoMG) {
-		#endif
-		    Serial.println("Puerta abierta");
-			registro.registrarLogSistema("DETECCION APERTURA DE PUERTA");
-			eventosJson.guardarDeteccion(1,
-					1,
-					(estadoAlarma ==ESTADO_GUARDIA)? P_MODO_NORMAL: P_MODO_PHANTOM,
-					0, //id terminal core
-					3, //id sensor
-					(configSystem.SENSORES_HABLITADOS[0]? P_ESTADO_ONLINE : P_ESTADO_OFFLINE)
+		if(configSystem.SENSORES_HABLITADOS[0]){
+			sensor = mcp.digitalRead(sensorCore.dirSensor[0]);
+			sensorCore.sensorMG = sensor;
+#ifdef ALARMA_EN_MODO_DEBUG
+			    if (sensor == HIGH && !sensorCore.notificadoMG) { // @develop("Cambiado a HIGH para evitar saltos en sensor MG")
+#else
+				if (sensor == LOW && !sensorCore.notificadoMG) {
+#endif
+					Serial.println("Puerta abierta");
+					registro.registrarLogSistema("DETECCION APERTURA DE PUERTA");
+					eventosJson.guardarDeteccion(1,
+							1,
+							(estadoAlarma ==ESTADO_GUARDIA)? P_MODO_NORMAL: P_MODO_PHANTOM,
+									0, //id terminal core
+									3, //id sensor
+									(configSystem.SENSORES_HABLITADOS[0]? P_ESTADO_ONLINE : P_ESTADO_OFFLINE)
 					);
 
-			sensorCore.notificadoMG = 1;
-		}
+					sensorCore.notificadoMG = 1;
+				}
+			}
 
 		//Comprobamos sensores pir
 		for (int i = 1; i < 4; ++i) {
