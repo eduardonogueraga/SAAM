@@ -144,7 +144,7 @@ ComunicacionLinea linea;
 byte ACCESO_LISTAS = 1;
 
 //Terminales en linea
-int tCoreMapeo[] = {3, 2, 2};
+int tCoreMapeo[] = {3, 2, 4};
 Terminal T_CORE = Terminal(0,"TC", 0,0,3, tCoreMapeo);
 
 Terminal T_COCHERA = Terminal(1,"CH");
@@ -509,13 +509,14 @@ void leerEntradaTeclado(){
 		    if (sensor == LOW && !sensorCore.notificadoMG) {
 		#endif
 		    Serial.println("Puerta abierta");
-			registro.registrarLogSistema("DETECCION ABERTURA DE PUERTA");
+			registro.registrarLogSistema("DETECCION APERTURA DE PUERTA");
 			eventosJson.guardarDeteccion(1,
 					1,
 					(estadoAlarma ==ESTADO_GUARDIA)? P_MODO_NORMAL: P_MODO_PHANTOM,
 					0, //id terminal core
 					3, //id sensor
-					P_ESTADO_ONLINE);
+					(configSystem.SENSORES_HABLITADOS[0]? P_ESTADO_ONLINE : P_ESTADO_OFFLINE)
+					);
 
 			sensorCore.notificadoMG = 1;
 		}

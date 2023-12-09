@@ -103,7 +103,7 @@ void Registro::registrarLogSistema(char descripcion[190]){
 			 }
 
 		 root.print(fecha.imprimeFecha(1));
-	     root.print("\t>>");
+	     root.print("\t");
 	     root.print(descripcion);
 
 	     root.print("\n");

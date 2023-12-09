@@ -11,7 +11,7 @@
 
 //MACROS
 //#define ALARMA_EN_MODO_DEBUG //Nunca definir en produccion
-//#define SENSOR_MG_CONECTADO //Definir cuando la alarma este conectada al sensor real
+#define SENSOR_MG_CONECTADO //Definir cuando la alarma este conectada al sensor real
 //#define WIFI_PUERTO_SERIE //Definir solo para debug
 
 
@@ -95,7 +95,7 @@
 #define TIEMPO_ALERT_LCD 6000
 #define	NUMERO_ALERTAS 4
 #define TOTAL_SENSORES 4 //EL numero de sensores activos
-#define MAX_SIZE_JSON 2300 //Bytes maximos del modelo JSON
+#define MAX_SIZE_JSON 2100 //Bytes maximos del modelo JSON
 #define MAX_TOQUES_BOCINA_RESTANTES 15 //Intentos en modo inquieto
 #define MAX_INTENTOS_REACTIVACION 3
 //COMUNICACION LINEA
@@ -399,12 +399,12 @@ typedef enum  {
 
 
 typedef enum  {
-	P_MODO_NORMAL = 0,
-	P_MODO_PHANTOM = 1,
+	P_MODO_NORMAL = 1,
+	P_MODO_PHANTOM = 0,
 	P_NO_RESTAURADO = 0,
 	P_RESTAURADO = 1,
-	P_ESTADO_ONLINE = 0,
-	P_ESTADO_OFFLINE = 1,
+	P_ESTADO_ONLINE = 1,
+	P_ESTADO_OFFLINE = 0,
 }	SAAS_PARAMETROS_SALTO;
 
 typedef enum  {

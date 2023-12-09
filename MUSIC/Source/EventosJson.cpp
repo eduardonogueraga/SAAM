@@ -206,12 +206,12 @@ void EventosJson::guardarDeteccion(byte strikes, byte umbral, byte modo, byte id
   */
 
 	char reg[20];
-	byte sensor_id[] = {103, 104, 105,102};
+	byte sensor_id[] = {103, 104, 105, 102};
 
 	snprintf(reg, sizeof(reg), "%d|%d|%d|%d|%d|%d|%d|%d",
 			(strikes==umbral),
 			umbral,
-			0,
+			0, //@PEND No se restauran
 			modo,
 			(idTerminal == 0)? 0 : idTerminal,
 			(idTerminal == 0)? sensor_id[id] : id,
@@ -224,12 +224,12 @@ void EventosJson::guardarDeteccion(byte strikes, byte umbral, byte modo, byte id
 
 void EventosJson::guardarNotificacion(byte tipo, byte asunto, char cuerpo[],byte tlf){
 
-	char reg[1024]; //Para que entre el log
+	char reg[512]; //Para que entre el log
 
-	// Limitar el campo cuerpo a 800 caracteres
-	char cuerpoLimitado[801];
-	strncpy(cuerpoLimitado, cuerpo, 800);
-	cuerpoLimitado[800] = '\0';
+	// Limitar el campo cuerpo a 400 caracteres
+	char cuerpoLimitado[401];
+	strncpy(cuerpoLimitado, cuerpo, 400);
+	cuerpoLimitado[400] = '\0';
 
 	snprintf(reg, sizeof(reg), "%d|%d|%s|%d",
 			tipo,

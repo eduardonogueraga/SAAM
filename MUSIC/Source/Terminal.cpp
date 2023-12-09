@@ -450,14 +450,15 @@ double Terminal::EvaluarSensor(Lista* lista, int numSensor) {
         		//Serial.println("Guarda el salto");
         		char registroConjunto[50];
 
-        		snprintf(registroConjunto, sizeof(registroConjunto), "MOVIMIENTO EN TERMINAL %d:%s%s", getTerminalId(),literalesZonas[getTerminalId()][numSensor]," ONLINE");
+        		snprintf(registroConjunto, sizeof(registroConjunto), "MOVIMIENTO EN TERMINAL %d:%s%s", getTerminalId(),literalesZonas[getTerminalId()][numSensor], (configSystem.SENSORES_HABLITADOS[numSensor+1]? " ONLINE" : " OFFLINE"));
         		registro.registrarLogSistema(registroConjunto);
         		eventosJson.guardarDeteccion(0, //@PEND No podemos determinar si es el que genera el intrusismo desde aqui
         				FRACCION_SALTO,
 						P_MODO_NORMAL,
 						getTerminalId(),
 						numSensor,
-						P_ESTADO_ONLINE); //Regularizar el id del terminal
+						(configSystem.SENSORES_HABLITADOS[numSensor+1]? P_ESTADO_ONLINE : P_ESTADO_OFFLINE)
+						); //Regularizar el id del terminal
 
 
         		puntero->data.saltosRegistrados[numSensor] = 1;
@@ -507,15 +508,22 @@ void Terminal::EvaluarSensorPhantom(Lista* lista){
             for (int i = 0; i < getNumSensores(); i++) {
                  if(puntero->data.sampleSensores[i]){
 
-                	 snprintf(registroConjunto, sizeof(registroConjunto), "%s%d%s", "MOVIMIENTO PHANTOM EN TERMINAL X:",i," ONLINE");
-                	 registro.registrarLogSistema(registroConjunto);
-                	 eventosJson.guardarDeteccion(
-                			 1,
-							 FRACCION_SALTO,
-							 P_MODO_PHANTOM,
-							 getTerminalId(),
-							 i,
-							 P_ESTADO_ONLINE); //Regularizar el id del terminal
+                	 //Se guarda el salto por primera vez
+                	 if (!puntero->data.saltosRegistrados[i]) {
+                		 snprintf(registroConjunto, sizeof(registroConjunto), "MOVIMIENTO PHANTOM EN TERMINAL %d:%s%s", getTerminalId(),literalesZonas[getTerminalId()][i], (configSystem.SENSORES_HABLITADOS[i+1]? " ONLINE" : " OFFLINE"));
+                		 registro.registrarLogSistema(registroConjunto);
+                		 eventosJson.guardarDeteccion(
+                				 1,
+								 FRACCION_SALTO,
+								 P_MODO_PHANTOM,
+								 getTerminalId(),
+								 i,
+								 (configSystem.SENSORES_HABLITADOS[i+1]? P_ESTADO_ONLINE : P_ESTADO_OFFLINE)
+								 ); //Regularizar el id del terminal
+
+                		 puntero->data.saltosRegistrados[i] = 1;
+                	 }
+
                      sampleSensoresPhantom[i]++;
                 }
             }
