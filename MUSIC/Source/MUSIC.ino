@@ -578,6 +578,12 @@ void setEstadoEnvio()
 void setEstadoReposo()
 {
 	Serial.println(F("\nAlarma Desactivada"));
+
+	if(estadoAlarma == ESTADO_ALERTA){
+		//Si la alarma de desactiva desde una alerta envio confirmacion
+		encolarNotifiacionEntradaAutenticada();
+	}
+
 	estadoAlarma = ESTADO_REPOSO;
 
 	lcd_clave_tiempo = millis();

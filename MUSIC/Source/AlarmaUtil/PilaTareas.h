@@ -353,6 +353,10 @@ void encolarNotifiacionIntrusismo(){
 	encolarNotificacionSaas(1, contenidoCola);
 }
 
+void encolarNotifiacionEntradaAutenticada(){
+	encolarNotificacionSaas(1, "Entrada acreditada, la alarma fue desactivada por el usuario");
+}
+
 void encolarEnvioFtpSaas(){
 	//Se guarda en la cola el envio ftp diario
 	DatosTarea datosNodo;
