@@ -98,6 +98,8 @@
 #define MAX_SIZE_JSON 2100 //Bytes maximos del modelo JSON
 #define MAX_TOQUES_BOCINA_RESTANTES 15 //Intentos en modo inquieto
 #define MAX_INTENTOS_REACTIVACION 3
+#define MAX_PAQUETES_SAAS_EN_MEMORIA_SD 30
+#define MAX_DESCARTE_PAQUETES_SAAS 10 //Paquetes descartados cuando se producza un HTTP 500
 //COMUNICACION LINEA
 enum infoTrazas{DESTINATARIO, AUTOR, METODO, METODO_DESC, ESTADO_SERVICIO, FOTOSENSOR};
 

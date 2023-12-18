@@ -202,6 +202,20 @@ void Registro::listarRegistros(RegistroDirectorios dir){
 
 }
 
+int Registro::contarLineas(RegistroDirectorios dir){
+
+	root = SD.open(directories[dir]);
+	  int nLineas = 0;
+			while (true) {
+			  File entry = root.openNextFile();
+			  if (!entry) {break;}
+			  nLineas++;
+			  entry.close();
+			}
+			root.close();
+	return nLineas;
+}
+
 void Registro::borrarRegistros(RegistroDirectorios dir){
 
 	if(!configSystem.MODULO_SD || SD_STATUS == 0)
@@ -242,6 +256,11 @@ byte Registro::exportarEventosJson(StaticJsonDocument<MAX_SIZE_JSON>* json){
 	if (!root) {
 		Serial.println("No se pudo abrir la carpeta json");
 		return 0;
+	}
+
+	if(contarLineas(DIR_JSON_REQUEST) > MAX_PAQUETES_SAAS_EN_MEMORIA_SD){
+		Serial.println("Demasiados paquetes eliminamos los paquetes pendientes");
+		borrarRegistros(DIR_JSON_REQUEST);
 	}
 
 

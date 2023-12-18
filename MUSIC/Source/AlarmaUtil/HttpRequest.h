@@ -248,6 +248,11 @@ String descifrarCadena(const String& inputString) {
 				guardarFlagEE("ERR_HTTP_4", 1);
 			}
 
+			if(respuesta.codigo == -3){
+				//Timeout Error server down
+				guardarFlagEE("ERR_HTTP_3", MAX_DESCARTE_PAQUETES_SAAS);
+			}
+
 			if (estadoHttp != 0 || respuesta.codigo <= 0) {
 				Serial.println(F("failed to connect"));
 

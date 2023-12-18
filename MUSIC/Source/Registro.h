@@ -52,6 +52,7 @@ private:
 	String modificarCampo(String cadena, const String& nombre_campo, const String& nuevo_valor);
 	String obtenerValorCampo(const String& cadena, const String& nombre_campo);
 	void crearNuevoNombreLog();
+	int contarLineas(RegistroDirectorios dir);
 public:
 	Registro();
 	byte iniciar();

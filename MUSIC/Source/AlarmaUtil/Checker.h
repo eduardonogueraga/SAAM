@@ -219,6 +219,13 @@ void checkearEnvioSaas(){
 
 	static unsigned long lastExecutionTime = 0;
 
+	if(leerFlagEEInt("ERR_HTTP_3") > 0){
+		Serial.println("Timeout en el envio de paquetes, descartando...");
+		registro.registrarLogSistema("ERR_HTTP_3 Sin conexion a SAAS, envio de paquete descatado");
+		guardarFlagEE("ERR_HTTP_3", (leerFlagEEInt("ERR_HTTP_3")-1));
+		return;
+	}
+
 #ifdef ALARMA_EN_MODO_DEBUG
 	if (millis() - lastExecutionTime >= 30000) {
 #else

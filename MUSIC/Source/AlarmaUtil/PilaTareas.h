@@ -602,6 +602,8 @@ void gestionarPilaDeTareas(){
 
 				estadoPila = LIBRE;
 				finalizarTareaEnCurso(&listaTareas);
+				accesoAlmacenamientoSD = 1; //Vuelvo a dejar abierto el paso de los registros
+
 			}
 
 		}

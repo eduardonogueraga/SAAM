@@ -10,6 +10,9 @@
  * - Controlar a futuro el impacto entre terminales core
  *
  * INCIDENCIAS
+*  Gestionar error -3 500 Server is down (Ok revisar)
+*  Limitar el numero de paquetes en reserva (OK revisar)
+*  Purga del fichero JSON automaticamente si hay muchos fallos y manual desde menu PEND
  *
  */
 
@@ -180,8 +183,10 @@ void loop()
 void tareaSaas(void *pvParameters) {
 
 	Serial.println("Task Paquete datos");
+	accesoAlmacenamientoSD = 0; //Cierro el acceso a SD
 	resultadoEnvioServidorSaas = 0;
 	resultadoEnvioServidorSaas = enviarEnvioModeloSaas();
+	accesoAlmacenamientoSD = 1;
 	vTaskDelay(100);
 
 	//Pendiente de cierre
@@ -196,8 +201,10 @@ void tareaNotificacionSaas(void *pvParameters){
 	NotificacionSaas *datos = (NotificacionSaas *)pvParameters;
 
 	Serial.println("Task Notificacion Tiempo medio 15 segundos");
+	accesoAlmacenamientoSD = 0; //Cierro el acceso a SD
 	resultadoEnvioNotificacionSaas = 0;
 	resultadoEnvioNotificacionSaas = enviarNotificacionesSaas(datos->tipo, datos->contenido);
+	accesoAlmacenamientoSD = 1;
 	vTaskDelay(100);
 
 	//Pendiente de cierre
