@@ -10,9 +10,7 @@
  * - Controlar a futuro el impacto entre terminales core
  *
  * INCIDENCIAS
-*  Gestionar error -3 500 Server is down (Ok revisar)
-*  Limitar el numero de paquetes en reserva (OK revisar)
-*  Purga del fichero JSON automaticamente si hay muchos fallos y manual desde menu PEND
+ *  Purga del fichero JSON manual desde menu PEND
  *
  */
 

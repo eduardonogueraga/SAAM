@@ -87,27 +87,30 @@ void Registro::registrarLogSistema(char descripcion[190]){
 	}
 
 
-	 //Nos movemos al diretorio de logs
-	   root = SD.open(directories[DIR_LOGS]);
-	   if (!root) {
-		 Serial.println("No se pudo abrir la carpeta logs");
-		 return;
-	   }
+	//Nos movemos al diretorio de logs
+	root = SD.open(directories[DIR_LOGS]);
+	if (!root) {
+		Serial.println("No se pudo abrir la carpeta logs");
+		return;
+	}
 
-	   snprintf(rutaAbosuluta, sizeof(rutaAbosuluta), "%s/%s", directories[DIR_LOGS], nombreFicheroLog);
+	snprintf(rutaAbosuluta, sizeof(rutaAbosuluta), "%s/%s", directories[DIR_LOGS], nombreFicheroLog);
 
-	     root = SD.open(rutaAbosuluta, FILE_APPEND);
-			 if (!root) {
-			   Serial.println("Fallo al abrir el fichero de logs");
-			   return;
-			 }
+	root = SD.open(rutaAbosuluta, FILE_APPEND);
+	if (!root) {
+		Serial.println("Fallo al abrir el fichero de logs");
+		return;
+	}
 
-		 root.print(fecha.imprimeFecha(1));
-	     root.print("\t");
-	     root.print(descripcion);
+	root.print(fecha.imprimeFecha(1));
+	root.print("\t");
+	root.print(descripcion);
 
-	     root.print("\n");
-	     root.close();
+	root.print("\n");
+
+	//Si el fichero esta por llegar a los 2K creamos uno nuevo
+	if(root.size() >= 1792){crearNuevoNombreLog();}
+	root.close();
 
 }
 
@@ -203,16 +206,17 @@ void Registro::listarRegistros(RegistroDirectorios dir){
 }
 
 int Registro::contarLineas(RegistroDirectorios dir){
+	File file;
+	int nLineas = 0;
+	snprintf(rutaAbosuluta, sizeof(rutaAbosuluta), "%s/%s", directories[dir], (dir == DIR_JSON_REQUEST)? nombreFicheroJsonRequest : nombreFicheroLog);
+	file = SD.open(rutaAbosuluta);
 
-	root = SD.open(directories[dir]);
-	  int nLineas = 0;
-			while (true) {
-			  File entry = root.openNextFile();
-			  if (!entry) {break;}
-			  nLineas++;
-			  entry.close();
-			}
-			root.close();
+	while (file.available()) {
+		nLineas++;
+		file.readStringUntil('\n');
+	}
+
+	file.close();
 	return nLineas;
 }
 

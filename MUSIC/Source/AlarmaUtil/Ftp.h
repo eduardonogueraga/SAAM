@@ -75,6 +75,10 @@ bool comprobarFicheroFtp(const char* nombreArchivo) {
 bool crearFicheroFtp(const char* nombreArchivo, int bytes){
 	//Genera el fichero a 0 bytes
 	char FTPPutFileCommand[150];
+
+	//Aseguro el maximo de trasnferencia por puerto serie 2048
+	bytes = (bytes > 2048) ? 2048 : bytes;
+
 	sprintf(FTPPutFileCommand, "+CFTPSPUT=\"%s\",%i", nombreArchivo, bytes);
 
 	modem.sendAT(GF(FTPPutFileCommand));
