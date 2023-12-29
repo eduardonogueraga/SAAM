@@ -207,17 +207,13 @@ void Mensajes::llamarTlf(char* tlf){
 	}
 
 	Serial.println("Llamando "+(String)tlf);
-	UART_GSM.println("AT");
-	delay(200);
-	UART_GSM.println("ATD+ +34"+(String)tlf+';');
-	delay(200);
+	llamarTlfAPI(tlf);
 
 }
 
 void Mensajes::colgarLlamada(){
 	Serial.println("Llamada finalizada");
-	UART_GSM.println("ATH");
-
+	colgarLlamadaAPI();
 }
 
 void Mensajes::asuntoAlerta(){

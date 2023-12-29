@@ -83,6 +83,15 @@ String leerCadenaEE(const char* key) {
 }
 
 
+void llamarTlfAPI(char* tlf){
+	modem.callNumber(tlf);
+}
+
+void colgarLlamadaAPI(){
+	modem.callHangup();
+}
+
+
 void guardarCadenaEE(const char* key, String* value) {
 
 	NVSMemory.begin("SAA_DATA", false);

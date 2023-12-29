@@ -79,6 +79,8 @@ extern bool iniciarServicioFtp();
 extern bool abrirSesionFtp();
 extern bool cambiarDirectorioTrabajoFtp();
 extern bool cerrarConexionFtp();
+extern void colgarLlamadaAPI();
+extern void llamarTlfAPI(char* tlf);
 
 extern RespuestaFtp envioRegistrosFTP();
 

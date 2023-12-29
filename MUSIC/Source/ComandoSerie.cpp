@@ -540,6 +540,17 @@ void ComandoSerie::comprobarComando() {
 	}
 
 
+	if(compararCadena(data, "llamar")){
+		nombreComando(data);
+		llamarTlfAPI((char*)telefonoLlamada_1);
+	}
+
+	if(compararCadena(data, "colgar")){
+		nombreComando(data);
+		colgarLlamadaAPI();
+	}
+
+
 	if(compararCadena(data, "at")){
 		nombreComando(data);
 		UART_GSM.println("AT");

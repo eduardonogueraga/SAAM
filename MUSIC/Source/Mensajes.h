@@ -34,6 +34,9 @@ extern const char* literalesZonas[2][MAX_DATOS_SUB_TRAMA];
 extern RespuestaTerminal respuestaTerminal;
 extern Terminal* T_LIST[];
 
+extern void colgarLlamadaAPI();
+extern void llamarTlfAPI(char* tlf);
+
 
 class Mensajes {
 
