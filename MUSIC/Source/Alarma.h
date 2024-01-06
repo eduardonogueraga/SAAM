@@ -210,6 +210,9 @@ static byte tiempoFracccion;
 //FLAG ALERTA RESTAURADA
  byte flagAlertaRestaurada = 0;
 
+//ENVIOS FALLIDOS
+ byte enviosHttpFallidos = 0;
+
 
  //FUNCIONES//
 void leerEntradaTeclado(){

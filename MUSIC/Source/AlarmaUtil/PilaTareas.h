@@ -242,7 +242,8 @@ void crearTareaEnvioModeloSaas(){
 
 byte enviarEnvioModeloSaas(){
 	byte executionResult;
-
+	RegistroLogTarea reg;
+	reg.tipoLog = 0; //systema
 
 #ifdef ALARMA_EN_MODO_DEBUG
 	if(modem.waitForNetwork(2000, true)){
@@ -253,6 +254,10 @@ byte enviarEnvioModeloSaas(){
 		executionResult = eventosJson.enviarInformeSaas();
 	}else {
 		Serial.println(F("No hay cobertura se aborta el envio"));
+		snprintf(reg.log, sizeof(reg.log), "No hay cobertura se aborta el envio");
+		reg.saasLogid = ERROR_GSM_SIN_COBERTURA;
+		xQueueSend(colaRegistros, &reg, 0);
+
 		executionResult = 0;
 		//Refresco el modulo
 		refrescarModuloGSM();
@@ -311,6 +316,8 @@ void crearTareaNotificacionSaas(byte tipo, const char* contenido){
 byte enviarNotificacionesSaas(byte tipo, const char* contenido){
 
 	byte resultado;
+	RegistroLogTarea reg;
+	reg.tipoLog = 0; //systema
 
 #ifdef ALARMA_EN_MODO_DEBUG
 	if(modem.waitForNetwork(2000, true)){
@@ -321,6 +328,10 @@ byte enviarNotificacionesSaas(byte tipo, const char* contenido){
 		resultado = eventosJson.enviarNotificacionSaas(tipo, contenido);
 	}else {
 		Serial.println(F("No hay cobertura se aborta el intento"));
+		snprintf(reg.log, sizeof(reg.log), "No hay cobertura se aborta el envio de notificacion");
+		reg.saasLogid = ERROR_GSM_SIN_COBERTURA;
+		xQueueSend(colaRegistros, &reg, 0);
+
 		resultado = 0;
 		//Refresco el modulo
 		refrescarModuloGSM();
@@ -405,6 +416,9 @@ byte enviarEnvioFtpSaas(){
 
 		}else {
 			Serial.println(F("No hay cobertura se aborta el envio"));
+			snprintf(reg.log, sizeof(reg.log), "No hay cobertura se aborta el envio FTP");
+			reg.saasLogid = ERROR_GSM_SIN_COBERTURA;
+			xQueueSend(colaRegistros, &reg, 0);
 			executionResult = 0;
 			refrescarModuloGSM();
 		}

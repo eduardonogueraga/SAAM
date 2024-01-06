@@ -249,8 +249,12 @@ String descifrarCadena(const String& inputString) {
 			}
 
 			if(respuesta.codigo == -3){
-				//Timeout Error server down
-				guardarFlagEE("ERR_HTTP_3", MAX_DESCARTE_PAQUETES_SAAS);
+				enviosHttpFallidos++;
+				if(enviosHttpFallidos > UMBRAL_FALLO_PAQUETE_SAAS){
+					//Timeout Error server down
+					guardarFlagEE("ERR_HTTP_3", MAX_DESCARTE_PAQUETES_SAAS);
+				}
+
 			}
 
 			if (estadoHttp != 0 || respuesta.codigo <= 0) {
@@ -266,6 +270,7 @@ String descifrarCadena(const String& inputString) {
 			}else {
 				respuestaHttp += "Codigo respuesta servidor: " + String(respuesta.codigo) + "\n";
 
+				enviosHttpFallidos = 0; //Reinicio el contador de fallos si envia algo OK
 				byte linesCount = 0;
 				Serial.println(F("Response Headers:"));
 				while (http.headerAvailable() && linesCount < 15) {

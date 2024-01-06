@@ -9,6 +9,9 @@
  * - Probar que en caso de necesitar tlf y sms las tareas en segundo plano finalizan OK
  * - Controlar a futuro el impacto entre terminales core
  *
+ * - Log para fallo en el envio por cobertura (pend test)
+ * - HTTP ERR 3 Strikes (pend test)
+ *
  * INCIDENCIAS
  *  Purga del fichero JSON manual desde menu PEND
  *
