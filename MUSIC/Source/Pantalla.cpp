@@ -521,7 +521,7 @@ void Pantalla::lcdGuardia(){
 
 
 	void Pantalla::menuConfigSaasConfTiempo(){
-		int tiempo = 10 + (configSystem.ESPERA_SAAS_MULTIPLICADOR*5);
+		int tiempo = 5 + (configSystem.ESPERA_SAAS_MULTIPLICADOR*5);
 		lcd.setCursor(0,0);
 		lcd.print(F("MINUTOS:"));
 		lcd.setCursor(9,0);
