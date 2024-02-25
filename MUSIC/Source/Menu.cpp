@@ -405,7 +405,7 @@ void Menu::configSaasConf(){
 
 		if(key == '1'){
 			configSystem.ESPERA_SAAS_MULTIPLICADOR++;
-			if(configSystem.ESPERA_SAAS_MULTIPLICADOR>3){
+			if(configSystem.ESPERA_SAAS_MULTIPLICADOR>4){
 				configSystem.ESPERA_SAAS_MULTIPLICADOR = 0;
 			}
 

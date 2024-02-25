@@ -562,6 +562,7 @@ void setEstadoAlerta()
 void setEstadoEnvio()
 {
 	Serial.println(F("\nTiempo acabado \nAVISO ENVIADO"));
+	registro.registrarLogSistema("TIEMPO ACABADO ENVIANDO AVISO");
 	estadoAlarma = ESTADO_ENVIO;
 	lcd_clave_tiempo = millis();
 	setMargenTiempo(tiempoBocina, TIEMPO_BOCINA, TIEMPO_BOCINA_TEST);

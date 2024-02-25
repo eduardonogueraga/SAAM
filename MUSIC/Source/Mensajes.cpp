@@ -132,7 +132,7 @@ void Mensajes::enviarSMS(){
 	procesarSMS();
 
 	char registroConjunto[50];
-	snprintf(registroConjunto, sizeof(registroConjunto), "%s%d", "SMS ENVIADO NUMERO:",leerFlagEEInt("N_SMS_ENVIADOS"));
+	snprintf(registroConjunto, sizeof(registroConjunto), "%s%d", "SMS ENVIADOS:",leerFlagEEInt("N_SMS_ENVIADOS"));
 	registro.registrarLogSistema(registroConjunto);
 
 	limpiarContenido();

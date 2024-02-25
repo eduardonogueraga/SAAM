@@ -222,7 +222,7 @@ void checkearEnvioSaas(){
 #ifdef ALARMA_EN_MODO_DEBUG
 	if (millis() - lastExecutionTime >= 30000) {
 #else
-    if (millis() - lastExecutionTime >= (((configSystem.ESPERA_SAAS_MULTIPLICADOR*5)+10)*60000)) { //600000
+    if (millis() - lastExecutionTime >= (((configSystem.ESPERA_SAAS_MULTIPLICADOR*5)+5)*60000)) { //600000
 #endif
     	lastExecutionTime = millis();
 

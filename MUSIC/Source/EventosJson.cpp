@@ -141,7 +141,7 @@ void EventosJson::guardarEvento(char eventName[],char reg[]) {
 	 E_ARR_SYSTEM["msen"] = String(configSystem.MODO_SENSIBLE);
 	 E_ARR_SYSTEM["alive"] = String(millis());
 	 E_ARR_SYSTEM["traffic"] = numTrafic;
-	 E_ARR_SYSTEM["gsm"] = String(getCalidadRed()) + "|" + String(getVoltajeBateria());
+	 E_ARR_SYSTEM["gsm"] = String(getCalidadRed()) + "|" + String(getVoltajeBateria()) + "|" + String(configSystem.ENVIO_FTP);
 	 E_ARR_SYSTEM["modules"] = String(configSystem.MODULO_SD)+
 			 "|" + String(configSystem.MODULO_RTC)+
 			 "|0";
@@ -358,7 +358,7 @@ void EventosJson::actualizarCabecera(){
 	lastSystem["msen"] = String(configSystem.MODO_SENSIBLE);
 	lastSystem["alive"] = String(millis());
 	lastSystem["traffic"] = numTrafic;
-	lastSystem["gsm"] = String(getCalidadRed()) + "|" + String(getVoltajeBateria());
+	lastSystem["gsm"] = String(getCalidadRed()) + "|" + String(getVoltajeBateria()) + "|" + String(configSystem.ENVIO_FTP);
 	lastSystem["modules"] = String(configSystem.MODULO_SD)+
 			"|" + String(configSystem.MODULO_RTC)+
 			"|0";
@@ -523,7 +523,7 @@ byte EventosJson::enviarInformeSaas(){
 				confirmarIdPaquete();
 				registro.extraerPrimerElemento(); //Saco el registro
 
-				 snprintf(reg.log, sizeof(reg.log), "Modelo enviado desde SD");
+				 snprintf(reg.log, sizeof(reg.log), "%s [%d]", "Modelo enviado desde SD",leerFlagEEInt("PACKAGE_ID"));
 				 reg.saasLogid = MODELO_ENVIADO_SD_LOG;
 				 xQueueSend(colaRegistros, &reg, 0);
 
@@ -595,7 +595,7 @@ byte EventosJson::enviarInformeSaas(){
 		Serial.println(F("Modelo memoria enviado"));
 		confirmarIdPaquete();
 
-		snprintf(reg.log, sizeof(reg.log), "Modelo enviado");
+		snprintf(reg.log, sizeof(reg.log), "%s [%d]", "Modelo enviado",leerFlagEEInt("PACKAGE_ID"));
 		//reg.saasLogid = MODELO_ENVIADO_LOG; //No enviar copia al siguente modelo redundante
 		xQueueSend(colaRegistros, &reg, 0);
 

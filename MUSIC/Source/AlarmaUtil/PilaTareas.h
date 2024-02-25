@@ -365,7 +365,7 @@ void encolarNotifiacionIntrusismo(){
 }
 
 void encolarNotifiacionEntradaAutenticada(){
-	encolarNotificacionSaas(1, "Entrada acreditada, la alarma fue desactivada por el usuario");
+	encolarNotificacionSaas(0, "Entrada acreditada, la alarma fue desactivada por el usuario");
 }
 
 void encolarEnvioFtpSaas(){
