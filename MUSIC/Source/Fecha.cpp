@@ -20,15 +20,51 @@ byte Fecha::iniciarRTC(){
 		pantallaDeError(F("  SYSTM ERROR!  ERR INICIAR  RTC"));
 		return 0;
 	}else {
-		//rtc.adjust(DateTime(__DATE__, __TIME__));  //Establecer tiempo
 
-		//Sincronizamos el tiempo con el RTC local
+		//rtc.adjust(DateTime(__DATE__, __TIME__));  //Establecer tiempo manual
 		rtcLocal.setTime(rtc.now().unixtime());
 		return 1;
 	}
 
 }
 
+byte Fecha::ajustarFechaServidor(){
+	RespuestaHttp peticionFecha = getTiempoServer();
+
+	if(peticionFecha.codigo != 200){
+		return 0;
+	}
+
+	char tramaFecha[25];
+	peticionFecha.respuesta.toCharArray(tramaFecha, 25);
+
+	//Validamos formato
+	std::regex formatoFechaSaas("^\\d{4};\\d{2};\\d{2};\\d{2};\\d{2};\\d{2}$");
+	if(!std::regex_match(tramaFecha, formatoFechaSaas)){
+		return 0;
+	}
+
+	int datosFecha[6];
+	char *token = strtok(tramaFecha, ";");
+	byte i = 0;
+
+	while (token != nullptr) {
+		datosFecha[i++] = atoi(token);
+		token = strtok(nullptr, ";");
+	}
+
+	rtc.adjust(DateTime(datosFecha[0], datosFecha[1], datosFecha[2], datosFecha[3], datosFecha[4], datosFecha[5]));
+
+	char buffer[] = "DD/MM/YYYY hh:mm:ss";
+	DateTime testFecha = rtc.now();
+	Serial.println("Fecha sincronizada");
+	Serial.println(testFecha.toString(buffer));
+
+	//Sincronizamos el tiempo con el RTC local
+	rtcLocal.setTime(rtc.now().unixtime());
+
+	return 1;
+}
 
 DateTime Fecha::obtenerTiempoActual(){
 	  DateTime dateTime = DateTime(rtcLocal.getEpoch());

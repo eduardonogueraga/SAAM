@@ -55,7 +55,7 @@ void recvMsg(uint8_t *data, size_t len){
 //TEST WIFI
 
 //VERSION (VE -> Version Estable VD -> Version Desarrollo)
-const char* version[] = {"MUSIC VE21R1", "25/02/24"};
+const char* version[] = {"MUSIC VE21R2", "24/06/24"};
 
 //RTOS
 TaskHandle_t gestionLinea;

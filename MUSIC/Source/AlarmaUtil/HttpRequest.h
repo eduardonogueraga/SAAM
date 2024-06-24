@@ -335,12 +335,17 @@ String descifrarCadena(const String& inputString) {
 
 			respuestaHttp += "Fin peticion "+ fecha.imprimeFecha(1) +"\n";
 
-			RegistroLogTarea reg;
-			TickType_t espera = pdMS_TO_TICKS(10);
-			respuestaHttp.toCharArray(reg.log, sizeof(reg.log));
-			reg.tipoLog = 1; //http
+			if(respuesta.codigo != 200){
+				//Si la peticion no es exitosa se guarda su log para examinar
+				Serial.println(F("ERROR Guardando log HTTP"));
 
-			xQueueSend(colaRegistros, &reg, espera);
+				RegistroLogTarea reg;
+				TickType_t espera = pdMS_TO_TICKS(10);
+				respuestaHttp.toCharArray(reg.log, sizeof(reg.log));
+				reg.tipoLog = 1; //http
+
+				xQueueSend(colaRegistros, &reg, espera);
+			}
 
 
 			cerrarConexionGPRS();
@@ -372,6 +377,10 @@ String descifrarCadena(const String& inputString) {
 	    }
 
 	    return respuesta.codigo;
+	}
+
+	RespuestaHttp getTiempoServer(){
+		return realizarPeticionHttp("GET", getFechaServidor, 0);
 	}
 
 	int generarTokenSaas(){

@@ -54,6 +54,7 @@ void setup()
 	  iniciarTecladoI2C();
 	  //Iniciar pantalla
 	  pantalla.iniciar();
+
 	  //Iniciar reloj
 	  if(!fecha.iniciarRTC()){
 		  registro.registrarLogSistema("Error! No se inicializo del modulo RTC");
@@ -167,8 +168,20 @@ void setup()
 	   //TEST WIFI
 
 #ifndef ALARMA_EN_MODO_DEBUG
-	    comprobarConexionGSM(20000L);
+	    comprobarConexionGSM(30000L);
 #endif
+	 //Sincronizar reloj interno
+	if(modem.waitForNetwork(2000, true)){
+		pantalla.lcdLoadView(&pantalla, &Pantalla::sysSincronizarFecha);
+		if(!fecha.ajustarFechaServidor()){
+			Serial.println("Error sincronizando la fecha con el servidor");
+			registro.registrarLogSistema("Error sincronizando la fecha con el servidor");
+		}
+	}else {
+		Serial.println("Sin cobertura no se sincroniza la fecha");
+		registro.registrarLogSistema("Sin cobertura no se sincroniza la fecha");
+	}
+
 }
 
 void loop()

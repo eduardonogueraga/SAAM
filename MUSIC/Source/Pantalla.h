@@ -90,6 +90,7 @@ public:
     void sysConexionGprsOk();
     void sysConexionGprsFail();
     void sysConexionGSM();
+    void sysSincronizarFecha();
 	String& getErrorTexto();
 };
 

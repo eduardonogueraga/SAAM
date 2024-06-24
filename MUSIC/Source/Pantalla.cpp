@@ -578,6 +578,12 @@ void Pantalla::lcdGuardia(){
 		lcd.print(F("TELEFONICA . . ."));
 	}
 
+	void Pantalla::sysSincronizarFecha(){
+		lcd.setCursor(0,0);
+		lcd.print(F(" SINCRONIZANDO  "));
+		lcd.setCursor(0,1);
+		lcd.print(F("FECHA Y HORA . ."));
+	}
 
 	String& Pantalla::getErrorTexto() {
 		return errorTexto;

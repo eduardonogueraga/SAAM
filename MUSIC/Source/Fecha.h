@@ -11,9 +11,10 @@
 #include <RTClib.h>
 #include "AlarmaUtil/Macros.h"
 #include <ESP32Time.h>
+#include <regex>
 
 extern ConfigSystem configSystem;
-
+extern RespuestaHttp getTiempoServer();
 
 class Fecha {
 private:
@@ -27,6 +28,7 @@ public:
 
 	Fecha();
 	byte iniciarRTC();
+	byte ajustarFechaServidor();
 	String imprimeFecha(byte local= 0, DateTime paramFecha = 0);
 	String imprimeFechaSimple(DateTime paramFecha = 0);
 	String imprimeFechaSQL();
